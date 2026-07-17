@@ -7,6 +7,8 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import { RouteErrorComponent } from '../components/RouteErrorComponent'
+import { RouteNotFoundComponent } from '../components/RouteNotFoundComponent'
 
 import appCss from '../styles.css?url'
 
@@ -27,7 +29,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Spotify Music Quiz',
       },
     ],
     links: [
@@ -38,6 +40,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
   }),
   shellComponent: RootDocument,
+  errorComponent: RouteErrorComponent,
+  notFoundComponent: RouteNotFoundComponent,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
