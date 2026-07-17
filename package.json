@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "web:dev": "pnpm --filter @spotify-music-quiz/web dev",
-    "backend:dev": "pnpm --filter @spotify-music-quiz/backend start:dev"
+    "backend:dev": "docker compose up -d db && pnpm --filter @spotify-music-quiz/backend start:dev"
   },
   "dependencies": {
     "zod": "^4.4.3",
