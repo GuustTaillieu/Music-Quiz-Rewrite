@@ -1,0 +1,13 @@
+{
+  "name": "spotify-music-quiz",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "web:dev": "pnpm --filter @spotify-music-quiz/web dev",
+    "backend:dev": "pnpm --filter @spotify-music-quiz/backend start:dev"
+  },
+  "dependencies": {
+    "zod": "^4.4.3",
+    "zod-form-data": "^3.0.3"
+  }
+}
