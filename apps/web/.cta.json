@@ -5,11 +5,6 @@
   "packageManager": "npm",
   "includeExamples": false,
   "tailwind": true,
-  "addOnOptions": {
-    "drizzle": {
-      "database": "postgresql"
-    }
-  },
   "envVarValues": {},
   "git": false,
   "install": true,
@@ -21,7 +16,6 @@
     "netlify",
     "ai",
     "compiler",
-    "drizzle",
     "shadcn",
     "better-auth",
     "tanstack-query",

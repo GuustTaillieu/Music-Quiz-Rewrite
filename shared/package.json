@@ -1,3 +1,21 @@
 {
-  "name": "@spotify-music-quiz/shared"
+  "name": "@spotify-music-quiz/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./schema/index.ts",
+  "types": "./schema/index.ts",
+  "exports": {
+    ".": {
+      "types": "./schema/index.ts",
+      "default": "./schema/index.ts"
+    },
+    "./schema/game": {
+      "types": "./schema/game/index.ts",
+      "default": "./schema/game/index.ts"
+    }
+  },
+  "dependencies": {
+    "zod": "^4.4.3",
+    "zod-form-data": "^3.0.3"
+  }
 }
