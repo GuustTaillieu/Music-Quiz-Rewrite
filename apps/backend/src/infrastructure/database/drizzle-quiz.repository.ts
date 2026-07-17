@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { QuizRepository } from '../../ports/quiz.repository.port';
-import { DATABASE_CONNECTION } from './database.module';
-import type { DrizzleDb } from './database.module';
+import { DATABASE_CONNECTION } from './database.constants';
+import type { DrizzleDb } from './database.constants';
 import { quizzes, quizSongs } from './schema';
 import { Quiz, QuizMeta } from '@spotify-music-quiz/shared/schema/game';
 
