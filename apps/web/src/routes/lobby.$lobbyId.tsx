@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { useQuizGame } from '#/hooks/useQuizGame';
+import { useSpotifyPlayer } from '#/hooks/useSpotifyPlayer';
 import {
   Users,
   Copy,
@@ -41,12 +42,16 @@ function LobbyRoomWrapper() {
     passTurn,
   } = useQuizGame(wsUrl);
 
+  const isLocalHost = gameState?.players.find((p) => p.name === username)?.isHost ?? false;
+  const spotifyPlayer = useSpotifyPlayer(isLocalHost);
+
   const [copied, setCopied] = useState(false);
   const [guessInput, setGuessInput] = useState('');
   const [showSpeedRoundModal, setShowSpeedRoundModal] = useState(false);
   // Audio preview reference for gameplay playback
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const prevSongIndexRef = useRef<number | null>(null);
+  const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Connect and join lobby
   useEffect(() => {
@@ -55,11 +60,20 @@ function LobbyRoomWrapper() {
     }
   }, [isConnected, lobbyId, username, joinLobby]);
 
-  // Handle Local Audio Playback for all players
+  // Handle Local Audio Playback strictly for Host devices
   useEffect(() => {
-    if (!gameState || !gameState.activeSong) {
+    if (!isLocalHost) return;
+
+    if (stopTimeoutRef.current) {
+      clearTimeout(stopTimeoutRef.current);
+    }
+
+    if (!gameState || !gameState.activeSong || gameState.phase === 'COMPLETED') {
       if (audioRef.current) {
         audioRef.current.pause();
+      }
+      if (spotifyPlayer.deviceId) {
+        spotifyPlayer.pauseTrack();
       }
       return;
     }
@@ -67,8 +81,32 @@ function LobbyRoomWrapper() {
     const activeSong = gameState.activeSong;
     const songIndex = gameState.currentSongIndex;
 
+    const startOffset = activeSong.start_offset_ms || 0;
+    const endOffset = activeSong.end_offset_ms || 30000;
+    const duration = endOffset - startOffset;
+
+    const triggerPlay = () => {
+      if (spotifyPlayer.deviceId) {
+        // Play via Spotify Web Playback SDK
+        spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
+        
+        // Auto-pause when snippet duration is reached
+        stopTimeoutRef.current = setTimeout(() => {
+          spotifyPlayer.pauseTrack();
+        }, duration);
+      } else if (activeSong.previewUrl) {
+        // Fallback to HTML5 audio preview
+        playAudio(activeSong.previewUrl);
+        
+        // Auto-pause when snippet duration is reached (fallback caps at 30s)
+        stopTimeoutRef.current = setTimeout(() => {
+          if (audioRef.current) audioRef.current.pause();
+        }, Math.min(duration, 30000));
+      }
+    };
+
     // Play if song index has advanced
-    if (activeSong.previewUrl && songIndex !== prevSongIndexRef.current) {
+    if (songIndex !== prevSongIndexRef.current) {
       prevSongIndexRef.current = songIndex;
 
       // Handle Speed Round warning modal trigger
@@ -76,13 +114,19 @@ function LobbyRoomWrapper() {
         setShowSpeedRoundModal(true);
         setTimeout(() => {
           setShowSpeedRoundModal(false);
-          playAudio(activeSong.previewUrl!);
+          triggerPlay();
         }, 4000); // Show modal for 4 seconds before playing song
       } else {
-        playAudio(activeSong.previewUrl);
+        triggerPlay();
       }
     }
-  }, [gameState]);
+
+    return () => {
+      if (stopTimeoutRef.current) {
+        clearTimeout(stopTimeoutRef.current);
+      }
+    };
+  }, [gameState, isLocalHost, spotifyPlayer.deviceId]);
 
   const playAudio = (url: string) => {
     if (audioRef.current) {

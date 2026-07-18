@@ -19,20 +19,24 @@ export class RealSpotifyService implements SpotifyService {
         track.album?.images?.[0]?.url ??
         'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=150',
       previewUrl: track.preview_url ?? null,
+      durationMs: track.duration_ms ?? null,
     };
   }
 
-  public async searchTracks(query: string, limit = 10): Promise<SpotifyTrack[]> {
+  public async searchTracks(
+    hostAccessToken: string,
+    query: string,
+    limit = 10,
+  ): Promise<SpotifyTrack[]> {
     const cleanQuery = query.trim();
     if (!cleanQuery) return [];
 
     try {
-      const token = await this.tokenService.getClientCredentialsToken();
       const response = await fetch(
         `https://api.spotify.com/v1/search?q=${encodeURIComponent(cleanQuery)}&type=track&limit=${limit}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${hostAccessToken}`,
           },
         },
       );
@@ -54,12 +58,14 @@ export class RealSpotifyService implements SpotifyService {
     }
   }
 
-  public async getTrack(id: string): Promise<SpotifyTrack | null> {
+  public async getTrack(
+    hostAccessToken: string,
+    id: string,
+  ): Promise<SpotifyTrack | null> {
     try {
-      const token = await this.tokenService.getClientCredentialsToken();
       const response = await fetch(`https://api.spotify.com/v1/tracks/${id}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${hostAccessToken}`,
         },
       });
 

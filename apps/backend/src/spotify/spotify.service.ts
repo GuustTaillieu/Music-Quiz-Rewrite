@@ -6,7 +6,7 @@ import { SpotifyTrack } from '@spotify-music-quiz/shared/schema/game';
 export class SpotifyService {
   constructor(private readonly spotifyServicePort: SpotifyServicePort) {}
 
-  public async search(query: string): Promise<SpotifyTrack[]> {
-    return this.spotifyServicePort.searchTracks(query);
+  public async search(hostAccessToken: string, query: string): Promise<SpotifyTrack[]> {
+    return this.spotifyServicePort.searchTracks(hostAccessToken, query);
   }
 }

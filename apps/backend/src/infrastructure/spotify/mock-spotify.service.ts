@@ -14,6 +14,7 @@ export class MockSpotifyService implements SpotifyService {
         'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?w=150',
       previewUrl:
         'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+      durationMs: 180000,
     },
     {
       id: 'track-2',
@@ -24,6 +25,7 @@ export class MockSpotifyService implements SpotifyService {
         'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
       previewUrl:
         'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+      durationMs: 180000,
     },
     {
       id: 'track-3',
@@ -34,6 +36,7 @@ export class MockSpotifyService implements SpotifyService {
         'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=150',
       previewUrl:
         'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+      durationMs: 180000,
     },
     {
       id: 'track-4',
@@ -44,6 +47,7 @@ export class MockSpotifyService implements SpotifyService {
         'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150',
       previewUrl:
         'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+      durationMs: 180000,
     },
     {
       id: 'track-5',
@@ -54,10 +58,12 @@ export class MockSpotifyService implements SpotifyService {
         'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=150',
       previewUrl:
         'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
+      durationMs: 180000,
     },
   ];
 
   public async searchTracks(
+    hostAccessToken: string,
     query: string,
     limit = 10,
   ): Promise<SpotifyTrack[]> {
@@ -74,7 +80,10 @@ export class MockSpotifyService implements SpotifyService {
       .slice(0, limit);
   }
 
-  public async getTrack(id: string): Promise<SpotifyTrack | null> {
+  public async getTrack(
+    hostAccessToken: string,
+    id: string,
+  ): Promise<SpotifyTrack | null> {
     return this.mockCatalog.find((t) => t.id === id) ?? null;
   }
 

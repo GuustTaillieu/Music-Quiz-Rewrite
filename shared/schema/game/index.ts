@@ -11,6 +11,7 @@ export const SpotifyTrackSchema = z.object({
   album: z.string(),
   coverArtUrl: z.string().url(),
   previewUrl: z.string().url().nullable().optional(),
+  durationMs: z.number().int().positive().optional().nullable(),
 });
 
 export type SpotifyTrack = z.infer<typeof SpotifyTrackSchema>;

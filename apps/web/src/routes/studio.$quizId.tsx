@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuizEditor } from '#/hooks/useQuizEditor';
+import { TimelineSlider } from '#/components/TimelineSlider';
 import {
   ArrowLeft,
   Save,
@@ -368,53 +369,17 @@ function QuizEditor() {
                   </div>
                 )}
 
-                {/* Offsets settings */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                      Start Offset (ms)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={selectedSong.start_offset_ms}
-                      onChange={(e) =>
-                        handleSongChange(
-                          selectedSongIndex!,
-                          'start_offset_ms',
-                          parseInt(e.target.value) || 0,
-                        )
-                      }
-                      className="w-full bg-white dark:bg-foam/20 border border-line rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-lagoon"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                      End Offset (ms)
-                    </label>
-                    <input
-                      type="number"
-                      min={1000}
-                      value={selectedSong.end_offset_ms}
-                      onChange={(e) =>
-                        handleSongChange(
-                          selectedSongIndex!,
-                          'end_offset_ms',
-                          parseInt(e.target.value) || 0,
-                        )
-                      }
-                      className="w-full bg-white dark:bg-foam/20 border border-line rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-lagoon"
-                    />
-                  </div>
-                </div>
-
-                <div className="text-[10px] text-muted-foreground/60 leading-normal">
-                  The snippet duration will be{' '}
-                  <span className="font-bold text-foreground">
-                    {((selectedSong.end_offset_ms - selectedSong.start_offset_ms) / 1000).toFixed(1)}
-                  </span>{' '}
-                  seconds. Use previews in search to determine timing.
+                {/* Timeline Offset Slider */}
+                <div className="pt-2">
+                  <TimelineSlider
+                    durationMs={selectedSong.track.durationMs || 180000}
+                    startOffsetMs={selectedSong.start_offset_ms}
+                    endOffsetMs={selectedSong.end_offset_ms}
+                    onChange={(start, end) => {
+                      handleSongChange(selectedSongIndex!, 'start_offset_ms', start);
+                      handleSongChange(selectedSongIndex!, 'end_offset_ms', end);
+                    }}
+                  />
                 </div>
               </div>
             ) : (

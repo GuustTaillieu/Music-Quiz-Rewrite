@@ -1,8 +1,15 @@
 import { SpotifyTrack } from '@spotify-music-quiz/shared/schema/game';
 
 export abstract class SpotifyService {
-  abstract searchTracks(query: string, limit?: number): Promise<SpotifyTrack[]>;
-  abstract getTrack(id: string): Promise<SpotifyTrack | null>;
+  abstract searchTracks(
+    hostAccessToken: string,
+    query: string,
+    limit?: number,
+  ): Promise<SpotifyTrack[]>;
+  abstract getTrack(
+    hostAccessToken: string,
+    id: string,
+  ): Promise<SpotifyTrack | null>;
   abstract controlPlayback(
     hostAccessToken: string,
     trackId: string,
