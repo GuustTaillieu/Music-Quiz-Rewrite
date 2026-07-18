@@ -4,5 +4,9 @@ export abstract class QuizRepository {
   abstract findById(id: string): Promise<Quiz | null>;
   abstract findAllMeta(): Promise<QuizMeta[]>;
   abstract create(quiz: Omit<Quiz, 'createdAt'>): Promise<Quiz>;
+  abstract update(
+    id: string,
+    quiz: Omit<Quiz, 'createdAt' | 'id' | 'creatorId'>,
+  ): Promise<Quiz>;
   abstract delete(id: string): Promise<boolean>;
 }

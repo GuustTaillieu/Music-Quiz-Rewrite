@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { authClient } from '#/lib/auth-client';
+import { useDashboard } from '#/hooks/useDashboard';
 import { LogIn, Music, Play, Plus, LogOut } from 'lucide-react';
 
 export const Route = createFileRoute('/')({
@@ -10,93 +8,22 @@ export const Route = createFileRoute('/')({
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [lobbyCode, setLobbyCode] = useState('');
-  const [guestName, setGuestName] = useState('');
-  const [joinError, setJoinError] = useState('');
-
-  // Get session using Better-Auth client hook
-  const { data: sessionData, isPending: isSessionLoading } =
-    authClient.useSession();
-
-  // Fetch quizzes using TanStack Query if logged in
-  const { data: quizzes, isLoading: isQuizzesLoading } = useQuery({
-    queryKey: ['quizzes'],
-    queryFn: async () => {
-      const res = await fetch('/api/quizzes', {
-        headers: {
-          // Send request credentials if cookies are used
-        },
-      });
-      if (!res.ok) {
-        throw new Error('Failed to fetch quizzes');
-      }
-      return res.json() as Promise<Array<{ id: string; title: string; description: string | null }>>;
-    },
-    enabled: !!sessionData?.user,
-  });
-
-  const handleJoinLobby = (e: React.FormEvent) => {
-    e.preventDefault();
-    setJoinError('');
-
-    const code = lobbyCode.trim().toUpperCase();
-    const name = guestName.trim();
-
-    if (code.length !== 4) {
-      setJoinError('Lobby code must be exactly 4 letters.');
-      return;
-    }
-    if (!name) {
-      setJoinError('Please enter a username.');
-      return;
-    }
-
-    // Navigate to the lobby page with search params
-    navigate({
-      to: '/lobby/$lobbyId',
-      params: { lobbyId: code },
-      search: { username: name },
-    });
-  };
-
-  const handleCreateLobby = async (quizId: string) => {
-    try {
-      const res = await fetch('/api/game/lobby', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ quizId }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to create lobby');
-      }
-
-      const data = (await res.json()) as { lobbyId: string };
-      // Host joins under their user name
-      navigate({
-        to: '/lobby/$lobbyId',
-        params: { lobbyId: data.lobbyId },
-        search: { username: sessionData?.user.name ?? 'Host' },
-      });
-    } catch (err: unknown) {
-      console.error(err);
-      alert('Could not start lobby. Make sure you are logged in.');
-    }
-  };
-
-  const handleSpotifyLogin = async () => {
-    await authClient.signIn.social({
-      provider: 'spotify',
-      callbackURL: window.location.origin,
-    });
-  };
-
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    window.location.reload();
-  };
+  const {
+    lobbyCode,
+    setLobbyCode,
+    guestName,
+    setGuestName,
+    joinError,
+    sessionData,
+    isSessionLoading,
+    isLoggedIn,
+    quizzes,
+    isQuizzesLoading,
+    handleJoinLobby,
+    handleCreateLobby,
+    handleSpotifyLogin,
+    handleSignOut,
+  } = useDashboard();
 
   if (isSessionLoading) {
     return (
@@ -105,8 +32,6 @@ function Dashboard() {
       </div>
     );
   }
-
-  const isLoggedIn = !!sessionData?.user;
 
   return (
     <div className="page-wrap min-h-screen py-12 flex flex-col items-center justify-center">
@@ -203,30 +128,32 @@ function Dashboard() {
             <div className="flex flex-col h-full justify-between space-y-6">
               <div>
                 {/* User info */}
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-line">
-                  <div className="flex items-center gap-3">
-                    {sessionData.user.image && (
-                      <img
-                        src={sessionData.user.image}
-                        alt={sessionData.user.name}
-                        className="h-10 w-10 rounded-full border border-line"
-                      />
-                    )}
-                    <div>
-                      <h3 className="font-bold text-foreground text-sm leading-tight">
-                        {sessionData.user.name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">Host Mode Active</p>
+                {sessionData && (
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-line">
+                    <div className="flex items-center gap-3">
+                      {sessionData.user.image && (
+                        <img
+                          src={sessionData.user.image}
+                          alt={sessionData.user.name}
+                          className="h-10 w-10 rounded-full border border-line"
+                        />
+                      )}
+                      <div>
+                        <h3 className="font-bold text-foreground text-sm leading-tight">
+                          {sessionData.user.name}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">Host Mode Active</p>
+                      </div>
                     </div>
+                    <button
+                      onClick={handleSignOut}
+                      className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10"
+                      title="Sign Out"
+                    >
+                      <LogOut size={18} />
+                    </button>
                   </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10"
-                    title="Sign Out"
-                  >
-                    <LogOut size={18} />
-                  </button>
-                </div>
+                )}
 
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-bold text-foreground text-sm">Your Quizzes</h4>

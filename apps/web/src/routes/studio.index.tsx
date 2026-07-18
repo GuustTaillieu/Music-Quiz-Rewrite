@@ -1,74 +1,27 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { authClient } from '#/lib/auth-client';
+import { createFileRoute } from '@tanstack/react-router';
 import { Plus, Trash2, Edit, ArrowLeft, Disc, Music } from 'lucide-react';
+import { useStudioIndex } from '#/hooks/useStudioIndex';
 
 export const Route = createFileRoute('/studio/')({
   component: StudioIndex,
 });
 
-// Helper for generating UUID client-side if crypto.randomUUID isn't available
-function getUUID() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback simple generator
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0,
-      v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 function StudioIndex() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const { data: sessionData, isPending: isSessionLoading } =
-    authClient.useSession();
-
-  // Fetch quizzes using TanStack Query
-  const { data: quizzes, isLoading: isQuizzesLoading } = useQuery({
-    queryKey: ['quizzes'],
-    queryFn: async () => {
-      const res = await fetch('/api/quizzes');
-      if (!res.ok) {
-        throw new Error('Failed to fetch quizzes');
-      }
-      return res.json() as Promise<
-        Array<{
-          id: string;
-          title: string;
-          description: string | null;
-          createdAt: string;
-        }>
-      >;
-    },
-    enabled: !!sessionData?.user,
-  });
-
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (quizId: string) => {
-      const res = await fetch(`/api/quizzes/${quizId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        throw new Error('Failed to delete quiz');
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-    },
-  });
-
-  const handleCreateNewQuiz = () => {
-    const newId = getUUID();
-    navigate({
-      to: '/studio/$quizId',
-      params: { quizId: newId },
-    });
-  };
+  const {
+    navigate,
+    sessionData,
+    isSessionLoading,
+    quizzes,
+    isQuizzesLoading,
+    deleteMutation,
+    isCreateModalOpen,
+    setIsCreateModalOpen,
+    newTitle,
+    setNewTitle,
+    newDescription,
+    setNewDescription,
+    createQuizMutation,
+  } = useStudioIndex();
 
   if (isSessionLoading) {
     return (
@@ -100,6 +53,15 @@ function StudioIndex() {
     );
   }
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+    createQuizMutation.mutate({
+      title: newTitle,
+      description: newDescription,
+    });
+  };
+
   return (
     <div className="page-wrap min-h-screen py-12">
       {/* Header */}
@@ -121,7 +83,7 @@ function StudioIndex() {
           </div>
         </div>
         <button
-          onClick={handleCreateNewQuiz}
+          onClick={() => setIsCreateModalOpen(true)}
           className="bg-gradient-to-r from-lagoon to-lagoon-deep text-white font-bold py-2.5 px-5 rounded-xl hover:shadow-lg active:scale-98 flex items-center gap-2 cursor-pointer"
         >
           <Plus size={18} /> New Quiz
@@ -181,11 +143,13 @@ function StudioIndex() {
                   <Music size={12} /> Quiz Songs
                 </span>
                 <span>
-                  {new Date(quiz.createdAt).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
+                  {quiz.createdAt
+                    ? new Date(quiz.createdAt).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    : 'Recently created'}
                 </span>
               </div>
             </div>
@@ -201,11 +165,75 @@ function StudioIndex() {
             Get started by creating your very first music quiz. You can search Spotify tracks and select specific play offsets.
           </p>
           <button
-            onClick={handleCreateNewQuiz}
+            onClick={() => setIsCreateModalOpen(true)}
             className="bg-lagoon hover:bg-lagoon-deep text-white font-bold py-2.5 px-6 rounded-xl"
           >
             Create Quiz
           </button>
+        </div>
+      )}
+
+      {/* Creation Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="island-shell p-8 rounded-3xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="display-title text-2xl font-bold text-foreground mb-2">
+              Create New Quiz
+            </h2>
+            <p className="text-muted-foreground text-xs mb-6">
+              Give your new music quiz a title and description before heading to the editor.
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5 uppercase tracking-wider">
+                  Quiz Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 2000s Pop Classics"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="w-full text-foreground bg-foam/5 border border-line rounded-xl px-4 py-2.5 outline-none focus:border-lagoon/60 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-foreground mb-1.5 uppercase tracking-wider">
+                  Description (Optional)
+                </label>
+                <textarea
+                  placeholder="e.g. Guess the artist and track name from these nostalgic throwbacks!"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  rows={3}
+                  className="w-full text-foreground bg-foam/5 border border-line rounded-xl px-4 py-2.5 outline-none focus:border-lagoon/60 transition-colors resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-line">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    setNewTitle('');
+                    setNewDescription('');
+                  }}
+                  className="flex-1 bg-foam/10 hover:bg-foam/20 text-foreground font-bold py-2.5 px-4 rounded-xl transition-colors cursor-pointer text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newTitle.trim() || createQuizMutation.isPending}
+                  className="flex-1 bg-gradient-to-r from-lagoon to-lagoon-deep text-white font-bold py-2.5 px-4 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center gap-2"
+                >
+                  {createQuizMutation.isPending ? 'Creating...' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

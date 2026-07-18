@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"name": "ROOT",
+			"path": "../"
+		},
+		{
+			"name": "apps/web",
+			"path": "../apps/web"
+		},
+		{
+			"name": "apps/backend",
+			"path": "../apps/backend"
+		},
+		{
+			"name": "apps/shared",
+			"path": "../apps/shared"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"node_modules/": true,
+			"packages/": true
+		}
+	}
+}

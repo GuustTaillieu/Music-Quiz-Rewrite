@@ -24,6 +24,17 @@ export class QuizzesService {
     return this.quizRepository.create(quizData);
   }
 
+  public async update(
+    id: string,
+    quizData: Omit<Quiz, 'createdAt' | 'id' | 'creatorId'>,
+  ): Promise<Quiz> {
+    try {
+      return await this.quizRepository.update(id, quizData);
+    } catch (error) {
+      throw new NotFoundException((error as Error).message);
+    }
+  }
+
   public async remove(id: string): Promise<void> {
     const success = await this.quizRepository.delete(id);
     if (!success) {

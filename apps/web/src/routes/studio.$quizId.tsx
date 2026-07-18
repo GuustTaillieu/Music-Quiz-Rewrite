@@ -1,8 +1,5 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect, useRef, useTransition, useDeferredValue } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { authClient } from '#/lib/auth-client';
+import { createFileRoute } from '@tanstack/react-router';
+import { useQuizEditor } from '#/hooks/useQuizEditor';
 import {
   ArrowLeft,
   Save,
@@ -16,7 +13,6 @@ import {
   Disc,
   Music,
 } from 'lucide-react';
-import type { Quiz, QuizSong, SpotifyTrack } from '@spotify-music-quiz/shared/schema/game';
 
 export const Route = createFileRoute('/studio/$quizId')({
   component: QuizEditor,
@@ -24,194 +20,36 @@ export const Route = createFileRoute('/studio/$quizId')({
 
 function QuizEditor() {
   const { quizId } = Route.useParams();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const { data: sessionData, isPending: isSessionLoading } =
-    authClient.useSession();
-
-  // Local Quiz State
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [songs, setSongs] = useState<QuizSong[]>([]);
-
-  // Search State
-  const [searchQuery, setSearchQuery] = useState('');
-  const deferredSearchQuery = useDeferredValue(searchQuery);
-  const [isPending, startTransition] = useTransition();
-
-  // Selected Quiz Song for offset editing
-  const [selectedSongIndex, setSelectedSongIndex] = useState<number | null>(null);
-
-  // Audio Preview State
-  const [previewingTrackId, setPreviewingTrackId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Virtualized list parent ref
-  const parentRef = useRef<HTMLDivElement | null>(null);
-
-  // Load Quiz if editing
-  const { data: loadedQuiz, isLoading: isQuizLoading } = useQuery({
-    queryKey: ['quiz', quizId],
-    queryFn: async () => {
-      const res = await fetch(`/api/quizzes/${quizId}`);
-      if (res.status === 404) {
-        return null; // Signals new quiz
-      }
-      if (!res.ok) {
-        throw new Error('Failed to load quiz');
-      }
-      return res.json() as Promise<Quiz>;
-    },
-    enabled: !!sessionData?.user,
-    retry: false,
-  });
-
-  // Sync loaded quiz to local state
-  useEffect(() => {
-    if (loadedQuiz) {
-      setTitle(loadedQuiz.title);
-      setDescription(loadedQuiz.description ?? '');
-      setSongs(loadedQuiz.songs);
-      if (loadedQuiz.songs.length > 0) {
-        setSelectedSongIndex(0);
-      }
-    }
-  }, [loadedQuiz]);
-
-  // Search Spotify Catalog
-  const { data: searchResults, isFetching: isSearching } = useQuery({
-    queryKey: ['spotify-search', deferredSearchQuery],
-    queryFn: async () => {
-      if (!deferredSearchQuery) return [];
-      const res = await fetch(
-        `/api/spotify/search?q=${encodeURIComponent(deferredSearchQuery)}`,
-      );
-      if (!res.ok) {
-        throw new Error('Search failed');
-      }
-      return res.json() as Promise<SpotifyTrack[]>;
-    },
-    enabled: !!deferredSearchQuery && !!sessionData?.user,
-  });
-
-  // Save Mutation
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/quizzes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          songs: songs.map((s) => ({
-            spotifyTrackId: s.spotifyTrackId,
-            track: s.track,
-            questionType: s.questionType,
-            start_offset_ms: s.start_offset_ms,
-            end_offset_ms: s.end_offset_ms,
-            lyricsGap: s.lyricsGap,
-          })),
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to save quiz');
-      }
-      return res.json() as Promise<Quiz>;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      navigate({ to: '/studio' });
-    },
-  });
-
-  // Virtualizer Setup for Spotify Search Results
-  const rowVirtualizer = useVirtualizer({
-    count: searchResults?.length ?? 0,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 72, // height of search item
-    overscan: 5,
-  });
-
-  const handleAddTrack = (track: SpotifyTrack) => {
-    const newSong: QuizSong = {
-      spotifyTrackId: track.id,
-      track,
-      questionType: 'TRACK_NAME',
-      start_offset_ms: 0,
-      end_offset_ms: 30000, // 30 second snippet
-      lyricsGap: '',
-    };
-    setSongs((prev) => {
-      const updated = [...prev, newSong];
-      setSelectedSongIndex(updated.length - 1);
-      return updated;
-    });
-  };
-
-  const handleRemoveTrack = (index: number) => {
-    setSongs((prev) => {
-      const updated = prev.filter((_, i) => i !== index);
-      if (selectedSongIndex === index) {
-        setSelectedSongIndex(updated.length > 0 ? 0 : null);
-      } else if (selectedSongIndex !== null && selectedSongIndex > index) {
-        setSelectedSongIndex(selectedSongIndex - 1);
-      }
-      return updated;
-    });
-  };
-
-  const handleMoveTrack = (index: number, direction: 'up' | 'down') => {
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === songs.length - 1) return;
-
-    const targetIdx = direction === 'up' ? index - 1 : index + 1;
-    setSongs((prev) => {
-      const updated = [...prev];
-      const temp = updated[index];
-      updated[index] = updated[targetIdx];
-      updated[targetIdx] = temp;
-      return updated;
-    });
-    setSelectedSongIndex(targetIdx);
-  };
-
-  const handleSongChange = <K extends keyof QuizSong>(
-    index: number,
-    key: K,
-    value: QuizSong[K],
-  ) => {
-    setSongs((prev) => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        [key]: value,
-      };
-      return updated;
-    });
-  };
-
-  const startPreview = (track: SpotifyTrack) => {
-    if (!track.previewUrl) {
-      alert('Preview not available for this track.');
-      return;
-    }
-    if (audioRef.current) {
-      audioRef.current.src = track.previewUrl;
-      audioRef.current.play();
-      setPreviewingTrackId(track.id);
-    }
-  };
-
-  const stopPreview = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setPreviewingTrackId(null);
-    }
-  };
+  const {
+    navigate,
+    sessionData,
+    isSessionLoading,
+    isQuizLoading,
+    title,
+    setTitle,
+    description,
+    setDescription,
+    songs,
+    searchQuery,
+    setSearchQuery,
+    selectedSongIndex,
+    setSelectedSongIndex,
+    previewingTrackId,
+    audioRef,
+    parentRef,
+    searchResults,
+    isSearching,
+    saveMutation,
+    rowVirtualizer,
+    handleAddTrack,
+    handleRemoveTrack,
+    handleMoveTrack,
+    handleSongChange,
+    startPreview,
+    stopPreview,
+    selectedSong,
+    startTransition,
+  } = useQuizEditor(quizId);
 
   if (isSessionLoading || isQuizLoading) {
     return (
@@ -226,38 +64,41 @@ function QuizEditor() {
     return null;
   }
 
-  const selectedSong =
-    selectedSongIndex !== null && selectedSongIndex < songs.length
-      ? songs[selectedSongIndex]
-      : null;
-
   return (
     <div className="page-wrap min-h-screen py-12 flex flex-col h-screen max-h-screen overflow-hidden">
       {/* Invisible Audio Element */}
-      <audio ref={audioRef} onEnded={() => setPreviewingTrackId(null)} />
+      <audio ref={audioRef} onEnded={() => stopPreview()} />
 
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-line shrink-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 flex-1">
           <button
             onClick={() => navigate({ to: '/studio' })}
-            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-foam/10 transition-colors"
+            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-foam/10 transition-colors shrink-0"
           >
             <ArrowLeft size={20} />
           </button>
-          <div>
-            <h1 className="display-title text-3xl font-black text-foreground">
-              {loadedQuiz ? 'Edit Quiz' : 'Create Quiz'}
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Add songs, configure question types, and set offset limits
-            </p>
+          <div className="flex flex-col flex-1 min-w-0 pr-4">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Quiz Title"
+              className="bg-transparent font-black text-foreground text-2xl outline-none focus:border-b focus:border-lagoon/40 border-b border-transparent leading-none w-full max-w-xl transition-all"
+            />
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add a description for this quiz..."
+              className="bg-transparent text-xs text-muted-foreground outline-none focus:border-b focus:border-lagoon/40 border-b border-transparent mt-1 w-full max-w-2xl transition-all"
+            />
           </div>
         </div>
         <button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending || !title.trim() || songs.length === 0}
-          className="bg-gradient-to-r from-lagoon to-lagoon-deep text-white font-bold py-2.5 px-5 rounded-xl hover:shadow-lg active:scale-98 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-gradient-to-r from-lagoon to-lagoon-deep text-white font-bold py-2.5 px-5 rounded-xl hover:shadow-lg active:scale-98 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
         >
           <Save size={18} /> {saveMutation.isPending ? 'Saving...' : 'Save Quiz'}
         </button>
@@ -265,31 +106,11 @@ function QuizEditor() {
 
       {/* Main Body Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 flex-1 min-h-0">
-        {/* Left Column: Metadata & Songs List */}
+        {/* Left Column: Songs List */}
         <div className="island-shell p-6 rounded-2xl flex flex-col h-full min-h-0">
-          <h2 className="font-bold text-foreground text-sm uppercase tracking-wider mb-4 shrink-0">
-            Quiz Meta
-          </h2>
-          <div className="space-y-4 mb-6 shrink-0">
-            <input
-              type="text"
-              placeholder="Quiz Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-white dark:bg-foam/20 border border-line rounded-xl px-4 py-2.5 font-bold text-foreground focus:outline-none focus:border-lagoon"
-            />
-            <textarea
-              placeholder="Description (Optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="w-full bg-white dark:bg-foam/20 border border-line rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-lagoon resize-none"
-            />
-          </div>
-
-          <h3 className="font-bold text-foreground text-sm uppercase tracking-wider mb-3 shrink-0 flex justify-between items-center">
+          <h3 className="font-bold text-foreground text-sm uppercase tracking-wider mb-4 shrink-0 flex justify-between items-center">
             <span>Quiz Tracks</span>
-            <span className="text-xs text-muted-foreground font-medium lowercase">
+            <span className="bg-lagoon/10 text-lagoon font-black text-xs px-2.5 py-1 rounded-full">
               {songs.length} tracks
             </span>
           </h3>
@@ -301,8 +122,8 @@ function QuizEditor() {
                 key={index}
                 onClick={() => setSelectedSongIndex(index)}
                 className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${selectedSongIndex === index
-                    ? 'border-lagoon bg-lagoon/5'
-                    : 'border-line hover:border-muted-foreground/30'
+                  ? 'border-lagoon bg-lagoon/5'
+                  : 'border-line hover:border-muted-foreground/30'
                   }`}
               >
                 <div className="flex items-center gap-3 truncate pr-2">

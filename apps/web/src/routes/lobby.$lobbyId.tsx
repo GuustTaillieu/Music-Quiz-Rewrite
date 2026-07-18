@@ -2,16 +2,13 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { useQuizGame } from '#/hooks/useQuizGame';
-import { authClient } from '#/lib/auth-client';
 import {
   Users,
   Copy,
   Check,
   Crown,
   Play,
-  ArrowRight,
   Disc,
-  HelpCircle,
   Clock,
   Sparkles,
   Trophy,
@@ -32,9 +29,6 @@ function LobbyRoomWrapper() {
   const { username } = Route.useSearch();
   const navigate = useNavigate();
 
-  // Better-Auth Session
-  const { data: sessionData } = authClient.useSession();
-
   const wsUrl = import.meta.env.VITE_WS_URL ?? 'http://localhost:3001';
   const {
     isConnected,
@@ -50,8 +44,6 @@ function LobbyRoomWrapper() {
   const [copied, setCopied] = useState(false);
   const [guessInput, setGuessInput] = useState('');
   const [showSpeedRoundModal, setShowSpeedRoundModal] = useState(false);
-  const [localSocketId, setLocalSocketId] = useState<string | null>(null);
-
   // Audio preview reference for gameplay playback
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const prevSongIndexRef = useRef<number | null>(null);
@@ -62,13 +54,6 @@ function LobbyRoomWrapper() {
       joinLobby(lobbyId, username);
     }
   }, [isConnected, lobbyId, username, joinLobby]);
-
-  // Keep track of our local socket ID for turn identification
-  useEffect(() => {
-    // A guest's ID is their socket client ID.
-    // The socket client id is exposed, we will look for player by matching name or socket connection if we receive join success
-    // For ease, we can identify our player block by matching the name
-  }, []);
 
   // Handle Local Audio Playback for all players
   useEffect(() => {

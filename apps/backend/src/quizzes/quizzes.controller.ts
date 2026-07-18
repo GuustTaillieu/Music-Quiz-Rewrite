@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Param,
   Body,
@@ -78,6 +79,34 @@ export class QuizzesController {
       title: body.title,
       description: body.description ?? null,
       creatorId: session.user.id,
+      songs: formattedSongs,
+    });
+  }
+
+  @Put(':id')
+  public async update(
+    @Param('id') id: string,
+    @Body() body: CreateQuizDto,
+  ): Promise<Quiz> {
+    const formattedSongs = body.songs.map((song) => ({
+      id: randomUUID(),
+      spotifyTrackId: song.spotifyTrackId,
+      questionType: song.questionType,
+      start_offset_ms: song.start_offset_ms,
+      end_offset_ms: song.end_offset_ms,
+      lyricsGap: song.lyricsGap,
+      track: {
+        id: song.track.id,
+        title: song.track.title,
+        artist: song.track.artist,
+        album: song.track.album,
+        coverArtUrl: song.track.coverArtUrl,
+        previewUrl: song.track.previewUrl,
+      },
+    }));
+    return this.quizzesService.update(id, {
+      title: body.title,
+      description: body.description ?? null,
       songs: formattedSongs,
     });
   }
