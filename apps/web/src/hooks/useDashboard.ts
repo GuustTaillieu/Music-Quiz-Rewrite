@@ -81,8 +81,6 @@ export function useDashboard() {
       setIsCodeValidating(true);
       const { data, error } = await apiFetch<{ exists: boolean }>(`/game/lobby/${code}/exists`);
       setIsCodeValidating(false);
-      console.log("data:", data);
-      console.log("error:", error);
 
       if (error || !data?.exists) {
         setIsCodeInvalid(true);
@@ -146,6 +144,18 @@ export function useDashboard() {
     });
   };
 
+  const terminateLobbyMutation = useMutation({
+    mutationFn: async (lobbyId: string) => {
+      const { error } = await apiFetch(`/game/lobby/${lobbyId}`, {
+        method: 'DELETE',
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['active-sessions'] });
+    },
+  });
+
   const handleSignOut = async () => {
     await authClient.signOut();
     window.location.reload();
@@ -180,5 +190,6 @@ export function useDashboard() {
     newDescription,
     setNewDescription,
     createQuizMutation,
+    terminateLobbyMutation,
   };
 }

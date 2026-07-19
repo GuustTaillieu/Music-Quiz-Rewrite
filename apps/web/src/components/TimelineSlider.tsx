@@ -34,6 +34,7 @@ export function TimelineSlider({
 }: TimelineSliderProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [activeDrag, setActiveDrag] = useState<'start' | 'end' | 'range' | null>(null);
+  const wasDraggingRef = useRef(false);
   const dragStartRef = useRef<{ startX: number; initialStart: number; initialEnd: number }>({
     startX: 0,
     initialStart: 0,
@@ -42,8 +43,20 @@ export function TimelineSlider({
 
   const total = durationMs || 180000; // Fallback to 3 minutes
 
-  const startPercent = (startOffsetMs / total) * 100;
-  const endPercent = (endOffsetMs / total) * 100;
+  // Local state to keep dragging extremely smooth (avoiding React render cycle lags)
+  const [localStart, setLocalStart] = useState(startOffsetMs);
+  const [localEnd, setLocalEnd] = useState(endOffsetMs);
+
+  // Sync props to local state strictly when NOT dragging
+  useEffect(() => {
+    if (!activeDrag) {
+      setLocalStart(startOffsetMs);
+      setLocalEnd(endOffsetMs);
+    }
+  }, [startOffsetMs, endOffsetMs, activeDrag]);
+
+  const startPercent = (localStart / total) * 100;
+  const endPercent = (localEnd / total) * 100;
   const widthPercent = endPercent - startPercent;
 
   const formatTime = (ms: number) => {
@@ -66,6 +79,8 @@ export function TimelineSlider({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!trackRef.current) return;
+      wasDraggingRef.current = true; // Mark dragging has occurred to prevent clicks on mouseup
+      
       const currentMs = getMsFromX(e.clientX);
       const deltaX = e.clientX - dragStartRef.current.startX;
       const rect = trackRef.current.getBoundingClientRect();
@@ -75,11 +90,13 @@ export function TimelineSlider({
       const minPlayWindowMs = 5000;
 
       if (activeDrag === 'start') {
-        const nextStart = Math.max(0, Math.min(currentMs, endOffsetMs - minPlayWindowMs));
-        onChange(nextStart, endOffsetMs);
+        const nextStart = Math.max(0, Math.min(currentMs, localEnd - minPlayWindowMs));
+        setLocalStart(nextStart);
+        onChange(nextStart, localEnd);
       } else if (activeDrag === 'end') {
-        const nextEnd = Math.max(startOffsetMs + minPlayWindowMs, Math.min(currentMs, total));
-        onChange(startOffsetMs, nextEnd);
+        const nextEnd = Math.max(localStart + minPlayWindowMs, Math.min(currentMs, total));
+        setLocalEnd(nextEnd);
+        onChange(localStart, nextEnd);
       } else if (activeDrag === 'range') {
         const rangeWidth = dragStartRef.current.initialEnd - dragStartRef.current.initialStart;
         let nextStart = dragStartRef.current.initialStart + deltaMs;
@@ -93,12 +110,18 @@ export function TimelineSlider({
           nextStart = total - rangeWidth;
         }
 
+        setLocalStart(nextStart);
+        setLocalEnd(nextEnd);
         onChange(nextStart, nextEnd);
       }
     };
 
     const handleMouseUp = () => {
       setActiveDrag(null);
+      // Swallows track-click for a brief layout cycle
+      setTimeout(() => {
+        wasDraggingRef.current = false;
+      }, 80);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -108,23 +131,24 @@ export function TimelineSlider({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [activeDrag, startOffsetMs, endOffsetMs, total, onChange]);
+  }, [activeDrag, localStart, localEnd, total, onChange]);
 
   const handleMouseDown = (e: React.MouseEvent, type: 'start' | 'end' | 'range') => {
     e.stopPropagation();
     e.preventDefault();
     setActiveDrag(type);
+    wasDraggingRef.current = false;
     dragStartRef.current = {
       startX: e.clientX,
-      initialStart: startOffsetMs,
-      initialEnd: endOffsetMs,
+      initialStart: localStart,
+      initialEnd: localEnd,
     };
   };
 
   const handleTrackClick = (e: React.MouseEvent) => {
-    if (activeDrag) return;
+    if (activeDrag || wasDraggingRef.current) return;
     const clickedMs = getMsFromX(e.clientX);
-    const rangeWidth = endOffsetMs - startOffsetMs;
+    const rangeWidth = localEnd - localStart;
     // Center the range around the clicked position
     let nextStart = clickedMs - Math.floor(rangeWidth / 2);
     let nextEnd = clickedMs + Math.ceil(rangeWidth / 2);
@@ -137,6 +161,8 @@ export function TimelineSlider({
       nextStart = total - rangeWidth;
     }
 
+    setLocalStart(nextStart);
+    setLocalEnd(nextEnd);
     onChange(nextStart, nextEnd);
   };
 
@@ -149,9 +175,9 @@ export function TimelineSlider({
   return (
     <div className="w-full space-y-2 select-none">
       <div className="flex items-center justify-between text-xs text-muted-foreground font-bold uppercase tracking-wider">
-        <span>Timeline Offsets (5s min)</span>
+        <span>Timeline Snippet Crop (5s min)</span>
         <span className="text-[#00f0ff] font-black glow-text-cyan">
-          {formatTime(startOffsetMs)} - {formatTime(endOffsetMs)} ({Math.round((endOffsetMs - startOffsetMs) / 1000)}s)
+          {formatTime(localStart)} - {formatTime(localEnd)} ({Math.round((localEnd - localStart) / 1000)}s)
         </span>
       </div>
 

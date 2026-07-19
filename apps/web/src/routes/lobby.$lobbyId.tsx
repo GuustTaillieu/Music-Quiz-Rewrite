@@ -18,6 +18,8 @@ import {
   LogOut,
   LogOut as LeaveIcon,
   X,
+  Volume2,
+  Pause,
 } from 'lucide-react';
 import { cn } from '#/lib/utils';
 
@@ -145,6 +147,70 @@ function LyricsDisplay({ lyrics, revealed }: { lyrics: string; revealed: boolean
   );
 }
 
+interface GapBlock {
+  id: number;
+  wordCount: number;
+  placeholder: string;
+}
+
+// Parses "[___] [____] like [_____]" into input structures
+const parseGapBlocks = (lyrics: string | null | undefined): GapBlock[] => {
+  if (!lyrics) return [];
+
+  const blocks: GapBlock[] = [];
+  const lines = lyrics.split('\n');
+  let blockCounter = 0;
+
+  lines.forEach((line) => {
+    // Split by space
+    const tokens = line.split(/\s+/);
+    let inGapSequence = false;
+    let currentWords = 0;
+
+    tokens.forEach((token) => {
+      const isGap = token.startsWith('[') && token.endsWith(']');
+      if (isGap) {
+        if (!inGapSequence) {
+          inGapSequence = true;
+          currentWords = 1;
+        } else {
+          currentWords++;
+        }
+      } else {
+        if (inGapSequence) {
+          // Commit previous gap block
+          blocks.push({
+            id: blockCounter++,
+            wordCount: currentWords,
+            placeholder: Array(currentWords).fill('_').join(' '),
+          });
+          inGapSequence = false;
+          currentWords = 0;
+        }
+      }
+    });
+
+    // Commit if line ended with a gap
+    if (inGapSequence) {
+      blocks.push({
+        id: blockCounter++,
+        wordCount: currentWords,
+        placeholder: Array(currentWords).fill('_').join(' '),
+      });
+    }
+  });
+
+  return blocks;
+};
+
+const formatTime = (ms: number | null | undefined) => {
+  if (!ms) return '0:00';
+  const totalSecs = Math.floor(ms / 1000);
+  const mins = Math.floor(totalSecs / 60);
+  const secs = totalSecs % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
 export const Route = createFileRoute('/lobby/$lobbyId')({
   validateSearch: lobbySearchSchema,
   component: LobbyRoomWrapper,
@@ -169,6 +235,7 @@ function LobbyRoomWrapper() {
     nextSong,
     configureLobby,
     forceReveal,
+    endGame,
   } = useQuizGame(wsUrl);
 
   const isLocalHost = gameState?.players.find((p) => p.name === username)?.isHost ?? false;
@@ -176,6 +243,8 @@ function LobbyRoomWrapper() {
 
   const [copied, setCopied] = useState(false);
   const [guessInput, setGuessInput] = useState('');
+  const [gapAnswers, setGapAnswers] = useState<Record<number, string>>({});
+  const [volume, setVolume] = useState(0.5);
   const [showSpeedRoundModal, setShowSpeedRoundModal] = useState(false);
 
   // Local Config Settings Inputs for Host
@@ -215,7 +284,13 @@ function LobbyRoomWrapper() {
     }
   }, [gameState?.gameMode, gameState?.guessingTimeLimit]);
 
-  // Timer countdown logic
+  // Reset guess inputs on song changes
+  useEffect(() => {
+    setGuessInput('');
+    setGapAnswers({});
+  }, [gameState?.currentSongIndex]);
+
+  // Guess countdown timer loop
   useEffect(() => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
@@ -297,7 +372,7 @@ function LobbyRoomWrapper() {
       clearTimeout(stopTimeoutRef.current);
     }
 
-    if (!gameState || !gameState.activeSong || gameState.phase === 'COMPLETED' || showGetReady) {
+    if (!gameState || !gameState.activeSong || gameState.phase === 'LOBBY' || gameState.phase === 'COMPLETED' || showGetReady) {
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -310,6 +385,7 @@ function LobbyRoomWrapper() {
     const activeSong = gameState.activeSong;
     const startOffset = activeSong.start_offset_ms || 0;
     const endOffset = activeSong.end_offset_ms || 30000;
+    const isRevealed = gameState.roundState === 'REVEALED';
 
     // Play duration can be at most the guessingTimeLimit!
     const guessLimitMs = (gameState.guessingTimeLimit || 30) * 1000;
@@ -317,21 +393,30 @@ function LobbyRoomWrapper() {
 
     const triggerPlay = () => {
       if (spotifyPlayer.deviceId) {
-        // Play via Spotify Web Playback SDK
-        spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
-
-        // Auto-pause when snippet duration is reached
-        stopTimeoutRef.current = setTimeout(() => {
+        if (isRevealed) {
+          // Do not autoplay full song. Default to paused when round is revealed!
           spotifyPlayer.pauseTrack();
-        }, duration);
-      } else if (activeSong.previewUrl) {
-        // Fallback to HTML5 audio preview
-        playAudio(activeSong.previewUrl);
+        } else {
+          // Play via Spotify Web Playback SDK
+          spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
 
-        // Auto-pause when snippet duration is reached (fallback caps at 30s)
-        stopTimeoutRef.current = setTimeout(() => {
+          // Auto-pause when snippet duration is reached
+          stopTimeoutRef.current = setTimeout(() => {
+            spotifyPlayer.pauseTrack();
+          }, duration);
+        }
+      } else if (activeSong.previewUrl) {
+        if (isRevealed) {
           if (audioRef.current) audioRef.current.pause();
-        }, Math.min(duration, 30000));
+        } else {
+          // Fallback to HTML5 audio preview
+          playAudio(activeSong.previewUrl);
+
+          // Auto-pause when snippet duration is reached (fallback caps at 30s)
+          stopTimeoutRef.current = setTimeout(() => {
+            if (audioRef.current) audioRef.current.pause();
+          }, Math.min(duration, 30000));
+        }
       }
     };
 
@@ -370,9 +455,25 @@ function LobbyRoomWrapper() {
 
   const handleGuessSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guessInput.trim()) return;
-    submitGuess(guessInput);
+    let finalGuess = '';
+
+    if (activeSong?.questionType === 'FILL_IN_THE_GAP') {
+      const gapBlocks = parseGapBlocks(activeSong.lyricsGap);
+      if (gapBlocks.length > 0) {
+        finalGuess = gapBlocks
+          .map((b) => (gapAnswers[b.id] || '').trim())
+          .join('; ');
+      } else {
+        finalGuess = guessInput;
+      }
+    } else {
+      finalGuess = guessInput;
+    }
+
+    if (!finalGuess.trim()) return;
+    submitGuess(finalGuess);
     setGuessInput('');
+    setGapAnswers({});
   };
 
   if (error) {
@@ -465,51 +566,40 @@ function LobbyRoomWrapper() {
                 <Sparkles size={14} /> Lobby Configurations
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[9px] font-black uppercase tracking-wider text-muted-foreground mb-1.5">Game Mode</label>
-                  <select
-                    value={selectedGameMode}
-                    onChange={(e) => {
-                      const mode = e.target.value as 'SPEED_MODE' | 'TURN_BASED';
-                      setSelectedGameMode(mode);
-                      configureLobby(mode, selectedTimeLimit);
-                    }}
-                    className="w-full bg-black/40 border border-cyan-500/20 text-white rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#00f0ff]"
-                  >
-                    <option value="TURN_BASED">Turn-Based (One-by-One)</option>
-                    <option value="SPEED_MODE">Speed Mode (All at once)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[9px] font-black uppercase tracking-wider text-muted-foreground mb-1.5">Guessing Time Limit</label>
-                  <select
-                    value={selectedTimeLimit}
-                    onChange={(e) => {
-                      const limit = parseInt(e.target.value);
-                      setSelectedTimeLimit(limit);
-                      configureLobby(selectedGameMode, limit);
-                    }}
-                    className="w-full bg-black/40 border border-cyan-500/20 text-white rounded-xl px-3 py-2.5 text-xs outline-none focus:border-[#00f0ff]"
-                  >
-                    <option value="10">10 seconds</option>
-                    <option value="15">15 seconds</option>
-                    <option value="20">20 seconds</option>
-                    <option value="30">30 seconds</option>
-                    <option value="60">60 seconds</option>
-                    <option value="7">7 seconds (Fast!)</option>
-                    <option value="5">5 seconds (Hardcore!)</option>
-                  </select>
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-wider text-muted-foreground mb-2">Game Mode</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'TURN_BASED', label: 'Turn-Based (One-by-One)' },
+                    { id: 'SPEED_MODE', label: 'Speed Mode (All at once)' },
+                  ].map((opt) => {
+                    const isSel = selectedGameMode === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          const mode = opt.id as 'SPEED_MODE' | 'TURN_BASED';
+                          setSelectedGameMode(mode);
+                          configureLobby(mode, selectedTimeLimit);
+                        }}
+                        className={`px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-all border ${isSel
+                          ? 'bg-cyan-500/20 border-cyan-400 text-[#00f0ff] shadow-[0_0_10px_rgba(0,240,255,0.15)] font-black'
+                          : 'bg-black/30 border-cyan-500/10 text-muted-foreground hover:text-white hover:border-cyan-500/25'
+                          }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           )}
 
           {!isHost && (
-            <div className="mb-8 p-4 bg-black/30 border border-cyan-500/10 rounded-2xl text-xs text-muted-foreground flex justify-between">
+            <div className="mb-8 p-4 bg-black/30 border border-cyan-500/10 rounded-2xl text-xs text-muted-foreground">
               <span>Game Mode: <strong className="text-white">{gameState.gameMode === 'SPEED_MODE' ? 'Speed Mode' : 'Turn-Based'}</strong></span>
-              <span>Time Limit: <strong className="text-[#00f0ff]">{gameState.guessingTimeLimit}s</strong></span>
             </div>
           )}
 
@@ -765,21 +855,51 @@ function LobbyRoomWrapper() {
           {!isRoundRevealed && !isLockedOut && activeSong && (
             isSpeedRound || isMyTurn ? (
               <form onSubmit={handleGuessSubmit} className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder={activeSong.questionType === 'FILL_IN_THE_GAP' ? "Type missing word..." : "Type answer here..."}
-                    value={guessInput}
-                    onChange={(e) => setGuessInput(e.target.value)}
-                    className="flex-1 bg-black/40 border border-cyan-500/20 text-white rounded-2xl px-4 py-3 font-medium placeholder-cyan-500/10 focus:outline-none focus:border-[#00f0ff] focus:ring-1 focus:ring-[#00f0ff] text-sm"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-gradient-to-r from-[#00f0ff] to-[#00a8cc] text-black font-black uppercase tracking-wider px-5 rounded-2xl cursor-pointer text-xs"
-                  >
-                    Submit
-                  </button>
-                </div>
+                {activeSong.questionType === 'FILL_IN_THE_GAP' && parseGapBlocks(activeSong.lyricsGap).length > 0 ? (
+                  <div className="space-y-2.5">
+                    {parseGapBlocks(activeSong.lyricsGap).map((block, idx) => (
+                      <div key={block.id} className="flex flex-col text-left">
+                        <span className="text-[10px] text-cyan-400 font-black uppercase tracking-wider mb-1">
+                          Blank {idx + 1} ({block.wordCount} {block.wordCount === 1 ? 'word' : 'words'})
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Type hidden text..."
+                          value={gapAnswers[block.id] || ''}
+                          onChange={(e) => {
+                            setGapAnswers((prev) => ({
+                              ...prev,
+                              [block.id]: e.target.value,
+                            }));
+                          }}
+                          className="w-full bg-black/40 border border-cyan-500/20 text-white rounded-2xl px-4 py-2.5 font-medium placeholder-cyan-500/10 focus:outline-none focus:border-[#00f0ff] focus:ring-1 focus:ring-[#00f0ff] text-sm"
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="submit"
+                      className="w-full bg-gradient-to-r from-[#00f0ff] to-[#00a8cc] text-black font-black uppercase tracking-wider py-3 rounded-2xl cursor-pointer text-xs"
+                    >
+                      Submit Answers
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Type answer here..."
+                      value={guessInput}
+                      onChange={(e) => setGuessInput(e.target.value)}
+                      className="flex-1 bg-black/40 border border-cyan-500/20 text-white rounded-2xl px-4 py-3 font-medium placeholder-cyan-500/10 focus:outline-none focus:border-[#00f0ff] focus:ring-1 focus:ring-[#00f0ff] text-sm"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-gradient-to-r from-[#00f0ff] to-[#00a8cc] text-black font-black uppercase tracking-wider px-5 rounded-2xl cursor-pointer text-xs"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                )}
                 {!isSpeedRound && (
                   <button
                     type="button"
@@ -906,20 +1026,50 @@ function LobbyRoomWrapper() {
           </div>
 
           <div className="flex flex-col gap-4 mt-6 pt-4 border-t border-cyan-500/10">
-            {/* Quick Leave Option for Host */}
-            <button
-              onClick={() => navigate({ to: '/' })}
-              className="w-full border border-rose-500/20 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 text-xs font-black uppercase tracking-wider py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5"
-            >
-              <LeaveIcon size={14} /> Quit Game
-            </button>
-
             <div className="text-[10px] text-muted-foreground leading-normal">
               Song {gameState.currentSongIndex + 1} of {gameState.totalSongs}
               <div className="mt-1 font-bold text-cyan-400 flex items-center gap-1">
                 <Clock size={12} /> {isSpeedRound ? 'Speed Round Phase' : 'Turn-Based Phase'}
               </div>
+
+              {isLocalHost && (
+                <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-cyan-500/5">
+                  <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1 shrink-0">
+                    <Volume2 size={11} /> Vol
+                  </span>
+                  <div className="flex items-center gap-2 flex-1 max-w-[130px] justify-end">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={volume}
+                      onChange={(e) => {
+                        const vol = parseFloat(e.target.value);
+                        setVolume(vol);
+                        if (audioRef.current) audioRef.current.volume = vol;
+                        spotifyPlayer.setVolume(vol);
+                      }}
+                      className="w-full h-1 bg-black/40 rounded-full appearance-none cursor-pointer accent-[#00f0ff] border border-cyan-500/10"
+                    />
+                    <span className="text-[9px] font-mono text-muted-foreground w-6 text-right shrink-0">{Math.round(volume * 100)}%</span>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Quick Leave Option for Host */}
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to stop this game fully? This will disconnect all players.')) {
+                  endGame();
+                  navigate({ to: '/' });
+                }
+              }}
+              className="w-full border border-rose-500/20 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-400 text-xs font-black uppercase tracking-wider py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5"
+            >
+              <LeaveIcon size={14} /> Quit Game
+            </button>
           </div>
         </div>
 
@@ -1012,10 +1162,61 @@ function LobbyRoomWrapper() {
                         'Round Over! Time has run out.'
                       )}
                     </div>
+
+                    {isLocalHost && (
+                      <div className="p-4 bg-black/40 border border-cyan-500/20 rounded-2xl space-y-3 text-left">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-cyan-400 font-black uppercase tracking-wider">
+                            Full Song Playback
+                          </span>
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            {formatTime(spotifyPlayer.currentPositionMs)} / {formatTime(spotifyPlayer.durationMs)}
+                          </span>
+                        </div>
+
+                        {/* Timeline Scrubber */}
+                        <input
+                          type="range"
+                          min="0"
+                          max={spotifyPlayer.durationMs || 100}
+                          value={spotifyPlayer.currentPositionMs}
+                          onChange={async (e) => {
+                            const seekMs = parseInt(e.target.value);
+                            await spotifyPlayer.seekTrack(seekMs);
+                          }}
+                          className="w-full h-1 bg-black/40 rounded-full appearance-none cursor-pointer accent-[#00f0ff] border border-cyan-500/10"
+                        />
+
+                        {/* Play/Pause control button */}
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (spotifyPlayer.isPlaying) {
+                                spotifyPlayer.pauseTrack();
+                              } else {
+                                if (spotifyPlayer.currentPositionMs === 0) {
+                                  spotifyPlayer.playTrack(activeSong.spotifyTrackId, 0);
+                                } else {
+                                  spotifyPlayer.resumeTrack();
+                                }
+                              }
+                            }}
+                            className={`h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer border ${spotifyPlayer.isPlaying
+                                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                                : 'bg-[#00f0ff]/10 border-cyan-500/30 text-[#00f0ff] hover:bg-[#00f0ff]/20'
+                              }`}
+                          >
+                            {spotifyPlayer.isPlaying ? <Pause size={14} /> : <Play size={14} fill="currentColor" />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {isLocalHost && (
                       <button
                         onClick={nextSong}
-                        className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 hover:shadow-[0_0_20px_rgba(52,211,153,0.45)] text-black font-black py-3.5 px-8 rounded-2xl active:scale-95 transition-all cursor-pointer text-xs tracking-widest uppercase animate-bounce"
+                        className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 hover:shadow-[0_0_20px_rgba(52,211,153,0.45)] text-black font-black py-3.5 px-6 rounded-2xl active:scale-95 transition-all cursor-pointer text-xs tracking-widest uppercase animate-bounce"
                       >
                         Next Song
                       </button>

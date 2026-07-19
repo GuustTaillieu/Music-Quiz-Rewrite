@@ -188,6 +188,32 @@ export function useSpotifyPlayer(enabled: boolean) {
     }
   };
 
+  const resumeTrack = async () => {
+    if (!deviceId) return;
+    try {
+      const { data: tokenData } = await apiFetch<{ accessToken: string }>('/spotify/token');
+      if (!tokenData) return;
+
+      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${tokenData.accessToken}`,
+        },
+      });
+    } catch (e) {
+      console.error('Failed to resume track command:', e);
+    }
+  };
+
+  const setVolume = async (volumeFraction: number) => {
+    if (!player) return;
+    try {
+      await player.setVolume(volumeFraction);
+    } catch (e) {
+      console.error('Failed to set player volume:', e);
+    }
+  };
+
   return {
     deviceId,
     isPlaying: playbackState ? !playbackState.paused : false,
@@ -198,5 +224,7 @@ export function useSpotifyPlayer(enabled: boolean) {
     playTrack,
     pauseTrack,
     seekTrack,
+    resumeTrack,
+    setVolume,
   };
 }

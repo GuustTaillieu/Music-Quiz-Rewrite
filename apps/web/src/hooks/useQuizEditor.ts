@@ -59,6 +59,9 @@ export function useQuizEditor(quizId: string) {
     spotifySearchQueryOptions(deferredSearchQuery, isLoggedIn),
   );
 
+  // Save Success State
+  const [showSavedSuccess, setShowSavedSuccess] = useState(false);
+
   // Save Mutation using apiFetch
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -86,7 +89,8 @@ export function useQuizEditor(quizId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      navigate({ to: '/studio' });
+      setShowSavedSuccess(true);
+      setTimeout(() => setShowSavedSuccess(false), 3000);
     },
   });
 
@@ -99,6 +103,11 @@ export function useQuizEditor(quizId: string) {
   });
 
   const handleAddTrack = (track: SpotifyTrack) => {
+    // Avoid duplicates
+    if (songs.some((s) => s.spotifyTrackId === track.id)) {
+      return;
+    }
+
     const isAdele = track.title === 'Someone Like You' || track.id === 'track-3';
     const newSong: QuizSong = {
       spotifyTrackId: track.id,
@@ -121,6 +130,20 @@ export function useQuizEditor(quizId: string) {
       if (selectedSongIndex === index) {
         setSelectedSongIndex(updated.length > 0 ? 0 : null);
       } else if (selectedSongIndex !== null && selectedSongIndex > index) {
+        setSelectedSongIndex(selectedSongIndex - 1);
+      }
+      return updated;
+    });
+  };
+
+  const handleRemoveTrackById = (trackId: string) => {
+    setSongs((prev) => {
+      const idx = prev.findIndex((s) => s.spotifyTrackId === trackId);
+      if (idx === -1) return prev;
+      const updated = prev.filter((_, i) => i !== idx);
+      if (selectedSongIndex === idx) {
+        setSelectedSongIndex(updated.length > 0 ? 0 : null);
+      } else if (selectedSongIndex !== null && selectedSongIndex > idx) {
         setSelectedSongIndex(selectedSongIndex - 1);
       }
       return updated;
@@ -220,6 +243,8 @@ export function useQuizEditor(quizId: string) {
     loadedQuiz,
     isPending,
     startTransition,
+    showSavedSuccess,
+    handleRemoveTrackById,
     handleReorderSongs: (startIndex: number, endIndex: number) => {
       setSongs((prev) => {
         const result = Array.from(prev);

@@ -36,6 +36,7 @@ function Dashboard() {
     newDescription,
     setNewDescription,
     createQuizMutation,
+    terminateLobbyMutation,
   } = useDashboard();
 
   if (isSessionLoading) {
@@ -232,18 +233,30 @@ function Dashboard() {
                 <p className="text-xs text-muted-foreground mt-1">Lobby Code: <strong className="text-white">{activeSessions[0].lobbyId}</strong> &bull; {activeSessions[0].quizTitle}</p>
               </div>
             </div>
-            <button
-              onClick={() =>
-                navigate({
-                  to: '/lobby/$lobbyId',
-                  params: { lobbyId: activeSessions[0].lobbyId },
-                  search: { username: sessionData?.user.name ?? 'Host' },
-                })
-              }
-              className="bg-amber-500 hover:bg-amber-600 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] text-black text-xs font-black uppercase tracking-wider px-5 py-2 rounded-xl transition-all cursor-pointer"
-            >
-              Resume Game
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => {
+                  if (confirm('Are you sure you want to stop this game fully? This will disconnect all players.')) {
+                    terminateLobbyMutation.mutate(activeSessions[0].lobbyId);
+                  }
+                }}
+                className="flex-1 sm:flex-initial border border-amber-500/35 hover:bg-rose-500/10 hover:border-rose-500/50 hover:text-rose-400 text-amber-500 text-xs font-black uppercase tracking-wider px-5 py-2 rounded-xl transition-all cursor-pointer"
+              >
+                Stop Game Fully
+              </button>
+              <button
+                onClick={() =>
+                  navigate({
+                    to: '/lobby/$lobbyId',
+                    params: { lobbyId: activeSessions[0].lobbyId },
+                    search: { username: sessionData?.user.name ?? 'Host' },
+                  })
+                }
+                className="flex-1 sm:flex-initial bg-amber-500 hover:bg-amber-600 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] text-black text-xs font-black uppercase tracking-wider px-5 py-2 rounded-xl transition-all cursor-pointer"
+              >
+                Resume Game
+              </button>
+            </div>
           </div>
         )}
 

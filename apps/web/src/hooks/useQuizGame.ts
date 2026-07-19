@@ -91,6 +91,10 @@ export function useQuizGame(wsUrl: string) {
     emit('force_reveal');
   }, [emit]);
 
+  const endGame = useCallback(() => {
+    emit('end_game');
+  }, [emit]);
+
   return {
     isConnected,
     gameState,
@@ -103,5 +107,6 @@ export function useQuizGame(wsUrl: string) {
     nextSong,
     configureLobby,
     forceReveal,
+    endGame,
   };
 }
