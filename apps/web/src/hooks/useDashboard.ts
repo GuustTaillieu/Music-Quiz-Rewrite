@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authClient } from '#/lib/auth-client';
 import { apiFetch } from '#/lib/api';
 import { quizzesQueryOptions } from '#/queries/quizzes';
@@ -12,9 +12,42 @@ const createLobbyResponseSchema = z.object({
 
 export function useDashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [lobbyCode, setLobbyCode] = useState('');
   const [guestName, setGuestName] = useState('');
   const [joinError, setJoinError] = useState('');
+  const [step, setStep] = useState<'code' | 'name'>('code');
+  const [isCodeValidating, setIsCodeValidating] = useState(false);
+  const [isCodeInvalid, setIsCodeInvalid] = useState(false);
+
+  // Quiz Creation States
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+
+  const createQuizMutation = useMutation({
+    mutationFn: async (data: { title: string; description: string }) => {
+      const { data: res, error } = await apiFetch<any>('/quizzes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (error) throw error;
+      return res;
+    },
+    onSuccess: (newQuiz) => {
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+      setIsCreateModalOpen(false);
+      setNewTitle('');
+      setNewDescription('');
+      navigate({
+        to: '/studio/$quizId',
+        params: { quizId: newQuiz.id },
+      });
+    },
+  });
 
   // Better-Auth Session
   const { data: sessionData, isPending: isSessionLoading } =
@@ -27,8 +60,41 @@ export function useDashboard() {
     quizzesQueryOptions(isLoggedIn),
   );
 
-  const handleJoinLobby = (e: React.FormEvent) => {
-    e.preventDefault();
+  const { data: activeSessions, isLoading: isActiveSessionsLoading } = useQuery({
+    queryKey: ['active-sessions'],
+    queryFn: async () => {
+      const { data, error } = await apiFetch<Array<{ lobbyId: string; quizTitle: string }>>('/game/active');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: isLoggedIn,
+    refetchInterval: 5000,
+  });
+
+  const handleCodeChange = async (val: string) => {
+    const code = val.toUpperCase().slice(0, 4).replace(/[^A-Z]/g, '');
+    setLobbyCode(code);
+    setIsCodeInvalid(false);
+    setJoinError('');
+
+    if (code.length === 4) {
+      setIsCodeValidating(true);
+      const { data, error } = await apiFetch<{ exists: boolean }>(`/game/lobby/${code}/exists`);
+      setIsCodeValidating(false);
+      console.log("data:", data);
+      console.log("error:", error);
+
+      if (error || !data?.exists) {
+        setIsCodeInvalid(true);
+        setJoinError('Lobby not found. Check the code and try again.');
+      } else {
+        setStep('name');
+      }
+    }
+  };
+
+  const handleJoinLobby = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setJoinError('');
 
     const code = lobbyCode.trim().toUpperCase();
@@ -51,7 +117,7 @@ export function useDashboard() {
   };
 
   const handleCreateLobby = async (quizId: string) => {
-    const { data, error } = await apiFetch('/api/game/lobby', {
+    const { data, error } = await apiFetch('/game/lobby', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -96,9 +162,23 @@ export function useDashboard() {
     isLoggedIn,
     quizzes,
     isQuizzesLoading,
+    activeSessions,
+    isActiveSessionsLoading,
     handleJoinLobby,
     handleCreateLobby,
     handleSpotifyLogin,
     handleSignOut,
+    step,
+    setStep,
+    isCodeValidating,
+    isCodeInvalid,
+    handleCodeChange,
+    isCreateModalOpen,
+    setIsCreateModalOpen,
+    newTitle,
+    setNewTitle,
+    newDescription,
+    setNewDescription,
+    createQuizMutation,
   };
 }

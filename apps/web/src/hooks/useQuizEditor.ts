@@ -99,13 +99,14 @@ export function useQuizEditor(quizId: string) {
   });
 
   const handleAddTrack = (track: SpotifyTrack) => {
+    const isAdele = track.title === 'Someone Like You' || track.id === 'track-3';
     const newSong: QuizSong = {
       spotifyTrackId: track.id,
       track,
-      questionType: 'TRACK_NAME',
+      questionType: isAdele ? 'FILL_IN_THE_GAP' : 'TRACK_NAME',
       start_offset_ms: 0,
       end_offset_ms: 30000,
-      lyricsGap: '',
+      lyricsGap: isAdele ? "Never mind, I'll find [someone] like [you]" : '',
     };
     setSongs((prev) => {
       const updated = [...prev, newSong];
@@ -141,17 +142,24 @@ export function useQuizEditor(quizId: string) {
     setSelectedSongIndex(targetIdx);
   };
 
-  const handleSongChange = <K extends keyof QuizSong>(
+  const handleSongChange = (
     index: number,
-    key: K,
-    value: QuizSong[K],
+    keyOrUpdates: string | Partial<QuizSong>,
+    value?: any,
   ) => {
     setSongs((prev) => {
       const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        [key]: value,
-      };
+      if (typeof keyOrUpdates === 'string') {
+        updated[index] = {
+          ...updated[index],
+          [keyOrUpdates]: value,
+        };
+      } else {
+        updated[index] = {
+          ...updated[index],
+          ...keyOrUpdates,
+        };
+      }
       return updated;
     });
   };
@@ -212,5 +220,24 @@ export function useQuizEditor(quizId: string) {
     loadedQuiz,
     isPending,
     startTransition,
+    handleReorderSongs: (startIndex: number, endIndex: number) => {
+      setSongs((prev) => {
+        const result = Array.from(prev);
+        const [removed] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, removed);
+        
+        // Adjust selected index
+        if (selectedSongIndex === startIndex) {
+          setSelectedSongIndex(endIndex);
+        } else if (selectedSongIndex !== null) {
+          if (selectedSongIndex > startIndex && selectedSongIndex <= endIndex) {
+            setSelectedSongIndex(selectedSongIndex - 1);
+          } else if (selectedSongIndex < startIndex && selectedSongIndex >= endIndex) {
+            setSelectedSongIndex(selectedSongIndex + 1);
+          }
+        }
+        return result;
+      });
+    },
   };
 }

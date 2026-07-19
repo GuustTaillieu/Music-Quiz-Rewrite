@@ -55,7 +55,7 @@ export function useStudioIndex() {
   // Delete mutation using apiFetch
   const deleteMutation = useMutation({
     mutationFn: async (quizId: string) => {
-      const { error } = await apiFetch(`/api/quizzes/${quizId}`, {
+      const { error } = await apiFetch(`/quizzes/${quizId}`, {
         method: 'DELETE',
       });
       if (error) throw error;
@@ -64,6 +64,28 @@ export function useStudioIndex() {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
     },
   });
+
+  const handleCreateLobby = async (quizId: string) => {
+    const { data, error } = await apiFetch<{ lobbyId: string }>('/game/lobby', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ quizId }),
+    });
+
+    if (error) {
+      console.error(error);
+      alert('Could not start lobby. Make sure you are logged in.');
+      return;
+    }
+
+    navigate({
+      to: '/lobby/$lobbyId',
+      params: { lobbyId: data.lobbyId },
+      search: { username: sessionData?.user.name ?? 'Host' },
+    });
+  };
 
   return {
     navigate,
@@ -80,5 +102,6 @@ export function useStudioIndex() {
     newDescription,
     setNewDescription,
     createQuizMutation,
+    handleCreateLobby,
   };
 }

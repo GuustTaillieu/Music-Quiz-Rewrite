@@ -17,6 +17,14 @@ export class GameService {
       throw new NotFoundException(`Quiz with ID ${quizId} not found`);
     }
 
+    // Clean up any existing active lobbies for this host
+    const sessions = await this.gameSessionRepository.findAll();
+    for (const s of sessions) {
+      if (s.hostId === hostId) {
+        await this.gameSessionRepository.delete(s.lobbyId);
+      }
+    }
+
     // Generate unique 4-character uppercase code
     let lobbyId = '';
     let isUnique = false;
@@ -92,6 +100,20 @@ export class GameService {
     return session.getSanitizedState(playerId);
   }
 
+  public async advanceRound(
+    lobbyId: string,
+    hostPlayerId: string,
+  ): Promise<GameSessionState> {
+    const session = await this.gameSessionRepository.findById(lobbyId);
+    if (!session) {
+      throw new NotFoundException(`Lobby ${lobbyId} not found`);
+    }
+
+    session.advanceRound(hostPlayerId);
+    await this.gameSessionRepository.save(session);
+    return session.getSanitizedState(hostPlayerId);
+  }
+
   public async removePlayer(
     lobbyId: string,
     playerId: string,
@@ -100,15 +122,7 @@ export class GameService {
     if (!session) {
       return null;
     }
-
     session.removePlayer(playerId);
-
-    const activeCount = session.players.filter((p) => !p.isDisconnected).length;
-    if (activeCount === 0) {
-      await this.gameSessionRepository.delete(lobbyId);
-      return null;
-    }
-
     await this.gameSessionRepository.save(session);
     return session.getSanitizedState(playerId);
   }
@@ -117,15 +131,27 @@ export class GameService {
     lobbyId: string,
     playerId: string,
     username: string,
+    userId?: string,
   ): Promise<GameSessionState> {
     const session = await this.gameSessionRepository.findById(lobbyId);
     if (!session) {
       throw new NotFoundException(`Lobby ${lobbyId} not found`);
     }
 
-    session.addPlayer(playerId, username);
+    session.addPlayer(playerId, username, userId);
     await this.gameSessionRepository.save(session);
     return session.getSanitizedState(playerId);
+  }
+
+  public async getActiveSessionsForHost(
+    hostId: string,
+  ): Promise<Array<{ lobbyId: string; quizTitle: string }>> {
+    const sessions = await this.gameSessionRepository.findAll();
+    const active = sessions.filter((s) => s.hostId === hostId && s.phase !== 'COMPLETED');
+    return active.map((s) => ({
+      lobbyId: s.lobbyId,
+      quizTitle: s.quiz.title,
+    }));
   }
 
   private generateLobbyId(): string {

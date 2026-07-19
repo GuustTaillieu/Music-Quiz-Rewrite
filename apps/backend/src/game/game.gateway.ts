@@ -57,14 +57,15 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage('join_lobby')
   public async handleJoinLobby(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { lobbyId: string; username: string },
+    @MessageBody() data: { lobbyId: string; username: string; userId?: string },
   ): Promise<void> {
     const lobbyId = data.lobbyId.toUpperCase();
     const username = data.username.trim();
+    const userId = data.userId;
 
     try {
       this.logger.log(
-        `Player ${username} (socket: ${client.id}) joining lobby ${lobbyId}`,
+        `Player ${username} (socket: ${client.id}, user: ${userId ?? 'none'}) joining lobby ${lobbyId}`,
       );
 
       // Join the socket.io room
@@ -75,6 +76,7 @@ export class GameGateway implements OnGatewayDisconnect {
         lobbyId,
         client.id,
         username,
+        userId,
       );
 
       // Save connection context
@@ -157,6 +159,27 @@ export class GameGateway implements OnGatewayDisconnect {
       this.server.to(clientData.lobbyId).emit('game_state_update', state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to pass turn';
+      client.emit('error', { message });
+    }
+  }
+
+  @SubscribeMessage('next_song')
+  public async handleNextSong(@ConnectedSocket() client: Socket): Promise<void> {
+    const clientData = this.clientMap.get(client.id);
+    if (!clientData) {
+      client.emit('error', { message: 'Not connected to a lobby' });
+      return;
+    }
+
+    try {
+      const state = await this.gameService.advanceRound(
+        clientData.lobbyId,
+        client.id,
+      );
+
+      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to advance round';
       client.emit('error', { message });
     }
   }

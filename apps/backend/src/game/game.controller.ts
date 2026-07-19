@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
 import {
   AuthGuard,
   Session,
@@ -13,6 +13,14 @@ export class CreateLobbyDto {
 @Controller('game')
 export class GameController {
   constructor(private readonly gameService: GameService) {}
+
+  @Get('active')
+  @UseGuards(AuthGuard)
+  public async getActiveSessions(
+    @Session() session: UserSession,
+  ): Promise<Array<{ lobbyId: string; quizTitle: string }>> {
+    return this.gameService.getActiveSessionsForHost(session.user.id);
+  }
 
   @Post('lobby')
   @UseGuards(AuthGuard)

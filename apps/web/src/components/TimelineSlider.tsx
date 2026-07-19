@@ -8,6 +8,23 @@ interface TimelineSliderProps {
   currentPlaybackMs?: number | null;
 }
 
+// Deterministic mock visualizer generator to give each song a unique visual fingerprint
+const generateBars = (songId: string, count = 50) => {
+  const bars: number[] = [];
+  let hash = 0;
+  const idStr = songId || 'default-song';
+  for (let i = 0; i < idStr.length; i++) {
+    hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  for (let i = 0; i < count; i++) {
+    const pseudoRand = Math.abs(Math.sin(hash + i) * 100);
+    // Height percentage bounds between 15% and 85%
+    const height = Math.max(15, Math.min(85, Math.floor(pseudoRand)));
+    bars.push(height);
+  }
+  return bars;
+};
+
 export function TimelineSlider({
   durationMs,
   startOffsetMs,
@@ -54,11 +71,14 @@ export function TimelineSlider({
       const rect = trackRef.current.getBoundingClientRect();
       const deltaMs = Math.floor((deltaX / rect.width) * total);
 
+      // Enforce 5s minimum playing window
+      const minPlayWindowMs = 5000;
+
       if (activeDrag === 'start') {
-        const nextStart = Math.max(0, Math.min(currentMs, endOffsetMs - 1000));
+        const nextStart = Math.max(0, Math.min(currentMs, endOffsetMs - minPlayWindowMs));
         onChange(nextStart, endOffsetMs);
       } else if (activeDrag === 'end') {
-        const nextEnd = Math.max(startOffsetMs + 1000, Math.min(currentMs, total));
+        const nextEnd = Math.max(startOffsetMs + minPlayWindowMs, Math.min(currentMs, total));
         onChange(startOffsetMs, nextEnd);
       } else if (activeDrag === 'range') {
         const rangeWidth = dragStartRef.current.initialEnd - dragStartRef.current.initialStart;
@@ -123,11 +143,14 @@ export function TimelineSlider({
   // Percent position of active playback
   const playbackPercent = currentPlaybackMs !== null ? (currentPlaybackMs / total) * 100 : null;
 
+  // Generate vertical bars deterministically
+  const waveformBars = generateBars(total.toString(), 60);
+
   return (
     <div className="w-full space-y-2 select-none">
       <div className="flex items-center justify-between text-xs text-muted-foreground font-bold uppercase tracking-wider">
-        <span>Selected Range</span>
-        <span className="text-lagoon">
+        <span>Timeline Offsets (5s min)</span>
+        <span className="text-[#00f0ff] font-black glow-text-cyan">
           {formatTime(startOffsetMs)} - {formatTime(endOffsetMs)} ({Math.round((endOffsetMs - startOffsetMs) / 1000)}s)
         </span>
       </div>
@@ -136,8 +159,27 @@ export function TimelineSlider({
       <div
         ref={trackRef}
         onClick={handleTrackClick}
-        className="relative w-full h-12 bg-foam/5 dark:bg-black/30 border border-line rounded-xl overflow-hidden cursor-pointer"
+        className="relative w-full h-14 bg-black/50 border border-cyan-500/20 rounded-xl overflow-hidden cursor-pointer flex items-center"
       >
+        {/* Waveform visualizer backdrop */}
+        <div className="absolute inset-0 flex items-center justify-between px-3 gap-[2px] opacity-40 pointer-events-none">
+          {waveformBars.map((height, idx) => {
+            const barPct = (idx / waveformBars.length) * 100;
+            const isInside = barPct >= startPercent && barPct <= endPercent;
+            return (
+              <div
+                key={idx}
+                style={{ height: `${height}%` }}
+                className={`w-[4px] rounded-full transition-all duration-300 ${
+                  isInside
+                    ? 'bg-[#00f0ff] shadow-[0_0_8px_rgba(0,240,255,0.5)]'
+                    : 'bg-cyan-950/30 border border-cyan-500/5'
+                }`}
+              />
+            );
+          })}
+        </div>
+
         {/* Selected Highlight Range */}
         <div
           onMouseDown={(e) => handleMouseDown(e, 'range')}
@@ -145,22 +187,22 @@ export function TimelineSlider({
             left: `${startPercent}%`,
             width: `${widthPercent}%`,
           }}
-          className="absolute top-0 bottom-0 bg-lagoon/20 hover:bg-lagoon/25 border-l-2 border-r-2 border-lagoon cursor-grab active:cursor-grabbing flex items-center justify-between transition-colors"
+          className="absolute top-0 bottom-0 bg-cyan-500/10 hover:bg-cyan-500/15 border-l border-r border-[#00f0ff] cursor-grab active:cursor-grabbing flex items-center justify-between transition-colors shadow-[0_0_15px_rgba(0,240,255,0.15)]"
         >
           {/* Left Handle */}
           <div
             onMouseDown={(e) => handleMouseDown(e, 'start')}
-            className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-8 bg-lagoon rounded-full cursor-col-resize shadow-md hover:scale-110 active:scale-95 transition-transform flex items-center justify-center border border-black/30"
+            className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3.5 h-9 bg-[#00f0ff] rounded-full cursor-col-resize shadow-[0_0_10px_rgba(0,240,255,0.6)] hover:scale-110 active:scale-95 transition-transform flex items-center justify-center border border-black/40"
           >
-            <div className="w-0.5 h-3 bg-white/60 rounded-full" />
+            <div className="w-0.5 h-3 bg-black/60 rounded-full" />
           </div>
 
           {/* Right Handle */}
           <div
             onMouseDown={(e) => handleMouseDown(e, 'end')}
-            className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-8 bg-lagoon rounded-full cursor-col-resize shadow-md hover:scale-110 active:scale-95 transition-transform flex items-center justify-center border border-black/30"
+            className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-9 bg-[#00f0ff] rounded-full cursor-col-resize shadow-[0_0_10px_rgba(0,240,255,0.6)] hover:scale-110 active:scale-95 transition-transform flex items-center justify-center border border-black/40"
           >
-            <div className="w-0.5 h-3 bg-white/60 rounded-full" />
+            <div className="w-0.5 h-3 bg-black/60 rounded-full" />
           </div>
         </div>
 
@@ -168,14 +210,14 @@ export function TimelineSlider({
         {playbackPercent !== null && playbackPercent >= 0 && playbackPercent <= 100 && (
           <div
             style={{ left: `${playbackPercent}%` }}
-            className="absolute top-0 bottom-0 w-0.5 bg-amber-500 shadow-md pointer-events-none z-10"
+            className="absolute top-0 bottom-0 w-[2px] bg-[#ff007f] shadow-[0_0_8px_rgba(255,0,127,0.7)] pointer-events-none z-10 transition-all duration-75"
           >
-            <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-amber-500 rounded-full border border-black/20" />
+            <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-[#ff007f] rounded-full border border-black/20" />
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
         <span>0:00</span>
         <span>{formatTime(total)}</span>
       </div>

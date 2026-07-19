@@ -17,4 +17,8 @@ export class InMemoryGameSessionRepository implements GameSessionRepository {
   public async delete(id: string): Promise<boolean> {
     return this.sessions.delete(id.toUpperCase());
   }
+
+  public async findAll(): Promise<GameSession[]> {
+    return Array.from(this.sessions.values());
+  }
 }

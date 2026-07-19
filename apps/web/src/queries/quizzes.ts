@@ -9,6 +9,7 @@ const clientQuizMetaSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   createdAt: z.string().optional(),
+  songCount: z.number().optional(),
 });
 
 export const quizzesQueryOptions = (enabled: boolean) =>

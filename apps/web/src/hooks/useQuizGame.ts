@@ -54,9 +54,9 @@ export function useQuizGame(wsUrl: string) {
   }, [registerHandler]);
 
   const joinLobby = useCallback(
-    (lobbyId: string, username: string) => {
+    (lobbyId: string, username: string, userId?: string) => {
       setError(null);
-      emit('join_lobby', { lobbyId, username });
+      emit('join_lobby', { lobbyId, username, userId });
     },
     [emit],
   );
@@ -76,6 +76,21 @@ export function useQuizGame(wsUrl: string) {
     emit('pass_turn');
   }, [emit]);
 
+  const nextSong = useCallback(() => {
+    emit('next_song');
+  }, [emit]);
+
+  const configureLobby = useCallback(
+    (gameMode: 'SPEED_MODE' | 'TURN_BASED', guessingTimeLimit: number) => {
+      emit('configure_lobby', { gameMode, guessingTimeLimit });
+    },
+    [emit],
+  );
+
+  const forceReveal = useCallback(() => {
+    emit('force_reveal');
+  }, [emit]);
+
   return {
     isConnected,
     gameState,
@@ -85,5 +100,8 @@ export function useQuizGame(wsUrl: string) {
     startGame,
     submitGuess,
     passTurn,
+    nextSong,
+    configureLobby,
+    forceReveal,
   };
 }

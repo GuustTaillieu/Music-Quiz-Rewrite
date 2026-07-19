@@ -94,6 +94,8 @@ export const GameSessionStateSchema = z.object({
   playersGuessed: z.array(z.string()),
   playersPassed: z.array(z.string()),
   activeSong: ActiveSongInfoSchema.nullable(),
+  roundState: z.enum(['GUESSING', 'REVEALED']).optional(),
+  lastRoundWinnerId: z.string().nullable().optional(),
 });
 
 export type GameSessionState = z.infer<typeof GameSessionStateSchema>;

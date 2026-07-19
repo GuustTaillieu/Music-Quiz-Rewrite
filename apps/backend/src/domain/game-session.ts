@@ -16,6 +16,8 @@ export class GameSession {
   private _turnOrder: string[] = [];
   private _playersGuessed: string[] = [];
   private _playersPassed: string[] = [];
+  private _roundState: 'GUESSING' | 'REVEALED' = 'GUESSING';
+  private _lastRoundWinnerId: string | null = null;
 
   constructor(
     private readonly _lobbyId: string,
@@ -67,33 +69,48 @@ export class GameSession {
     return [...this._playersPassed];
   }
 
+  public get roundState(): 'GUESSING' | 'REVEALED' {
+    return this._roundState;
+  }
+
+  public get lastRoundWinnerId(): string | null {
+    return this._lastRoundWinnerId;
+  }
+
   // ============================================================================
   // Mutations
   // ============================================================================
 
-  public addPlayer(id: string, name: string): void {
-    if (this._phase !== 'LOBBY') {
-      throw new Error('Cannot join a game that has already started');
-    }
-
+  public addPlayer(id: string, name: string, userId?: string): void {
     const trimmedName = name.trim();
     if (!trimmedName) {
       throw new Error('Name cannot be empty');
     }
 
-    const nameExists = this._players.some(
+    const existingPlayer = this._players.find(
       (p) => p.name.toLowerCase() === trimmedName.toLowerCase(),
     );
-    if (nameExists) {
-      throw new Error(`Username "${trimmedName}" is already taken in this lobby`);
+
+    if (existingPlayer) {
+      if (existingPlayer.isDisconnected) {
+        existingPlayer.id = id;
+        existingPlayer.isDisconnected = false;
+        return;
+      } else {
+        throw new Error(`Username "${trimmedName}" is already taken in this lobby`);
+      }
     }
 
-    const isHost = id === this._hostId;
+    if (this._phase !== 'LOBBY') {
+      throw new Error('Cannot join a game that has already started');
+    }
+
+    const isHost = id === this._hostId || (userId && userId === this._hostId);
     this._players.push({
       id,
       name: trimmedName,
       score: 0,
-      isHost,
+      isHost: !!isHost,
       isDisconnected: false,
     });
   }
@@ -117,7 +134,8 @@ export class GameSession {
   }
 
   public start(callerId: string): void {
-    if (callerId !== this._hostId) {
+    const caller = this._players.find((p) => p.id === callerId);
+    if (!caller || !caller.isHost) {
       throw new Error('Only the host can start the quiz');
     }
 
@@ -125,16 +143,17 @@ export class GameSession {
       throw new Error('Quiz has already started');
     }
 
-    if (this._players.length === 0) {
-      throw new Error('Cannot start a game with no players');
+    const guestPlayers = this._players.filter((p) => !p.isHost);
+    if (guestPlayers.length < 2) {
+      throw new Error('Cannot start a game with fewer than 2 players');
     }
 
     if (this._quiz.songs.length === 0) {
       throw new Error('Cannot start a quiz with zero songs');
     }
 
-    // Set order based on player arrival (or we could shuffle, but keeping it predictable)
-    this._turnOrder = this._players.map((p) => p.id);
+    // Set order based on player arrival (excluding host)
+    this._turnOrder = guestPlayers.map((p) => p.id);
     this._currentSongIndex = 0;
     this._playersGuessed = [];
     this._playersPassed = [];
@@ -154,6 +173,10 @@ export class GameSession {
   }
 
   public submitGuess(playerId: string, guess: string): boolean {
+    if (this._roundState === 'REVEALED') {
+      throw new Error('Round is already over. Waiting for next song.');
+    }
+
     const activeSong = this.getCurrentSong();
     if (!activeSong) {
       throw new Error('No song currently active');
@@ -164,6 +187,10 @@ export class GameSession {
       throw new Error('Player is not active in this session');
     }
 
+    if (player.isHost) {
+      throw new Error('Hosts cannot submit guesses');
+    }
+
     if (this._phase === 'TURN_BASED') {
       if (playerId !== this._activePlayerId) {
         throw new Error('It is not your turn to guess');
@@ -172,7 +199,8 @@ export class GameSession {
       const isCorrect = this.checkAnswer(activeSong, guess);
       if (isCorrect) {
         player.score += 1;
-        this.moveToNextSong();
+        this._roundState = 'REVEALED';
+        this._lastRoundWinnerId = playerId;
         return true;
       } else {
         this._playersGuessed.push(playerId);
@@ -188,14 +216,16 @@ export class GameSession {
       const isCorrect = this.checkAnswer(activeSong, guess);
       if (isCorrect) {
         player.score += 1;
-        this.moveToNextSong();
+        this._roundState = 'REVEALED';
+        this._lastRoundWinnerId = playerId;
         return true;
       } else {
         this._playersGuessed.push(playerId);
-        // If everyone has guessed wrong, move to next song
+        // If everyone has guessed wrong, transition to reveal
         const activeCount = this.getActivePlayersCount();
         if (this._playersGuessed.length >= activeCount) {
-          this.moveToNextSong();
+          this._roundState = 'REVEALED';
+          this._lastRoundWinnerId = null;
         }
         return false;
       }
@@ -205,6 +235,11 @@ export class GameSession {
   }
 
   public passTurn(playerId: string): void {
+    const player = this._players.find((p) => p.id === playerId);
+    if (player?.isHost) {
+      throw new Error('Hosts cannot pass turns');
+    }
+
     if (this._phase !== 'TURN_BASED') {
       throw new Error('Turns can only be passed in turn-based mode');
     }
@@ -217,12 +252,26 @@ export class GameSession {
     this.rotateTurn();
   }
 
+  public advanceRound(hostId: string): void {
+    const caller = this._players.find((p) => p.id === hostId);
+    if (!caller || !caller.isHost) {
+      throw new Error('Only the host can advance the round');
+    }
+    if (this._roundState !== 'REVEALED') {
+      throw new Error('Cannot advance round while guessing is active');
+    }
+
+    this._roundState = 'GUESSING';
+    this._lastRoundWinnerId = null;
+    this.moveToNextSong();
+  }
+
   // ============================================================================
   // Internal Helpers
   // ============================================================================
 
   private getActivePlayersCount(): number {
-    return this._players.filter((p) => !p.isDisconnected).length;
+    return this._players.filter((p) => !p.isDisconnected && !p.isHost).length;
   }
 
   private getCurrentSong() {
@@ -239,7 +288,9 @@ export class GameSession {
     } else if (song.questionType === 'ARTIST_NAME') {
       answer = song.track.artist;
     } else if (song.questionType === 'FILL_IN_THE_GAP') {
-      answer = song.lyricsGap || '';
+      const rawLyrics = song.lyricsGap || '';
+      const matches = [...rawLyrics.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]);
+      answer = matches.length > 0 ? matches.join(' ') : rawLyrics;
     }
 
     const normalize = (str: string) =>
@@ -257,8 +308,9 @@ export class GameSession {
     if (nextPlayer) {
       this._activePlayerId = nextPlayer;
     } else {
-      // Everyone has either passed or guessed wrong for this song -> move to next song
-      this.moveToNextSong();
+      // Everyone has either passed or guessed wrong for this song -> transition to reveal
+      this._roundState = 'REVEALED';
+      this._lastRoundWinnerId = null;
     }
   }
 
@@ -347,18 +399,42 @@ export class GameSession {
     const currentSong = this.getCurrentSong();
     let sanitizedSong: ActiveSongInfo | null = null;
 
+    const isHost = playerId === this._hostId;
+    const isRevealed = this._roundState === 'REVEALED';
+
     if (currentSong) {
       const { track, questionType, start_offset_ms, end_offset_ms, lyricsGap } = currentSong;
+
+      let songTitle: string | null = null;
+      let songArtist: string | null = null;
+      let songAlbum: string | null = null;
+      let songCover: string | null = null;
+      let songLyrics: string | null = null;
+
+      if (isHost || isRevealed) {
+        songTitle = track.title;
+        songArtist = track.artist;
+        songAlbum = track.album;
+        songCover = track.coverArtUrl;
+        songLyrics = lyricsGap ?? null;
+      } else {
+        songTitle = questionType === 'TRACK_NAME' ? null : track.title;
+        songArtist = questionType === 'ARTIST_NAME' ? null : track.artist;
+        songAlbum = null;
+        songCover = null;
+        songLyrics = questionType === 'FILL_IN_THE_GAP' ? this.maskLyrics(lyricsGap) : null;
+      }
+
       sanitizedSong = {
         spotifyTrackId: currentSong.spotifyTrackId,
         questionType,
         start_offset_ms,
         end_offset_ms,
-        lyricsGap: questionType === 'FILL_IN_THE_GAP' ? lyricsGap : null,
-        title: questionType === 'TRACK_NAME' ? null : track.title,
-        artist: questionType === 'ARTIST_NAME' ? null : track.artist,
-        album: track.album,
-        coverArtUrl: track.coverArtUrl,
+        lyricsGap: songLyrics,
+        title: songTitle,
+        artist: songArtist,
+        album: songAlbum,
+        coverArtUrl: songCover,
         previewUrl: track.previewUrl,
       };
     }
@@ -375,6 +451,15 @@ export class GameSession {
       playersGuessed: this.playersGuessed,
       playersPassed: this.playersPassed,
       activeSong: sanitizedSong,
+      roundState: this._roundState,
+      lastRoundWinnerId: this._lastRoundWinnerId,
     };
+  }
+
+  private maskLyrics(lyrics: string | null | undefined): string | null {
+    if (!lyrics) return null;
+    return lyrics.replace(/\[([^\]]+)\]/g, (match, word) => {
+      return '_'.repeat(Math.max(5, word.length));
+    });
   }
 }
