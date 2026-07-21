@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard, Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { SpotifyService } from './spotify.service';
 import { SpotifyTokenService } from '../infrastructure/spotify/spotify-token.service';
@@ -35,5 +35,20 @@ export class SpotifyController {
     @Query('title') title: string,
   ): Promise<{ plainLyrics: string | null }> {
     return this.spotifyService.getLyrics(artist ?? '', title ?? '');
+  }
+
+  @Post('play')
+  public async play(
+    @Body() body: { deviceId: string; trackId: string; offsetMs?: number },
+    @Session() session: UserSession,
+  ): Promise<{ success: boolean }> {
+    const token = await this.tokenService.getHostAccessToken(session.user.id);
+    await this.spotifyService.playTrack(
+      token,
+      body.deviceId,
+      body.trackId,
+      body.offsetMs ?? 0,
+    );
+    return { success: true };
   }
 }

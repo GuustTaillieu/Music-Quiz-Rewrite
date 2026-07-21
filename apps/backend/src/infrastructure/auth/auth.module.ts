@@ -23,6 +23,8 @@ import * as schema from '../database/schema';
           errorPage: (process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000') + '/?error=premium_required',
           trustedOrigins: [
             process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
           ],
           accountLinking: {
             enabled: true,

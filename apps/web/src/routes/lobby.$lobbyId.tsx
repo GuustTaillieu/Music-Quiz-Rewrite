@@ -51,14 +51,19 @@ function CavaVisualizer({ isPlaying }: { isPlaying: boolean }) {
     const phases = Array.from({ length: barCount }, () => Math.random() * Math.PI * 2);
     const speeds = Array.from({ length: barCount }, () => 0.08 + Math.random() * 0.08);
 
-    const render = () => {
+    let lastTime = performance.now();
+
+    const render = (currentTime: number) => {
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (let i = 0; i < barCount; i++) {
         // Calculate dynamic height based on sine oscillators
         let height = 4;
         if (isPlaying) {
-          phases[i] += speeds[i];
+          phases[i] += speeds[i] * Math.min(deltaTime * 60, 3);
           const sine = Math.sin(phases[i]);
           height = 4 + Math.floor(Math.abs(sine) * (canvas.height - 8));
         } else {
@@ -85,7 +90,7 @@ function CavaVisualizer({ isPlaying }: { isPlaying: boolean }) {
       animationRef.current = requestAnimationFrame(render);
     };
 
-    render();
+    animationRef.current = requestAnimationFrame(render);
 
     return () => {
       if (animationRef.current) {
@@ -387,7 +392,7 @@ function LobbyRoomWrapper() {
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      if (spotifyPlayer.deviceId) {
+      if (spotifyPlayer.deviceId && spotifyPlayer.isPlaying) {
         spotifyPlayer.pauseTrack();
       }
       return;
