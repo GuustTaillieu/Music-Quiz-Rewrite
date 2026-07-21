@@ -28,6 +28,10 @@ export function useSpotifyPlayer(enabled: boolean) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [player, setPlayer] = useState<any>(null);
 
+  // Smooth position tracking variables
+  const [currentPlaybackMs, setCurrentPlaybackMs] = useState(0);
+  const stateTimestampRef = useRef<number>(Date.now());
+
   // Use refs to avoid stale closures in listeners
   const fetchTokenRef = useRef<() => Promise<string>>(null);
 
@@ -40,6 +44,21 @@ export function useSpotifyPlayer(enabled: boolean) {
   };
 
   fetchTokenRef.current = fetchToken;
+
+  // Track position updates continuously when song is playing
+  useEffect(() => {
+    if (!playbackState || playbackState.paused) {
+      setCurrentPlaybackMs(playbackState ? playbackState.position : 0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - stateTimestampRef.current;
+      setCurrentPlaybackMs(playbackState.position + elapsed);
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [playbackState]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -108,6 +127,7 @@ export function useSpotifyPlayer(enabled: boolean) {
           newPlayer.addListener('player_state_changed', (state: SpotifyPlaybackState) => {
             if (!state) return;
             setPlaybackState(state);
+            stateTimestampRef.current = Date.now();
           });
 
           newPlayer.addListener('account_error', () => {
@@ -331,7 +351,7 @@ export function useSpotifyPlayer(enabled: boolean) {
   return {
     deviceId,
     isPlaying: playbackState ? !playbackState.paused : false,
-    currentPositionMs: playbackState ? playbackState.position : 0,
+    currentPositionMs: currentPlaybackMs,
     durationMs: playbackState ? playbackState.duration : 0,
     isPremium,
     errorMsg,
