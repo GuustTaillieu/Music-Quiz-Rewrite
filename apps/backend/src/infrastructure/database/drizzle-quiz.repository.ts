@@ -54,13 +54,22 @@ export class DrizzleQuizRepository implements QuizRepository {
   }
 
   public async findAllMeta(): Promise<QuizMeta[]> {
-    const results = await this.db.select().from(quizzes);
+    const results = await this.db.query.quizzes.findMany({
+      with: {
+        songs: {
+          columns: {
+            id: true,
+          },
+        },
+      },
+    });
     return results.map((result) => ({
       id: result.id,
       title: result.title,
       description: result.description,
       creatorId: result.creatorId,
       createdAt: result.createdAt.toISOString(),
+      songCount: result.songs?.length ?? 0,
     }));
   }
 

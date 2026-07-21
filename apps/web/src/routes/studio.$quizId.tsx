@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuizEditor } from '#/hooks/useQuizEditor';
 import { useSpotifyPlayer } from '#/hooks/useSpotifyPlayer';
+import { useGlobalVolume } from '#/hooks/useGlobalVolume';
 import { TimelineSlider } from '#/components/TimelineSlider';
 import { LyricsGapEditor } from '#/components/LyricsGapEditor';
 import { useState, useEffect, useRef } from 'react';
@@ -91,9 +92,14 @@ function QuizEditor() {
 
   // Spotify SDK Playback for Host to preview actual song snippet
   const spotifyPlayer = useSpotifyPlayer(true);
+  const [globalVolume] = useGlobalVolume();
   const [currentPlaybackMs, setCurrentPlaybackMs] = useState<number | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const playbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    spotifyPlayer.setVolume(globalVolume);
+  }, [globalVolume, spotifyPlayer.deviceId]);
 
   const selectedSong =
     selectedSongIndex !== null && selectedSongIndex < songs.length

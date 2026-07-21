@@ -93,6 +93,31 @@ export class GameGateway implements OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('configure_lobby')
+  public async handleConfigureLobby(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { gameMode: 'SPEED_MODE' | 'TURN_BASED'; guessingTimeLimit: number },
+  ): Promise<void> {
+    const clientData = this.clientMap.get(client.id);
+    if (!clientData) {
+      client.emit('error', { message: 'Not connected to a lobby' });
+      return;
+    }
+
+    try {
+      const state = await this.gameService.configureLobby(
+        clientData.lobbyId,
+        client.id,
+        data.gameMode,
+        data.guessingTimeLimit,
+      );
+      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to configure lobby';
+      client.emit('error', { message });
+    }
+  }
+
   @SubscribeMessage('game_start')
   public async handleGameStart(
     @ConnectedSocket() client: Socket,
@@ -180,6 +205,46 @@ export class GameGateway implements OnGatewayDisconnect {
       this.server.to(clientData.lobbyId).emit('game_state_update', state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to advance round';
+      client.emit('error', { message });
+    }
+  }
+
+  @SubscribeMessage('force_reveal')
+  public async handleForceReveal(@ConnectedSocket() client: Socket): Promise<void> {
+    const clientData = this.clientMap.get(client.id);
+    if (!clientData) {
+      client.emit('error', { message: 'Not connected to a lobby' });
+      return;
+    }
+
+    try {
+      const state = await this.gameService.forceReveal(
+        clientData.lobbyId,
+        client.id,
+      );
+      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to force reveal';
+      client.emit('error', { message });
+    }
+  }
+
+  @SubscribeMessage('end_game')
+  public async handleEndGame(@ConnectedSocket() client: Socket): Promise<void> {
+    const clientData = this.clientMap.get(client.id);
+    if (!clientData) {
+      client.emit('error', { message: 'Not connected to a lobby' });
+      return;
+    }
+
+    try {
+      const state = await this.gameService.endGame(
+        clientData.lobbyId,
+        client.id,
+      );
+      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to end game';
       client.emit('error', { message });
     }
   }

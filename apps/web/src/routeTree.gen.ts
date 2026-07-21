@@ -10,13 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LobbyLobbyIdRouteImport } from './routes/lobby.$lobbyId'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioQuizIdRouteImport } from './routes/studio.$quizId'
-import { Route as LobbyLobbyIdRouteImport } from './routes/lobby.$lobbyId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LobbyLobbyIdRoute = LobbyLobbyIdRouteImport.update({
+  id: '/lobby/$lobbyId',
+  path: '/lobby/$lobbyId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudioIndexRoute = StudioIndexRouteImport.update({
@@ -27,11 +32,6 @@ const StudioIndexRoute = StudioIndexRouteImport.update({
 const StudioQuizIdRoute = StudioQuizIdRouteImport.update({
   id: '/studio/$quizId',
   path: '/studio/$quizId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LobbyLobbyIdRoute = LobbyLobbyIdRouteImport.update({
-  id: '/lobby/$lobbyId',
-  path: '/lobby/$lobbyId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -78,6 +78,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lobby/$lobbyId': {
+      id: '/lobby/$lobbyId'
+      path: '/lobby/$lobbyId'
+      fullPath: '/lobby/$lobbyId'
+      preLoaderRoute: typeof LobbyLobbyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/studio/': {
       id: '/studio/'
       path: '/studio'
@@ -90,13 +97,6 @@ declare module '@tanstack/react-router' {
       path: '/studio/$quizId'
       fullPath: '/studio/$quizId'
       preLoaderRoute: typeof StudioQuizIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lobby/$lobbyId': {
-      id: '/lobby/$lobbyId'
-      path: '/lobby/$lobbyId'
-      fullPath: '/lobby/$lobbyId'
-      preLoaderRoute: typeof LobbyLobbyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

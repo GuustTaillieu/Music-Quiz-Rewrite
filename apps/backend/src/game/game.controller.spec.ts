@@ -6,6 +6,7 @@ import { GameService } from './game.service';
 jest.mock('@thallesp/nestjs-better-auth', () => ({
   AuthGuard: jest.fn().mockImplementation(() => ({ canActivate: () => true })),
   Session: () => jest.fn(),
+  AllowAnonymous: () => () => {},
 }));
 
 describe('GameController', () => {

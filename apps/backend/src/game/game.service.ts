@@ -54,6 +54,27 @@ export class GameService {
     return session.getSanitizedState(playerId);
   }
 
+  public async configureLobby(
+    lobbyId: string,
+    hostId: string,
+    gameMode: 'SPEED_MODE' | 'TURN_BASED',
+    guessingTimeLimit: number,
+  ): Promise<GameSessionState> {
+    const session = await this.gameSessionRepository.findById(lobbyId);
+    if (!session) {
+      throw new NotFoundException(`Lobby ${lobbyId} not found`);
+    }
+
+    const caller = session.players.find(p => p.id === hostId);
+    if (!caller || !caller.isHost) {
+      throw new Error('Only the host can configure the lobby');
+    }
+
+    session.configure(gameMode, guessingTimeLimit);
+    await this.gameSessionRepository.save(session);
+    return session.getSanitizedState(hostId);
+  }
+
   public async startGame(
     lobbyId: string,
     hostId: string,
@@ -114,6 +135,34 @@ export class GameService {
     return session.getSanitizedState(hostPlayerId);
   }
 
+  public async forceReveal(
+    lobbyId: string,
+    hostId: string,
+  ): Promise<GameSessionState> {
+    const session = await this.gameSessionRepository.findById(lobbyId);
+    if (!session) {
+      throw new NotFoundException(`Lobby ${lobbyId} not found`);
+    }
+
+    session.forceReveal(hostId);
+    await this.gameSessionRepository.save(session);
+    return session.getSanitizedState(hostId);
+  }
+
+  public async endGame(
+    lobbyId: string,
+    hostId: string,
+  ): Promise<GameSessionState> {
+    const session = await this.gameSessionRepository.findById(lobbyId);
+    if (!session) {
+      throw new NotFoundException(`Lobby ${lobbyId} not found`);
+    }
+
+    session.forceEnd(hostId);
+    await this.gameSessionRepository.save(session);
+    return session.getSanitizedState(hostId);
+  }
+
   public async removePlayer(
     lobbyId: string,
     playerId: string,
@@ -152,6 +201,21 @@ export class GameService {
       lobbyId: s.lobbyId,
       quizTitle: s.quiz.title,
     }));
+  }
+
+  public async checkLobbyExists(lobbyId: string): Promise<boolean> {
+    const session = await this.gameSessionRepository.findById(lobbyId);
+    return !!session;
+  }
+
+  public async terminateLobby(lobbyId: string, hostId: string): Promise<void> {
+    const session = await this.gameSessionRepository.findById(lobbyId);
+    if (session) {
+      if (session.hostId !== hostId) {
+        throw new Error('Only the host can terminate this lobby');
+      }
+      await this.gameSessionRepository.delete(lobbyId);
+    }
   }
 
   private generateLobbyId(): string {

@@ -37,6 +37,7 @@ export const QuizMetaSchema = z.object({
   description: z.string().nullable().optional(),
   creatorId: z.string(),
   createdAt: z.string().datetime(),
+  songCount: z.number().int().nonnegative().optional(),
 });
 
 export type QuizMeta = z.infer<typeof QuizMetaSchema>;
@@ -96,6 +97,8 @@ export const GameSessionStateSchema = z.object({
   activeSong: ActiveSongInfoSchema.nullable(),
   roundState: z.enum(['GUESSING', 'REVEALED']).optional(),
   lastRoundWinnerId: z.string().nullable().optional(),
+  gameMode: z.enum(['SPEED_MODE', 'TURN_BASED']),
+  guessingTimeLimit: z.number().int().positive(),
 });
 
 export type GameSessionState = z.infer<typeof GameSessionStateSchema>;

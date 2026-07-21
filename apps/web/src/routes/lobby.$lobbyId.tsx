@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { useQuizGame } from '#/hooks/useQuizGame';
 import { useSpotifyPlayer } from '#/hooks/useSpotifyPlayer';
+import { useGlobalVolume } from '#/hooks/useGlobalVolume';
 import { authClient } from '#/lib/auth-client';
 import {
   Users,
@@ -244,7 +245,17 @@ function LobbyRoomWrapper() {
   const [copied, setCopied] = useState(false);
   const [guessInput, setGuessInput] = useState('');
   const [gapAnswers, setGapAnswers] = useState<Record<number, string>>({});
-  const [volume, setVolume] = useState(0.5);
+  const [scrubPositionMs, setScrubPositionMs] = useState<number | null>(null);
+
+  const [volume, setVolume] = useGlobalVolume();
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+    spotifyPlayer.setVolume(volume);
+  }, [volume, spotifyPlayer.deviceId]);
+
   const [showSpeedRoundModal, setShowSpeedRoundModal] = useState(false);
 
   // Local Config Settings Inputs for Host
@@ -1032,30 +1043,6 @@ function LobbyRoomWrapper() {
                 <Clock size={12} /> {isSpeedRound ? 'Speed Round Phase' : 'Turn-Based Phase'}
               </div>
 
-              {isLocalHost && (
-                <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-cyan-500/5">
-                  <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1 shrink-0">
-                    <Volume2 size={11} /> Vol
-                  </span>
-                  <div className="flex items-center gap-2 flex-1 max-w-[130px] justify-end">
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={volume}
-                      onChange={(e) => {
-                        const vol = parseFloat(e.target.value);
-                        setVolume(vol);
-                        if (audioRef.current) audioRef.current.volume = vol;
-                        spotifyPlayer.setVolume(vol);
-                      }}
-                      className="w-full h-1 bg-black/40 rounded-full appearance-none cursor-pointer accent-[#00f0ff] border border-cyan-500/10"
-                    />
-                    <span className="text-[9px] font-mono text-muted-foreground w-6 text-right shrink-0">{Math.round(volume * 100)}%</span>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Quick Leave Option for Host */}
@@ -1164,51 +1151,58 @@ function LobbyRoomWrapper() {
                     </div>
 
                     {isLocalHost && (
-                      <div className="p-4 bg-black/40 border border-cyan-500/20 rounded-2xl space-y-3 text-left">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-cyan-400 font-black uppercase tracking-wider">
-                            Full Song Playback
-                          </span>
-                          <span className="text-[10px] font-mono text-muted-foreground">
-                            {formatTime(spotifyPlayer.currentPositionMs)} / {formatTime(spotifyPlayer.durationMs)}
-                          </span>
-                        </div>
-
-                        {/* Timeline Scrubber */}
-                        <input
-                          type="range"
-                          min="0"
-                          max={spotifyPlayer.durationMs || 100}
-                          value={spotifyPlayer.currentPositionMs}
-                          onChange={async (e) => {
-                            const seekMs = parseInt(e.target.value);
-                            await spotifyPlayer.seekTrack(seekMs);
-                          }}
-                          className="w-full h-1 bg-black/40 rounded-full appearance-none cursor-pointer accent-[#00f0ff] border border-cyan-500/10"
-                        />
-
-                        {/* Play/Pause control button */}
-                        <div className="flex justify-center">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (spotifyPlayer.isPlaying) {
-                                spotifyPlayer.pauseTrack();
+                      <div className="p-4 bg-black/55 border border-cyan-500/10 rounded-2xl space-y-4 max-w-sm mx-auto shadow-inner flex flex-col items-center select-none">
+                        {/* Spotify Play/Pause Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (spotifyPlayer.isPlaying) {
+                              spotifyPlayer.pauseTrack();
+                            } else {
+                              if (spotifyPlayer.currentPositionMs === 0) {
+                                spotifyPlayer.playTrack(activeSong.spotifyTrackId, 0);
                               } else {
-                                if (spotifyPlayer.currentPositionMs === 0) {
-                                  spotifyPlayer.playTrack(activeSong.spotifyTrackId, 0);
-                                } else {
-                                  spotifyPlayer.resumeTrack();
-                                }
+                                spotifyPlayer.resumeTrack();
+                              }
+                            }
+                          }}
+                          className="h-11 w-11 rounded-full bg-[#1DB954] hover:bg-[#1ed760] flex items-center justify-center transition-all cursor-pointer shadow-[0_0_15px_rgba(29,185,84,0.4)] text-black hover:scale-105 active:scale-95 shrink-0"
+                        >
+                          {spotifyPlayer.isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
+                        </button>
+
+                        {/* Timeline seeker: Time slider Time */}
+                        <div className="w-full flex items-center gap-2.5">
+                          <span className="text-[10px] font-mono text-muted-foreground w-10 text-right shrink-0">
+                            {formatTime(scrubPositionMs !== null ? scrubPositionMs : spotifyPlayer.currentPositionMs)}
+                          </span>
+
+                          <input
+                            type="range"
+                            min="0"
+                            max={spotifyPlayer.durationMs || 180000}
+                            value={scrubPositionMs !== null ? scrubPositionMs : spotifyPlayer.currentPositionMs}
+                            onChange={(e) => {
+                              setScrubPositionMs(parseInt(e.target.value));
+                            }}
+                            onMouseUp={async () => {
+                              if (scrubPositionMs !== null) {
+                                await spotifyPlayer.seekTrack(scrubPositionMs);
+                                setScrubPositionMs(null);
                               }
                             }}
-                            className={`h-9 w-9 rounded-full flex items-center justify-center transition-all cursor-pointer border ${spotifyPlayer.isPlaying
-                                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
-                                : 'bg-[#00f0ff]/10 border-cyan-500/30 text-[#00f0ff] hover:bg-[#00f0ff]/20'
-                              }`}
-                          >
-                            {spotifyPlayer.isPlaying ? <Pause size={14} /> : <Play size={14} fill="currentColor" />}
-                          </button>
+                            onTouchEnd={async () => {
+                              if (scrubPositionMs !== null) {
+                                await spotifyPlayer.seekTrack(scrubPositionMs);
+                                setScrubPositionMs(null);
+                              }
+                            }}
+                            className="flex-1 h-1 bg-neutral-700 rounded-full appearance-none cursor-pointer accent-white hover:accent-[#1DB954] border-0 outline-none"
+                          />
+
+                          <span className="text-[10px] font-mono text-muted-foreground w-10 text-left shrink-0">
+                            {formatTime(spotifyPlayer.durationMs)}
+                          </span>
                         </div>
                       </div>
                     )}

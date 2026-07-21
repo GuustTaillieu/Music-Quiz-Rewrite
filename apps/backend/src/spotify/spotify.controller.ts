@@ -28,4 +28,12 @@ export class SpotifyController {
     const token = await this.tokenService.getHostAccessToken(session.user.id);
     return { accessToken: token };
   }
+
+  @Get('lyrics')
+  public async getLyrics(
+    @Query('artist') artist: string,
+    @Query('title') title: string,
+  ): Promise<{ plainLyrics: string | null }> {
+    return this.spotifyService.getLyrics(artist ?? '', title ?? '');
+  }
 }

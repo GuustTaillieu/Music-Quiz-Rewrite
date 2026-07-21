@@ -18,6 +18,8 @@ export class GameSession {
   private _playersPassed: string[] = [];
   private _roundState: 'GUESSING' | 'REVEALED' = 'GUESSING';
   private _lastRoundWinnerId: string | null = null;
+  private _gameMode: 'SPEED_MODE' | 'TURN_BASED' = 'TURN_BASED';
+  private _guessingTimeLimit = 30;
 
   constructor(
     private readonly _lobbyId: string,
@@ -47,6 +49,22 @@ export class GameSession {
 
   public get phase(): GamePhase {
     return this._phase;
+  }
+
+  public get gameMode(): 'SPEED_MODE' | 'TURN_BASED' {
+    return this._gameMode;
+  }
+
+  public get guessingTimeLimit(): number {
+    return this._guessingTimeLimit;
+  }
+
+  public configure(mode: 'SPEED_MODE' | 'TURN_BASED', timeLimit: number): void {
+    if (this._phase !== 'LOBBY') {
+      throw new Error('Cannot change settings after game starts');
+    }
+    this._gameMode = mode;
+    this._guessingTimeLimit = timeLimit;
   }
 
   public get currentSongIndex(): number {
@@ -126,8 +144,15 @@ export class GameSession {
         player.isDisconnected = true;
       }
 
-      // If the active player disconnected, we pass the turn
-      if (this._phase === 'TURN_BASED' && this._activePlayerId === id) {
+      // If active guessers drops below 2, end the game immediately
+      const activeCount = this.getActivePlayersCount();
+      if (activeCount < 2 && this._phase !== 'COMPLETED') {
+        this._phase = 'COMPLETED';
+        this._activePlayerId = null;
+        this._songStarterPlayerId = null;
+        this._roundState = 'REVEALED';
+      } else if (this._phase === 'TURN_BASED' && this._activePlayerId === id) {
+        // If the active player disconnected, we pass the turn
         this.passTurn(id);
       }
     }
@@ -158,17 +183,24 @@ export class GameSession {
     this._playersGuessed = [];
     this._playersPassed = [];
 
-    // Check if we immediately start in Speed Round (e.g. quiz with very few songs)
-    const activeCount = this.getActivePlayersCount();
-    if (this._quiz.songs.length < activeCount) {
+    // Check if SPEED_MODE was selected
+    if (this._gameMode === 'SPEED_MODE') {
       this._phase = 'SPEED_ROUND';
       this._activePlayerId = null;
       this._songStarterPlayerId = null;
     } else {
-      this._phase = 'TURN_BASED';
-      // Pick first non-disconnected player
-      this._activePlayerId = this.findNextTurnPlayer(null);
-      this._songStarterPlayerId = this._activePlayerId;
+      // Check if we immediately start in Speed Round (e.g. quiz with very few songs)
+      const activeCount = this.getActivePlayersCount();
+      if (this._quiz.songs.length < activeCount) {
+        this._phase = 'SPEED_ROUND';
+        this._activePlayerId = null;
+        this._songStarterPlayerId = null;
+      } else {
+        this._phase = 'TURN_BASED';
+        // Pick first non-disconnected player
+        this._activePlayerId = this.findNextTurnPlayer(null);
+        this._songStarterPlayerId = this._activePlayerId;
+      }
     }
   }
 
@@ -266,6 +298,28 @@ export class GameSession {
     this.moveToNextSong();
   }
 
+  public forceReveal(hostId: string): void {
+    const caller = this._players.find((p) => p.id === hostId);
+    if (!caller || !caller.isHost) {
+      throw new Error('Only the host can force reveal');
+    }
+    if (this._roundState === 'REVEALED') return;
+
+    this._roundState = 'REVEALED';
+    this._lastRoundWinnerId = null;
+  }
+
+  public forceEnd(hostId: string): void {
+    const caller = this._players.find((p) => p.id === hostId);
+    if (!caller || !caller.isHost) {
+      throw new Error('Only the host can end the game');
+    }
+    this._phase = 'COMPLETED';
+    this._activePlayerId = null;
+    this._songStarterPlayerId = null;
+    this._roundState = 'REVEALED';
+  }
+
   // ============================================================================
   // Internal Helpers
   // ============================================================================
@@ -296,8 +350,9 @@ export class GameSession {
     const normalize = (str: string) =>
       str
         .toLowerCase()
+        .replace(/;/g, ' ')
         .trim()
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g, '')
+        .replace(/[.,\/#!$%\^&\*:{}=\-_`~()?'"]/g, '')
         .replace(/\s+/g, ' ');
 
     return normalize(guess) === normalize(answer);
@@ -453,13 +508,17 @@ export class GameSession {
       activeSong: sanitizedSong,
       roundState: this._roundState,
       lastRoundWinnerId: this._lastRoundWinnerId,
+      gameMode: this._gameMode,
+      guessingTimeLimit: currentSong
+        ? Math.max(30, Math.ceil((currentSong.end_offset_ms - currentSong.start_offset_ms) / 1000))
+        : 30,
     };
   }
 
   private maskLyrics(lyrics: string | null | undefined): string | null {
     if (!lyrics) return null;
     return lyrics.replace(/\[([^\]]+)\]/g, (match, word) => {
-      return '_'.repeat(Math.max(5, word.length));
+      return `[${'_'.repeat(word.length)}]`;
     });
   }
 }

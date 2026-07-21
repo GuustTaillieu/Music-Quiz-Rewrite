@@ -44,6 +44,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   notFoundComponent: RouteNotFoundComponent,
 })
 
+import { GlobalVolumeWidget } from '../components/GlobalVolumeWidget'
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
@@ -52,6 +54,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <GlobalVolumeWidget />
         <TanStackDevtools
           config={{
             position: 'bottom-right',
