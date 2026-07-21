@@ -338,7 +338,7 @@ function LobbyRoomWrapper() {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [gameState?.currentSongIndex, gameState?.roundState, showGetReady, isLocalHost, forceReveal]);
+  }, [gameState?.currentSongIndex, gameState?.roundState, gameState?.phase, showGetReady, isLocalHost, forceReveal]);
 
   // Get Ready warning countdown triggers
   useEffect(() => {
@@ -441,8 +441,8 @@ function LobbyRoomWrapper() {
     };
   }, [
     gameState?.currentSongIndex,
-    gameState?.activePlayerId,
     gameState?.roundState,
+    gameState?.phase,
     isLocalHost,
     spotifyPlayer.deviceId,
     showGetReady
@@ -1159,11 +1159,10 @@ function LobbyRoomWrapper() {
                             if (spotifyPlayer.isPlaying) {
                               spotifyPlayer.pauseTrack();
                             } else {
-                              if (spotifyPlayer.currentPositionMs === 0) {
-                                spotifyPlayer.playTrack(activeSong.spotifyTrackId, 0);
-                              } else {
-                                spotifyPlayer.resumeTrack();
-                              }
+                              spotifyPlayer.playTrack(
+                                activeSong.spotifyTrackId,
+                                spotifyPlayer.currentPositionMs
+                              );
                             }
                           }}
                           className="h-11 w-11 rounded-full bg-[#1DB954] hover:bg-[#1ed760] flex items-center justify-center transition-all cursor-pointer shadow-[0_0_15px_rgba(29,185,84,0.4)] text-black hover:scale-105 active:scale-95 shrink-0"

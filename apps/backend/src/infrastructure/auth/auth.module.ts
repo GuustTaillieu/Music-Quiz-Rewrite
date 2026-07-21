@@ -20,6 +20,7 @@ import * as schema from '../database/schema';
             schema: schema,
           }),
           baseURL: process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000/api/auth',
+          errorPage: (process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000') + '/?error=premium_required',
           trustedOrigins: [
             process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000',
           ],
@@ -40,6 +41,16 @@ import * as schema from '../database/schema';
                 'user-modify-playback-state',
                 'user-read-currently-playing',
               ],
+              mapProfileToUser: (profile: any) => {
+                if (profile.product !== 'premium') {
+                  throw new Error('PREMIUM_REQUIRED');
+                }
+                return {
+                  name: profile.display_name,
+                  email: profile.email,
+                  image: profile.images?.[0]?.url,
+                };
+              },
             },
           },
         });

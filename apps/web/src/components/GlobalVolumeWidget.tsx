@@ -5,10 +5,12 @@ import { useGlobalVolume } from '#/hooks/useGlobalVolume';
 export function GlobalVolumeWidget() {
   const [vol, setVol] = useGlobalVolume();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const widgetRef = useRef<HTMLDivElement | null>(null);
 
   // Close widget when clicking outside
   useEffect(() => {
+    setMounted(true);
     const handleOutsideClick = (e: MouseEvent) => {
       if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
         setIsExpanded(false);
@@ -17,6 +19,8 @@ export function GlobalVolumeWidget() {
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  if (!mounted) return null;
 
   const VolumeIcon = vol === 0 ? VolumeX : vol < 0.5 ? Volume1 : Volume2;
 

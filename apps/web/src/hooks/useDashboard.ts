@@ -16,6 +16,19 @@ export function useDashboard() {
   const [lobbyCode, setLobbyCode] = useState('');
   const [guestName, setGuestName] = useState('');
   const [joinError, setJoinError] = useState('');
+  const [socialLoginError, setSocialLoginError] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const err = searchParams.get('error');
+      if (err === 'premium_required') {
+        return 'Spotify Premium account is required to host games.';
+      }
+      if (err) {
+        return 'Sign-in failed. Please try again.';
+      }
+    }
+    return '';
+  });
   const [step, setStep] = useState<'code' | 'name'>('code');
   const [isCodeValidating, setIsCodeValidating] = useState(false);
   const [isCodeInvalid, setIsCodeInvalid] = useState(false);
@@ -167,6 +180,7 @@ export function useDashboard() {
     guestName,
     setGuestName,
     joinError,
+    socialLoginError,
     sessionData,
     isSessionLoading,
     isLoggedIn,

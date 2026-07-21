@@ -3,9 +3,8 @@ import { apiFetch } from '#/lib/api';
 
 declare global {
   interface Window {
-    onSpotifyWebPlaybackSDKReady?: () => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Spotify?: any;
+    onSpotifyWebPlaybackSDKReady: () => void;
+    Spotify: any;
   }
 }
 
@@ -16,70 +15,89 @@ interface SpotifyPlaybackState {
   track_window: {
     current_track: {
       id: string;
-      uri: string;
       name: string;
+      artists: { name: string }[];
     };
   };
 }
 
 export function useSpotifyPlayer(enabled: boolean) {
-  const [player, setPlayer] = useState<any>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [playbackState, setPlaybackState] = useState<SpotifyPlaybackState | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [player, setPlayer] = useState<any>(null);
 
-  // Polls the state positions when active to update scrubbers smoothly
-  useEffect(() => {
-    if (playbackState && !playbackState.paused) {
-      intervalRef.current = setInterval(() => {
-        setPlaybackState((prev) => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            position: Math.min(prev.position + 1000, prev.duration),
-          };
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+  // Use refs to avoid stale closures in listeners
+  const fetchTokenRef = useRef<() => Promise<string>>(null);
+
+  const fetchToken = async (): Promise<string> => {
+    const { data, error } = await apiFetch<{ accessToken: string }>('/spotify/token');
+    if (error || !data) {
+      throw new Error('Failed to retrieve Spotify access token.');
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [playbackState]);
+    return data.accessToken;
+  };
+
+  fetchTokenRef.current = fetchToken;
 
   useEffect(() => {
     if (!enabled) return;
 
-    // Fetch refreshed token from backend secure endpoint
-    const fetchToken = async (): Promise<string> => {
-      const { data, error } = await apiFetch<{ accessToken: string }>('/spotify/token');
-      if (error) {
-        throw new Error('Failed to retrieve Spotify access token.');
-      }
-      return data.accessToken;
-    };
-
     const initializeSDK = () => {
       window.onSpotifyWebPlaybackSDKReady = async () => {
         try {
-          await fetchToken();
+          if (fetchTokenRef.current) await fetchTokenRef.current();
 
           const newPlayer = new window.Spotify.Player({
             name: 'Spotify Music Quiz Board',
             getOAuthToken: (cb: (t: string) => void) => {
-              fetchToken().then(cb).catch((e) => console.error('Failed to get token during refresh', e));
+              if (fetchTokenRef.current) {
+                fetchTokenRef.current()
+                  .then(cb)
+                  .catch((e) => console.error('Failed to get token during refresh', e));
+              }
             },
             volume: 0.5,
           });
 
-          newPlayer.addListener('ready', ({ device_id }: { device_id: string }) => {
+          newPlayer.addListener('ready', async ({ device_id }: { device_id: string }) => {
             setDeviceId(device_id);
             setPlayer(newPlayer);
             setErrorMsg(null);
             console.log('Spotify Player ready with Device ID:', device_id);
+
+            // Force playback transfer to make this device primary and active
+            try {
+              if (fetchTokenRef.current) {
+                const token = await fetchTokenRef.current();
+                const res = await fetch('https://api.spotify.com/v1/me/player', {
+                  method: 'PUT',
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    device_ids: [device_id],
+                    play: false, // Don't start playback yet, just activate it
+                  }),
+                });
+                
+                if (!res.ok) {
+                  const errJson = await res.json().catch(() => ({}));
+                  if (errJson?.error?.reason === 'PREMIUM_REQUIRED' || errJson?.error?.message?.includes('Premium required')) {
+                    setIsPremium(false);
+                    setErrorMsg('Spotify Premium account is required to play songs directly in the browser.');
+                  } else {
+                    console.warn(`Playback transfer failed with status: ${res.status}`);
+                  }
+                } else {
+                  console.log('Successfully transferred Spotify playback context to browser player.');
+                }
+              }
+            } catch (e) {
+              console.warn('Failed to automatically transfer playback to device:', e);
+            }
           });
 
           newPlayer.addListener('not_ready', ({ device_id }: { device_id: string }) => {
@@ -132,76 +150,172 @@ export function useSpotifyPlayer(enabled: boolean) {
     };
   }, [enabled]);
 
-  const playTrack = async (trackId: string, offsetMs = 0) => {
+  const playTrack = async (trackId: string, offsetMs = 0, retries = 2): Promise<void> => {
     if (!deviceId) return;
     try {
-      const { data: tokenData } = await apiFetch<{ accessToken: string }>('/spotify/token');
-      if (!tokenData) return;
+      if (fetchTokenRef.current) {
+        const token = await fetchTokenRef.current();
+        const res = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uris: [`spotify:track:${trackId}`],
+            position_ms: offsetMs,
+          }),
+        });
 
-      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${tokenData.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          uris: [`spotify:track:${trackId}`],
-          position_ms: offsetMs,
-        }),
-      });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          const errMsg = errJson?.error?.message || '';
+
+          if (errMsg.includes('Restriction violated')) {
+            return;
+          }
+
+          console.warn(`Spotify play request failed with status: ${res.status}. Retries left: ${retries}`);
+          if (retries > 0) {
+            await new Promise((r) => setTimeout(r, 800));
+            return playTrack(trackId, offsetMs, retries - 1);
+          } else {
+            if (errJson?.error?.reason === 'PREMIUM_REQUIRED' || errMsg.includes('Premium required')) {
+              setIsPremium(false);
+              setErrorMsg('Spotify Premium account is required to play songs directly in the browser.');
+            }
+          }
+        }
+      }
     } catch (e) {
       console.error('Failed to control play command:', e);
+      if (retries > 0) {
+        await new Promise((r) => setTimeout(r, 800));
+        return playTrack(trackId, offsetMs, retries - 1);
+      }
     }
   };
 
-  const pauseTrack = async () => {
+  const pauseTrack = async (retries = 2): Promise<void> => {
     if (!deviceId) return;
     try {
-      const { data: tokenData } = await apiFetch<{ accessToken: string }>('/spotify/token');
-      if (!tokenData) return;
+      if (fetchTokenRef.current) {
+        const token = await fetchTokenRef.current();
+        const res = await fetch(`https://api.spotify.com/v1/me/player/pause?device_id=${deviceId}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      await fetch(`https://api.spotify.com/v1/me/player/pause?device_id=${deviceId}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${tokenData.accessToken}`,
-        },
-      });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          const errMsg = errJson?.error?.message || '';
+
+          if (errMsg.includes('Restriction violated')) {
+            return;
+          }
+
+          console.warn(`Spotify pause request failed with status: ${res.status}. Retries left: ${retries}`);
+          if (retries > 0) {
+            await new Promise((r) => setTimeout(r, 800));
+            return pauseTrack(retries - 1);
+          } else {
+            if (errJson?.error?.reason === 'PREMIUM_REQUIRED' || errMsg.includes('Premium required')) {
+              setIsPremium(false);
+              setErrorMsg('Spotify Premium account is required to play songs directly in the browser.');
+            }
+          }
+        }
+      }
     } catch (e) {
       console.error('Failed to control pause command:', e);
+      if (retries > 0) {
+        await new Promise((r) => setTimeout(r, 800));
+        return pauseTrack(retries - 1);
+      }
     }
   };
 
-  const seekTrack = async (positionMs: number) => {
+  const seekTrack = async (positionMs: number, retries = 2): Promise<void> => {
     if (!deviceId) return;
     try {
-      const { data: tokenData } = await apiFetch<{ accessToken: string }>('/spotify/token');
-      if (!tokenData) return;
+      if (fetchTokenRef.current) {
+        const token = await fetchTokenRef.current();
+        const res = await fetch(`https://api.spotify.com/v1/me/player/seek?device_id=${deviceId}&position_ms=${positionMs}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      await fetch(`https://api.spotify.com/v1/me/player/seek?device_id=${deviceId}&position_ms=${positionMs}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${tokenData.accessToken}`,
-        },
-      });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          const errMsg = errJson?.error?.message || '';
+
+          if (errMsg.includes('Restriction violated')) {
+            return;
+          }
+
+          console.warn(`Spotify seek request failed with status: ${res.status}. Retries left: ${retries}`);
+          if (retries > 0) {
+            await new Promise((r) => setTimeout(r, 800));
+            return seekTrack(positionMs, retries - 1);
+          } else {
+            if (errJson?.error?.reason === 'PREMIUM_REQUIRED' || errMsg.includes('Premium required')) {
+              setIsPremium(false);
+              setErrorMsg('Spotify Premium account is required to play songs directly in the browser.');
+            }
+          }
+        }
+      }
     } catch (e) {
       console.error('Failed to seek track command:', e);
+      if (retries > 0) {
+        await new Promise((r) => setTimeout(r, 800));
+        return seekTrack(positionMs, retries - 1);
+      }
     }
   };
 
-  const resumeTrack = async () => {
+  const resumeTrack = async (retries = 2): Promise<void> => {
     if (!deviceId) return;
     try {
-      const { data: tokenData } = await apiFetch<{ accessToken: string }>('/spotify/token');
-      if (!tokenData) return;
+      if (fetchTokenRef.current) {
+        const token = await fetchTokenRef.current();
+        const res = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${tokenData.accessToken}`,
-        },
-      });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          const errMsg = errJson?.error?.message || '';
+
+          if (errMsg.includes('Restriction violated')) {
+            return;
+          }
+
+          console.warn(`Spotify resume request failed with status: ${res.status}. Retries left: ${retries}`);
+          if (retries > 0) {
+            await new Promise((r) => setTimeout(r, 800));
+            return resumeTrack(retries - 1);
+          } else {
+            if (errJson?.error?.reason === 'PREMIUM_REQUIRED' || errMsg.includes('Premium required')) {
+              setIsPremium(false);
+              setErrorMsg('Spotify Premium account is required to play songs directly in the browser.');
+            }
+          }
+        }
+      }
     } catch (e) {
       console.error('Failed to resume track command:', e);
+      if (retries > 0) {
+        await new Promise((r) => setTimeout(r, 800));
+        return resumeTrack(retries - 1);
+      }
     }
   };
 

@@ -14,6 +14,7 @@ function Dashboard() {
     guestName,
     setGuestName,
     joinError,
+    socialLoginError,
     sessionData,
     isSessionLoading,
     isLoggedIn,
@@ -74,6 +75,13 @@ function Dashboard() {
               <p className="text-muted-foreground text-xs leading-relaxed max-w-xs mb-8">
                 Build quizzes from your Spotify library and challenge friends with live multiplayer rounds.
               </p>
+
+              {socialLoginError && (
+                <div className="w-full bg-rose-500/10 border border-rose-500/25 text-rose-400 p-3.5 rounded-2xl mb-5 text-xs font-bold text-left flex items-start gap-2.5">
+                  <span className="shrink-0 mt-0.5">⚠️</span>
+                  <span>{socialLoginError}</span>
+                </div>
+              )}
 
               {/* Login option */}
               <button
