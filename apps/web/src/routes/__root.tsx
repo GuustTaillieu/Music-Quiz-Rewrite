@@ -2,20 +2,21 @@ import {
   HeadContent,
   Scripts,
   createRootRouteWithContext,
-} from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
+} from '@tanstack/react-router';
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
+import { TanStackDevtools } from '@tanstack/react-devtools';
 
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-import { RouteErrorComponent } from '../components/RouteErrorComponent'
-import { RouteNotFoundComponent } from '../components/RouteNotFoundComponent'
+import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
+import { RouteErrorComponent } from '#/features/shared/components/RouteErrorComponent';
+import { RouteNotFoundComponent } from '#/features/shared/components/RouteNotFoundComponent';
+import { GlobalVolumeWidget } from '#/features/audio-player/components/GlobalVolumeWidget';
 
-import appCss from '../styles.css?url'
+import appCss from '../styles.css?url';
 
-import type { QueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query';
 
 interface MyRouterContext {
-  queryClient: QueryClient
+  queryClient: QueryClient;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
@@ -42,9 +43,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   shellComponent: RootDocument,
   errorComponent: RouteErrorComponent,
   notFoundComponent: RouteNotFoundComponent,
-})
-
-import { GlobalVolumeWidget } from '../components/GlobalVolumeWidget'
+});
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -70,5 +69,5 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
-  )
+  );
 }

@@ -1,16 +1,6 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import { StudioIndexView } from '#/features/quiz-editor/components/StudioIndexView';
 
 export const Route = createFileRoute('/studio/')({
-  component: StudioIndex,
+  component: StudioIndexView,
 });
-
-function StudioIndex() {
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    navigate({ to: '/' });
-  }, [navigate]);
-
-  return null;
-}

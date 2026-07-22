@@ -1,0 +1,113 @@
+import { useState, useEffect, useRef } from 'react';
+import { useSpotifyPlayer } from '#/features/audio-player/hooks/useSpotifyPlayer';
+import { useGlobalVolume } from '#/features/audio-player/hooks/useGlobalVolume';
+import { LOBBY_CONSTANTS } from '../constants/lobbyConstants';
+import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
+import type { GameState } from '@spotify-music-quiz/shared/schema/game';
+
+export function useLobbyAudio(gameState: GameState | null, isHost: boolean) {
+  const spotifyPlayer = useSpotifyPlayer(isHost);
+  const [globalVolume] = useGlobalVolume();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackMs, setPlaybackMs] = useState<number>(0);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevSongIndexRef = useRef<number | null>(null);
+
+  // Sync volume with Spotify SDK and HTML5 audio element
+  useEffect(() => {
+    spotifyPlayer.setVolume(globalVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = globalVolume;
+    }
+  }, [globalVolume, spotifyPlayer.deviceId]);
+
+  const currentSong = gameState?.currentSong;
+  const songIndex = gameState?.currentSongIndex ?? null;
+
+  // Handle Host audio playback for current song
+  useEffect(() => {
+    if (!isHost || !gameState || gameState.status !== 'PLAYING' || songIndex === null || !currentSong) {
+      if (isHost && isPlaying) {
+        spotifyPlayer.pauseTrack();
+        if (audioRef.current) audioRef.current.pause();
+        setIsPlaying(false);
+      }
+      return;
+    }
+
+    const isNewSong = prevSongIndexRef.current !== songIndex;
+    prevSongIndexRef.current = songIndex;
+
+    if (isNewSong) {
+      const startOffset = currentSong.start_offset_ms || GAME_CONFIG.DEFAULT_START_OFFSET_MS;
+      const endOffset = currentSong.end_offset_ms || GAME_CONFIG.DEFAULT_SNIPPET_WINDOW_MS;
+      const durationMs = Math.max(GAME_CONFIG.MIN_SNIPPET_WINDOW_MS, endOffset - startOffset);
+
+      if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
+
+      if (spotifyPlayer.deviceId) {
+        spotifyPlayer.playTrack(currentSong.spotifyTrackId, startOffset);
+        setIsPlaying(true);
+        setPlaybackMs(startOffset);
+
+        // Retry if needed
+        setTimeout(() => {
+          if (!spotifyPlayer.playbackState) {
+            spotifyPlayer.playTrack(currentSong.spotifyTrackId, startOffset);
+          }
+        }, LOBBY_CONSTANTS.RETRY_PLAYBACK_DELAY_MS);
+      } else if (currentSong.track.previewUrl) {
+        if (!audioRef.current) {
+          audioRef.current = new Audio();
+        }
+        audioRef.current.src = currentSong.track.previewUrl;
+        audioRef.current.volume = globalVolume;
+        audioRef.current.play().catch(console.error);
+        setIsPlaying(true);
+      }
+
+      stopTimeoutRef.current = setTimeout(() => {
+        spotifyPlayer.pauseTrack();
+        if (audioRef.current) audioRef.current.pause();
+        setIsPlaying(false);
+      }, durationMs);
+    }
+  }, [isHost, gameState, songIndex, currentSong, spotifyPlayer.deviceId]);
+
+  // Clean up audio timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleTogglePlayPause = () => {
+    if (isPlaying) {
+      spotifyPlayer.pauseTrack();
+      if (audioRef.current) audioRef.current.pause();
+      setIsPlaying(false);
+    } else if (currentSong) {
+      const startOffset = currentSong.start_offset_ms || GAME_CONFIG.DEFAULT_START_OFFSET_MS;
+      if (spotifyPlayer.deviceId) {
+        spotifyPlayer.playTrack(currentSong.spotifyTrackId, startOffset);
+      } else if (audioRef.current) {
+        audioRef.current.play().catch(console.error);
+      }
+      setIsPlaying(true);
+    }
+  };
+
+  return {
+    spotifyPlayer,
+    isPlaying,
+    playbackMs,
+    handleTogglePlayPause,
+    audioRef,
+  };
+}
