@@ -17,7 +17,7 @@ export function HostLeaderboardSidebar({ players, buzzerWinner }: HostLeaderboar
 
       <div className="space-y-2 overflow-y-auto max-h-[500px] pr-1">
         {sortedPlayers.map((player, idx) => {
-          const isWinner = buzzerWinner?.username === player.username;
+          const isWinner = buzzerWinner ? buzzerWinner.name === player.name : false;
 
           return (
             <div
@@ -35,7 +35,7 @@ export function HostLeaderboardSidebar({ players, buzzerWinner }: HostLeaderboar
                   #{idx + 1}
                 </span>
                 {idx === 0 && <Crown size={12} className="text-amber-400 shrink-0" />}
-                <span className="font-bold text-xs truncate">{player.username}</span>
+                <span className="font-bold text-xs truncate">{player.name}</span>
               </div>
               <span className="font-mono font-black text-xs text-[#00f0ff]">{player.score} pts</span>
             </div>

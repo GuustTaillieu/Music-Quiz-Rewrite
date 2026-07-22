@@ -5,16 +5,16 @@ import { HostLyricsDisplay } from './HostLyricsDisplay';
 import { HostTimerProgressBar } from './HostTimerProgressBar';
 import { HostAudioControls } from './HostAudioControls';
 import { SpeedRoundModal } from './SpeedRoundModal';
-import type { GameState, Player } from '@spotify-music-quiz/shared/schema/game';
+import type { GameSessionState, Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface HostGameViewProps {
   lobbyId: string;
-  gameState: GameState;
+  gameState: GameSessionState;
   buzzerWinner?: Player | null;
-  selectedGameMode: string;
+  selectedGameMode: 'SPEED_MODE' | 'TURN_BASED';
   isSpeedRoundModalOpen: boolean;
   setIsSpeedRoundModalOpen: (open: boolean) => void;
-  onSelectGameMode: (mode: string) => void;
+  onSelectGameMode: (mode: 'SPEED_MODE' | 'TURN_BASED') => void;
   isPlaying: boolean;
   onTogglePlayPause: () => void;
   onForceReveal: () => void;
@@ -42,19 +42,18 @@ export function HostGameView({
   localTimeLeft,
   maxTimeLimit,
 }: HostGameViewProps) {
-  const currentSong = gameState.currentSong;
-  const isRevealed = gameState.isRevealed;
-  const isLastSong = (gameState.currentSongIndex ?? 0) >= gameState.songs.length - 1;
+  const activeSong = gameState.activeSong;
+  const isRevealed = gameState.roundState === 'REVEALED';
+  const isLastSong = (gameState.currentSongIndex ?? 0) >= gameState.totalSongs - 1;
 
   return (
     <div className="relative w-full min-h-screen flex flex-col bg-[#05070f] text-white">
       <div className="synth-grid absolute inset-0 pointer-events-none opacity-40" />
 
       <HostHeaderBar
-        quizTitle={gameState.quizTitle}
         lobbyId={lobbyId}
         currentSongIndex={gameState.currentSongIndex ?? 0}
-        totalSongs={gameState.songs.length}
+        totalSongs={gameState.totalSongs}
         handleCopyCode={handleCopyCode}
         onOpenSpeedModal={() => setIsSpeedRoundModalOpen(true)}
         onLeave={onLeave}
@@ -67,16 +66,16 @@ export function HostGameView({
         {/* Right: Main Game Screen */}
         <div className="flex-1 bg-black/60 border border-cyan-500/10 backdrop-blur-xl rounded-2xl p-6 flex flex-col justify-between">
           <HostDiscVisualizer
-            coverArtUrl={currentSong?.track.coverArtUrl}
-            songTitle={currentSong?.track.title}
-            artistName={currentSong?.track.artist}
-            albumName={currentSong?.track.album}
+            coverArtUrl={activeSong?.coverArtUrl}
+            songTitle={activeSong?.title}
+            artistName={activeSong?.artist}
+            albumName={activeSong?.album}
             isPlaying={isPlaying}
             revealed={isRevealed}
           />
 
-          {currentSong?.questionType === 'FILL_IN_THE_GAP' && (
-            <HostLyricsDisplay lyrics={currentSong.lyricsGap} revealed={isRevealed} />
+          {activeSong?.questionType === 'FILL_IN_THE_GAP' && (
+            <HostLyricsDisplay lyrics={activeSong.lyricsGap ?? undefined} revealed={isRevealed} />
           )}
 
           <HostTimerProgressBar localTimeLeft={localTimeLeft} maxTimeLimit={maxTimeLimit} />

@@ -1,4 +1,4 @@
-import { Users, Copy, Check, Crown, Play, Sparkles } from 'lucide-react';
+import { Users, Copy, Crown, Play } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Card } from '#/features/shared/components/ui/card';
@@ -9,8 +9,8 @@ interface HostLobbyViewProps {
   quizTitle?: string;
   players: Player[];
   songsCount: number;
-  selectedMode: string;
-  onSelectMode: (mode: string) => void;
+  selectedMode: 'SPEED_MODE' | 'TURN_BASED';
+  onSelectMode: (mode: 'SPEED_MODE' | 'TURN_BASED') => void;
   onStartGame: () => void;
   onLeave: () => void;
 }
@@ -20,12 +20,9 @@ export function HostLobbyView({
   quizTitle,
   players,
   songsCount,
-  selectedMode,
-  onSelectMode,
   onStartGame,
   onLeave,
 }: HostLobbyViewProps) {
-  const nonHostPlayers = players.filter((p) => !p.isHost);
   const canStart = songsCount > 0 && players.length >= 1;
 
   return (
@@ -72,7 +69,7 @@ export function HostLobbyView({
                 className="flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors"
               >
                 <span className="font-bold text-white text-xs flex items-center gap-2">
-                  {p.username}
+                  {p.name}
                   {p.isHost && <Crown size={14} className="text-amber-500 fill-amber-500" />}
                 </span>
                 <Badge variant={p.isHost ? 'default' : 'magenta'}>

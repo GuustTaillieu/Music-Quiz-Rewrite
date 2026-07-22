@@ -32,7 +32,7 @@ export function HostHeaderBar({
             {quizTitle || 'SoundQuiz Game Session'}
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            <Badge variant="cyan">CODE: {lobbyId}</Badge>
+            <Badge variant="default">CODE: {lobbyId}</Badge>
             <button
               onClick={handleCopyCode}
               className="text-[10px] text-muted-foreground hover:text-cyan-400 transition-colors flex items-center gap-1 cursor-pointer"

@@ -4,7 +4,6 @@ import { useQuizGame } from '#/features/game-player/hooks/useQuizGame';
 import { authClient } from '#/features/auth/api/auth-client';
 import { useLobbyAudio } from './useLobbyAudio';
 import { useLobbyTimer } from './useLobbyTimer';
-import { LOBBY_CONSTANTS } from '../constants/lobbyConstants';
 import { parseGapBlocks } from '../utils/lobbyUtils';
 
 export function useLobbyController(lobbyId: string, username: string) {
@@ -16,23 +15,20 @@ export function useLobbyController(lobbyId: string, username: string) {
     isConnected,
     gameState,
     error,
-    buzzerWinner,
-    buzz,
-    submitGuess,
-    submitGapAnswers,
-    forceRevealAnswer,
-    nextSong,
-    startGame,
-    restartGame,
-    setGameMode,
+    lastGuessResult,
     joinLobby,
-    leaveLobby,
+    startGame,
+    submitGuess,
+    passTurn,
+    nextSong,
+    configureLobby,
+    forceReveal,
+    endGame,
   } = useQuizGame(wsUrl);
 
-  const isHost = sessionData?.user.id === gameState.hostId;
-  const isBuzzerWinner = buzzerWinner?.username === username;
+  const isHost = gameState ? sessionData?.user.id === gameState.hostId : false;
 
-  const [selectedGameMode, setSelectedGameMode] = useState<string>(LOBBY_CONSTANTS.DEFAULT_GAME_MODE);
+  const [selectedGameMode, setSelectedGameMode] = useState<'SPEED_MODE' | 'TURN_BASED'>('TURN_BASED');
   const [guessInput, setGuessInput] = useState('');
   const [gapInputs, setGapInputs] = useState<Record<number, string>>({});
   const [isSpeedRoundModalOpen, setIsSpeedRoundModalOpen] = useState(false);
@@ -41,7 +37,7 @@ export function useLobbyController(lobbyId: string, username: string) {
   const audio = useLobbyAudio(gameState, isHost);
 
   // Sync Timer
-  const timer = useLobbyTimer(gameState, forceRevealAnswer);
+  const timer = useLobbyTimer(gameState, forceReveal);
 
   // Auto join lobby on mount / connect
   useEffect(() => {
@@ -57,7 +53,7 @@ export function useLobbyController(lobbyId: string, username: string) {
     }
   }, [gameState?.gameMode]);
 
-  // Reset local guess inputs when current song changes
+  // Reset local guess inputs when active song changes
   useEffect(() => {
     setGuessInput('');
     setGapInputs({});
@@ -69,27 +65,28 @@ export function useLobbyController(lobbyId: string, username: string) {
   };
 
   const handleLeave = () => {
-    leaveLobby();
+    endGame();
     navigate({ to: '/' });
-  };
-
-  const handleBuzzerClick = () => {
-    buzz(lobbyId, username);
   };
 
   const handleGuessSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!guessInput.trim()) return;
-    submitGuess(lobbyId, username, guessInput.trim());
+    submitGuess(guessInput.trim());
     setGuessInput('');
   };
 
   const handleGapSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const currentSong = gameState?.currentSong;
-    const gapBlocks = parseGapBlocks(currentSong?.lyricsGap);
+    const activeSong = gameState?.activeSong;
+    const gapBlocks = parseGapBlocks(activeSong?.lyricsGap);
     const answers = gapBlocks.map((block) => (gapInputs[block.id] || '').trim());
-    submitGapAnswers(lobbyId, username, answers);
+    submitGuess(answers.join(' '));
+  };
+
+  const handleSelectGameMode = (mode: 'SPEED_MODE' | 'TURN_BASED') => {
+    setSelectedGameMode(mode);
+    configureLobby(mode, gameState?.guessingTimeLimit ?? 30);
   };
 
   return {
@@ -98,11 +95,10 @@ export function useLobbyController(lobbyId: string, username: string) {
     isConnected,
     gameState,
     error,
-    buzzerWinner,
+    lastGuessResult,
     isHost,
-    isBuzzerWinner,
     selectedGameMode,
-    setSelectedGameMode,
+    setSelectedGameMode: handleSelectGameMode,
     guessInput,
     setGuessInput,
     gapInputs,
@@ -113,13 +109,12 @@ export function useLobbyController(lobbyId: string, username: string) {
     timer,
     handleCopyCode,
     handleLeave,
-    handleBuzzerClick,
     handleGuessSubmit,
     handleGapSubmit,
-    forceRevealAnswer: () => forceRevealAnswer(lobbyId),
-    nextSong: () => nextSong(lobbyId),
-    startGame: (mode?: string) => startGame(lobbyId, mode),
-    restartGame: () => restartGame(lobbyId),
-    setGameMode: (mode: string) => setGameMode(lobbyId, mode),
+    forceRevealAnswer: forceReveal,
+    nextSong,
+    startGame,
+    restartGame: startGame,
+    passTurn,
   };
 }

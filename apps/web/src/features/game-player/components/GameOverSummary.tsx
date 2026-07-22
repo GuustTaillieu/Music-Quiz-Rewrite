@@ -44,7 +44,7 @@ export function GameOverSummary({
             >
               <div className="flex items-center gap-3">
                 <span className="font-mono text-sm font-black w-6 text-cyan-400">#{idx + 1}</span>
-                <span className="text-xs font-bold">{p.username}</span>
+                <span className="text-xs font-bold">{p.name}</span>
               </div>
               <span className="text-xs font-bold font-mono text-[#00f0ff]">{p.score} pts</span>
             </div>

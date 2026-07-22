@@ -65,7 +65,7 @@ export function PlayerWaitingRoomView({
                 className="flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors"
               >
                 <span className="font-bold text-white text-xs flex items-center gap-2">
-                  {p.username}
+                  {p.name}
                   {p.isHost && <Crown size={14} className="text-amber-500 fill-amber-500" />}
                 </span>
                 <Badge variant={p.isHost ? 'default' : 'magenta'}>
@@ -80,7 +80,7 @@ export function PlayerWaitingRoomView({
         <div className="pt-4 border-t border-cyan-500/10 flex items-center justify-between">
           <div className="text-[11px] text-muted-foreground flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-cyan-400 animate-ping" />
-            Waiting for <strong className="text-white">{hostPlayer?.username || 'Host'}</strong> to start the game...
+            Waiting for <strong className="text-white">{hostPlayer?.name || 'Host'}</strong> to start the game...
           </div>
 
           <Button variant="outline" size="sm" onClick={onLeave}>

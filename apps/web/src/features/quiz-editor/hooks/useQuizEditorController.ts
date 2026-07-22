@@ -4,9 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { authClient } from '#/features/auth/api/auth-client';
 import { editorQueries } from '../api/editorQueries';
-import { editorMutations } from '../api/editorMutations';
+import { editorService } from '../api/editorService';
 import { EDITOR_CONSTANTS } from '../constants/editorConstants';
-import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
 import type { QuizSong, SpotifyTrack } from '@spotify-music-quiz/shared/schema/game';
 
 export function useQuizEditorController(quizId: string) {
@@ -62,12 +61,11 @@ export function useQuizEditorController(quizId: string) {
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
 
   const saveMutation = useMutation({
-    ...editorMutations.saveQuiz(quizId),
-    mutationFn: () => editorMutations.saveQuiz(quizId).mutationFn({ title, description, songs }),
+    mutationFn: () => editorService.saveQuiz(quizId, { title, description, songs }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
       setShowSavedSuccess(true);
-      setTimeout(() => setShowSavedSuccess(false), GAME_CONFIG.SUCCESS_TOAST_DURATION_MS);
+      setTimeout(() => setShowSavedSuccess(false), EDITOR_CONSTANTS.VIRTUALIZER_OVERSCAN * 600);
     },
   });
 

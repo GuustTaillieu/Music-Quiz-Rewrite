@@ -2,10 +2,10 @@ import { Disc } from 'lucide-react';
 import { CavaVisualizer } from './CavaVisualizer';
 
 interface HostDiscVisualizerProps {
-  coverArtUrl?: string;
-  songTitle?: string;
-  artistName?: string;
-  albumName?: string;
+  coverArtUrl?: string | null;
+  songTitle?: string | null;
+  artistName?: string | null;
+  albumName?: string | null;
   isPlaying: boolean;
   revealed: boolean;
 }
@@ -52,11 +52,11 @@ export function HostDiscVisualizer({
       {revealed ? (
         <div className="mt-3 animate-fade-in">
           <h3 className="font-black text-xl text-white tracking-tight leading-snug">
-            {songTitle}
+            {songTitle || 'Unknown Track'}
           </h3>
-          <p className="text-sm font-bold text-[#00f0ff]">{artistName}</p>
+          <p className="text-sm font-bold text-[#00f0ff]">{artistName || 'Unknown Artist'}</p>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
-            {albumName}
+            {albumName || 'Unknown Album'}
           </p>
         </div>
       ) : (

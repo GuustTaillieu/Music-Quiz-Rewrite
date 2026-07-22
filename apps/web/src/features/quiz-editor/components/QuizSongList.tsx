@@ -1,5 +1,6 @@
-import { useState } from 'react';
 import { Plus, GripVertical, Trash2 } from 'lucide-react';
+import { useDraggableList } from '#/features/shared/hooks/useDraggableList';
+import { Button } from '#/features/shared/components/ui/button';
 import type { QuizSong } from '@spotify-music-quiz/shared/schema/game';
 
 interface QuizSongListProps {
@@ -19,7 +20,7 @@ export function QuizSongList({
   onRemoveTrack,
   onReorderSongs,
 }: QuizSongListProps) {
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const { draggedIndex, getDragProps } = useDraggableList(onReorderSongs);
 
   return (
     <div className="lg:col-span-1 island-shell p-6 rounded-2xl flex flex-col h-[calc(100vh-170px)] min-h-0 bg-black/60 border border-cyan-500/10 glow-border-cyan backdrop-blur-xl">
@@ -28,74 +29,58 @@ export function QuizSongList({
           Quiz Tracks ({songs.length})
         </h3>
 
-        <button
-          onClick={onOpenSearch}
-          className="bg-cyan-500/10 hover:bg-cyan-500/20 text-[#00f0ff] border border-cyan-500/30 rounded-xl px-3 py-1.5 font-bold text-[10px] uppercase tracking-wider cursor-pointer flex items-center gap-1 transition-all"
-        >
+        <Button variant="cyan" size="sm" onClick={onOpenSearch}>
           <Plus size={12} /> Add Tracks
-        </button>
+        </Button>
       </div>
 
-      {/* Draggable scroll list */}
       <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0 select-none">
-        {songs.map((song, index) => (
-          <div
-            key={index}
-            onClick={() => setSelectedSongIndex(index)}
-            draggable
-            onDragStart={(e) => {
-              setDraggedIndex(index);
-              e.dataTransfer.effectAllowed = 'move';
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onDragEnter={(e) => {
-              e.preventDefault();
-              if (draggedIndex !== null && draggedIndex !== index) {
-                onReorderSongs(draggedIndex, index);
-                setDraggedIndex(index);
-              }
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDraggedIndex(null);
-            }}
-            className={`flex items-center justify-between p-2.5 rounded-xl border cursor-grab transition-all ${
-              selectedSongIndex === index
-                ? 'border-cyan-400 bg-cyan-400/10 shadow-[0_0_12px_rgba(0,240,255,0.15)] font-bold'
-                : 'border-cyan-500/10 bg-black/30 hover:border-cyan-500/25'
-            } ${draggedIndex === index ? 'opacity-40 scale-95 border-dashed border-cyan-400 bg-cyan-500/5' : ''}`}
-          >
-            <div className="flex items-center gap-3 truncate pr-2">
-              <div className="text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing hover:text-cyan-400">
-                <GripVertical size={14} />
-              </div>
-              <img
-                src={song.track.coverArtUrl}
-                alt={song.track.title}
-                className="h-8 w-8 rounded-lg border border-cyan-500/10 shrink-0 object-cover"
-              />
-              <div className="truncate text-left">
-                <h4 className="font-bold text-foreground text-xs leading-tight truncate">
-                  {song.track.title}
-                </h4>
-                <p className="text-[10px] text-muted-foreground leading-tight truncate">
-                  {song.track.artist}
-                </p>
-              </div>
-            </div>
+        {songs.map((song, index) => {
+          const dragProps = getDragProps(index);
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemoveTrack(index);
-              }}
-              className="p-1.5 text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer transition-colors"
-              title="Remove Song"
+          return (
+            <div
+              key={index}
+              onClick={() => setSelectedSongIndex(index)}
+              {...dragProps}
+              className={`flex items-center justify-between p-2.5 rounded-xl border cursor-grab transition-all ${
+                selectedSongIndex === index
+                  ? 'border-cyan-400 bg-cyan-400/10 shadow-[0_0_12px_rgba(0,240,255,0.15)] font-bold'
+                  : 'border-cyan-500/10 bg-black/30 hover:border-cyan-500/25'
+              } ${draggedIndex === index ? 'opacity-40 scale-95 border-dashed border-cyan-400 bg-cyan-500/5' : ''}`}
             >
-              <Trash2 size={13} />
-            </button>
-          </div>
-        ))}
+              <div className="flex items-center gap-3 truncate pr-2">
+                <div className="text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing hover:text-cyan-400">
+                  <GripVertical size={14} />
+                </div>
+                <img
+                  src={song.track.coverArtUrl}
+                  alt={song.track.title}
+                  className="h-8 w-8 rounded-lg border border-cyan-500/10 shrink-0 object-cover"
+                />
+                <div className="truncate text-left">
+                  <h4 className="font-bold text-foreground text-xs leading-tight truncate">
+                    {song.track.title}
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground leading-tight truncate">
+                    {song.track.artist}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveTrack(index);
+                }}
+                className="p-1.5 text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer transition-colors"
+                title="Remove Song"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          );
+        })}
 
         {songs.length === 0 && (
           <div className="text-center py-16 text-xs text-muted-foreground">

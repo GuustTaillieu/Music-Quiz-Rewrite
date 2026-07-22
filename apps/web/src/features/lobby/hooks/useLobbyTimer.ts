@@ -1,17 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { LOBBY_CONSTANTS } from '../constants/lobbyConstants';
 import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
-import type { GameState } from '@spotify-music-quiz/shared/schema/game';
+import type { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 
-export function useLobbyTimer(gameState: GameState | null, forceRevealAnswer: () => void) {
+export function useLobbyTimer(gameState: GameSessionState | null, forceRevealAnswer: () => void) {
   const [localTimeLeft, setLocalTimeLeft] = useState<number | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const maxTimeLimit = gameState?.guessingTimeLimit || GAME_CONFIG.DEFAULT_GUESSING_TIME_LIMIT_SECS;
+
   useEffect(() => {
-    if (gameState?.guessingTimeRemainingSecs !== undefined && gameState?.guessingTimeRemainingSecs !== null) {
-      setLocalTimeLeft(gameState.guessingTimeRemainingSecs);
+    if (gameState?.guessingTimeLimit) {
+      setLocalTimeLeft(gameState.guessingTimeLimit);
     }
-  }, [gameState?.guessingTimeRemainingSecs]);
+  }, [gameState?.guessingTimeLimit]);
 
   useEffect(() => {
     if (timerIntervalRef.current) {
@@ -19,7 +21,8 @@ export function useLobbyTimer(gameState: GameState | null, forceRevealAnswer: ()
       timerIntervalRef.current = null;
     }
 
-    if (gameState?.status === 'PLAYING' && localTimeLeft !== null && localTimeLeft > 0) {
+    const isPlayingPhase = gameState?.phase === 'SPEED_ROUND' || gameState?.phase === 'TURN_BASED';
+    if (isPlayingPhase && localTimeLeft !== null && localTimeLeft > 0) {
       timerIntervalRef.current = setInterval(() => {
         setLocalTimeLeft((prev) => {
           if (prev === null || prev <= 1) {
@@ -35,9 +38,7 @@ export function useLobbyTimer(gameState: GameState | null, forceRevealAnswer: ()
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [gameState?.status, localTimeLeft === 0]);
-
-  const maxTimeLimit = gameState?.guessingTimeLimitSecs || GAME_CONFIG.DEFAULT_GUESSING_TIME_LIMIT_SECS;
+  }, [gameState?.phase, localTimeLeft === 0]);
 
   return {
     localTimeLeft,

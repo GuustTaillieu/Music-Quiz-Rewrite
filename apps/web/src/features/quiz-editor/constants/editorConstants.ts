@@ -1,5 +1,3 @@
-import type { SpotifyTrack } from '@spotify-music-quiz/shared/schema/game';
-
 export const EDITOR_CONSTANTS = Object.freeze({
   DEFAULT_START_OFFSET_MS: 0,
   DEFAULT_END_OFFSET_MS: 30000,
@@ -13,33 +11,9 @@ export const EDITOR_CONSTANTS = Object.freeze({
     NO_LYRICS_FOUND: 'No lyrics found for this track.',
     MISSING_METADATA: 'Missing artist or track title metadata.',
   },
-  SAMPLE_TRACKS: Object.freeze<SpotifyTrack[]>([
-    {
-      id: 'track-1',
-      title: 'Blinding Lights',
-      artist: 'The Weeknd',
-      album: 'After Hours',
-      coverArtUrl: 'https://i.scdn.co/image/ab67616d0000b2738863d6e38f6c1119c901cc60',
-      durationMs: 200000,
-      previewUrl: 'https://p.scdn.co/mp3-preview/b695e0c5d5f2a9675276e053a479ff6844966cb7',
-    },
-    {
-      id: 'track-2',
-      title: 'Shape of You',
-      artist: 'Ed Sheeran',
-      album: 'Divide',
-      coverArtUrl: 'https://i.scdn.co/image/ab67616d0000b273ba5db46f4962d6994ec38ee5',
-      durationMs: 233000,
-      previewUrl: 'https://p.scdn.co/mp3-preview/c873f274719c8f0e57dfc2a6886e3f49c0d38101',
-    },
-    {
-      id: 'track-3',
-      title: 'Someone Like You',
-      artist: 'Adele',
-      album: '21',
-      coverArtUrl: 'https://i.scdn.co/image/ab67616d0000b273211516abdf4ffed863a0e10b',
-      durationMs: 285000,
-      previewUrl: 'https://p.scdn.co/mp3-preview/12cb348f95c479ff73a90a424269e98d9cc9b6c0',
-    },
-  ]),
+  QUESTION_TYPE_OPTIONS: [
+    { id: 'TRACK_NAME', label: 'Guess Track Name', description: 'The track name will be hidden' },
+    { id: 'ARTIST_NAME', label: 'Guess Artist', description: 'The artist name will be hidden' },
+    { id: 'FILL_IN_THE_GAP', label: 'Fill in the Lyrics', description: 'The selected parts of lyrics will be hidden' },
+  ] as const,
 });

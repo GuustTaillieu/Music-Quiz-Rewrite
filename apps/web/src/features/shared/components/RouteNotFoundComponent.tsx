@@ -20,7 +20,7 @@ export function RouteNotFoundComponent() {
 
         <a
           href="/"
-          className="w-full bg-gradient-to-r from-lagoon to-lagoon-deep text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 cursor-pointer active:scale-98 text-sm"
+          className="w-full bg-linear-to-r from-lagoon to-lagoon-deep text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 cursor-pointer active:scale-98 text-sm"
         >
           <Home size={16} /> Go Back Home
         </a>

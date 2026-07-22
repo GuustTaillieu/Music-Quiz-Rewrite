@@ -3,9 +3,9 @@ import { useSpotifyPlayer } from '#/features/audio-player/hooks/useSpotifyPlayer
 import { useGlobalVolume } from '#/features/audio-player/hooks/useGlobalVolume';
 import { LOBBY_CONSTANTS } from '../constants/lobbyConstants';
 import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
-import type { GameState } from '@spotify-music-quiz/shared/schema/game';
+import type { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 
-export function useLobbyAudio(gameState: GameState | null, isHost: boolean) {
+export function useLobbyAudio(gameState: GameSessionState | null, isHost: boolean) {
   const spotifyPlayer = useSpotifyPlayer(isHost);
   const [globalVolume] = useGlobalVolume();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -15,7 +15,6 @@ export function useLobbyAudio(gameState: GameState | null, isHost: boolean) {
   const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevSongIndexRef = useRef<number | null>(null);
 
-  // Sync volume with Spotify SDK and HTML5 audio element
   useEffect(() => {
     spotifyPlayer.setVolume(globalVolume);
     if (audioRef.current) {
@@ -23,12 +22,12 @@ export function useLobbyAudio(gameState: GameState | null, isHost: boolean) {
     }
   }, [globalVolume, spotifyPlayer.deviceId]);
 
-  const currentSong = gameState?.currentSong;
+  const activeSong = gameState?.activeSong;
   const songIndex = gameState?.currentSongIndex ?? null;
+  const isPlayingPhase = gameState?.phase === 'SPEED_ROUND' || gameState?.phase === 'TURN_BASED';
 
-  // Handle Host audio playback for current song
   useEffect(() => {
-    if (!isHost || !gameState || gameState.status !== 'PLAYING' || songIndex === null || !currentSong) {
+    if (!isHost || !gameState || !isPlayingPhase || songIndex === null || !activeSong) {
       if (isHost && isPlaying) {
         spotifyPlayer.pauseTrack();
         if (audioRef.current) audioRef.current.pause();
@@ -41,28 +40,27 @@ export function useLobbyAudio(gameState: GameState | null, isHost: boolean) {
     prevSongIndexRef.current = songIndex;
 
     if (isNewSong) {
-      const startOffset = currentSong.start_offset_ms || GAME_CONFIG.DEFAULT_START_OFFSET_MS;
-      const endOffset = currentSong.end_offset_ms || GAME_CONFIG.DEFAULT_SNIPPET_WINDOW_MS;
+      const startOffset = activeSong.start_offset_ms || 0;
+      const endOffset = activeSong.end_offset_ms || GAME_CONFIG.DEFAULT_SNIPPET_WINDOW_MS;
       const durationMs = Math.max(GAME_CONFIG.MIN_SNIPPET_WINDOW_MS, endOffset - startOffset);
 
       if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
 
       if (spotifyPlayer.deviceId) {
-        spotifyPlayer.playTrack(currentSong.spotifyTrackId, startOffset);
+        spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
         setIsPlaying(true);
         setPlaybackMs(startOffset);
 
-        // Retry if needed
         setTimeout(() => {
-          if (!spotifyPlayer.playbackState) {
-            spotifyPlayer.playTrack(currentSong.spotifyTrackId, startOffset);
+          if (!spotifyPlayer.isPlaying) {
+            spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
           }
         }, LOBBY_CONSTANTS.RETRY_PLAYBACK_DELAY_MS);
-      } else if (currentSong.track.previewUrl) {
+      } else if (activeSong.previewUrl) {
         if (!audioRef.current) {
           audioRef.current = new Audio();
         }
-        audioRef.current.src = currentSong.track.previewUrl;
+        audioRef.current.src = activeSong.previewUrl;
         audioRef.current.volume = globalVolume;
         audioRef.current.play().catch(console.error);
         setIsPlaying(true);
@@ -74,9 +72,8 @@ export function useLobbyAudio(gameState: GameState | null, isHost: boolean) {
         setIsPlaying(false);
       }, durationMs);
     }
-  }, [isHost, gameState, songIndex, currentSong, spotifyPlayer.deviceId]);
+  }, [isHost, gameState, songIndex, activeSong, isPlayingPhase, spotifyPlayer.deviceId]);
 
-  // Clean up audio timeouts on unmount
   useEffect(() => {
     return () => {
       if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
@@ -92,10 +89,10 @@ export function useLobbyAudio(gameState: GameState | null, isHost: boolean) {
       spotifyPlayer.pauseTrack();
       if (audioRef.current) audioRef.current.pause();
       setIsPlaying(false);
-    } else if (currentSong) {
-      const startOffset = currentSong.start_offset_ms || GAME_CONFIG.DEFAULT_START_OFFSET_MS;
+    } else if (activeSong) {
+      const startOffset = activeSong.start_offset_ms || 0;
       if (spotifyPlayer.deviceId) {
-        spotifyPlayer.playTrack(currentSong.spotifyTrackId, startOffset);
+        spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
       } else if (audioRef.current) {
         audioRef.current.play().catch(console.error);
       }

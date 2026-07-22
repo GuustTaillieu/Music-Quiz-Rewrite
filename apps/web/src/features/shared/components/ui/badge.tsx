@@ -10,7 +10,7 @@ const badgeVariants = cva(
       variant: {
         default: 'border-transparent bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
         magenta: 'border-transparent bg-pink-500/10 text-pink-400 border-pink-500/20',
-        spotify: 'border-transparent bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/30',
+        spotify: 'border-transparent bg-green-500/10 text-spotify border-spotify/30',
         amber: 'border-transparent bg-amber-500/10 text-amber-500 border-amber-500/30',
         outline: 'text-foreground border-cyan-500/20',
       },
@@ -23,7 +23,7 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+  VariantProps<typeof badgeVariants> { }
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />;

@@ -1,13 +1,17 @@
 import { Dialog } from '#/features/shared/components/ui/dialog';
 import { Button } from '#/features/shared/components/ui/button';
-import { LOBBY_CONSTANTS } from '../constants/lobbyConstants';
 
 interface SpeedRoundModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedMode: string;
-  onSelectMode: (modeId: string) => void;
+  selectedMode: 'SPEED_MODE' | 'TURN_BASED';
+  onSelectMode: (modeId: 'SPEED_MODE' | 'TURN_BASED') => void;
 }
+
+const MODES: Array<{ id: 'SPEED_MODE' | 'TURN_BASED'; label: string; icon: string }> = [
+  { id: 'TURN_BASED', label: 'Turn-Based (Buzzer First)', icon: '⚡' },
+  { id: 'SPEED_MODE', label: 'Speed Mode (All Guess)', icon: '🏎️' },
+];
 
 export function SpeedRoundModal({
   isOpen,
@@ -23,7 +27,7 @@ export function SpeedRoundModal({
       </p>
 
       <div className="space-y-3 mb-6">
-        {LOBBY_CONSTANTS.GAME_MODES.map((mode) => {
+        {MODES.map((mode) => {
           const isSelected = selectedMode === mode.id;
 
           return (

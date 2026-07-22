@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { Headphones, LogOut, Loader2, Plus, Music, Pencil, Play } from 'lucide-react';
+import { Headphones, LogOut, Loader2, Plus, Music, Pencil, Play, Calendar } from 'lucide-react';
 import { BsMusicNoteList } from 'react-icons/bs';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
@@ -57,7 +57,7 @@ export function HostDashboardView({
       {/* Top Premium Navbar */}
       <header className="relative w-full border-b border-cyan-500/10 bg-black/40 backdrop-blur-md z-10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#1DB954]/10 border border-[#1DB954]/30 rounded-xl text-[#1DB954]">
+          <div className="p-2 bg-spotify/10 border border-spotify/30 rounded-xl text-spotify">
             <Headphones size={20} />
           </div>
           <div>
@@ -164,11 +164,11 @@ export function HostDashboardView({
               return (
                 <div
                   key={quiz.id}
-                  className="bg-[#0b0e17]/80 border border-cyan-500/10 hover:border-cyan-500/25 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:translate-y-[-2px] shadow-[0_4px_16px_rgba(0,0,0,0.2)]"
+                  className="bg-[#0b0e17]/80 border border-cyan-500/10 hover:border-cyan-500/25 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgba(0,0,0,0.2)]"
                 >
                   {/* Info Block */}
                   <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${blockColor.bg} flex items-center justify-center font-bold text-lg shadow-md`}>
+                    <div className={`h-12 w-12 rounded-xl bg-linear-to-br ${blockColor.bg} flex items-center justify-center font-bold text-lg shadow-md`}>
                       <BsMusicNoteList size={20} />
                     </div>
                     <div className="min-w-0">
@@ -179,9 +179,9 @@ export function HostDashboardView({
                         {quiz.description || 'No description provided'}
                       </p>
                       <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                        <Badge variant="default">🎵 {quiz.songCount ?? 0} {(quiz.songCount ?? 0) === 1 ? 'song' : 'songs'}</Badge>
+                        <Badge variant="default">{quiz.songCount ?? 0} {(quiz.songCount ?? 0) === 1 ? 'song' : 'songs'}</Badge>
                         <span>&bull;</span>
-                        <span>📅 {quiz.createdAt ? new Date(quiz.createdAt).toLocaleDateString() : 'N/A'}</span>
+                        <span className='flex items-center gap-1'><Calendar size={10} /> {quiz.createdAt ? new Date(quiz.createdAt).toLocaleDateString() : 'N/A'}</span>
                       </div>
                     </div>
                   </div>

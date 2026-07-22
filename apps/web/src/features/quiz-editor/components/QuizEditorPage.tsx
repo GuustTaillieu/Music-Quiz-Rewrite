@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Save, Check, Music, Play, Pause } from 'lucide-react';
 import { useQuizEditorController } from '../hooks/useQuizEditorController';
-import { useSpotifyPlayer } from '#/features/audio-player/hooks/useSpotifyPlayer';
-import { useGlobalVolume } from '#/features/audio-player/hooks/useGlobalVolume';
+import { useAudioPreview } from '#/features/audio-player/hooks/useAudioPreview';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Badge } from '#/features/shared/components/ui/badge';
@@ -11,7 +10,6 @@ import { QuestionTypeConfig } from './QuestionTypeConfig';
 import { TimelineSlider } from './TimelineSlider';
 import { LyricsGapEditor } from './LyricsGapEditor';
 import { TrackCatalogSearch } from './TrackCatalogSearch';
-import { EDITOR_CONSTANTS } from '../constants/editorConstants';
 import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
 
 interface QuizEditorPageProps {
@@ -49,64 +47,12 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
-  const spotifyPlayer = useSpotifyPlayer(true);
-  const [globalVolume] = useGlobalVolume();
-  const [currentPlaybackMs, setCurrentPlaybackMs] = useState<number | null>(null);
-  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
-  const playbackTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    spotifyPlayer.setVolume(globalVolume);
-  }, [globalVolume, spotifyPlayer.deviceId]);
-
-  useEffect(() => {
-    stopAudioPreview();
-  }, [selectedSongIndex]);
-
-  useEffect(() => {
-    return () => {
-      if (playbackTimerRef.current) clearInterval(playbackTimerRef.current);
-    };
-  }, []);
-
-  const playAudioPreview = () => {
-    if (!selectedSong) return;
-    if (!spotifyPlayer.deviceId) {
-      alert(EDITOR_CONSTANTS.ERRORS.SPOTIFY_SDK_NOT_READY);
-      return;
-    }
-
-    stopAudioPreview();
-
-    const startOffset = selectedSong.start_offset_ms || EDITOR_CONSTANTS.DEFAULT_START_OFFSET_MS;
-    const endOffset = selectedSong.end_offset_ms || EDITOR_CONSTANTS.DEFAULT_END_OFFSET_MS;
-
-    spotifyPlayer.playTrack(selectedSong.spotifyTrackId, startOffset);
-    setIsPlayingPreview(true);
-    setCurrentPlaybackMs(startOffset);
-
-    const checkInterval = EDITOR_CONSTANTS.PREVIEW_CHECK_INTERVAL_MS;
-    let elapsed = 0;
-    playbackTimerRef.current = setInterval(() => {
-      elapsed += checkInterval;
-      const currentMs = startOffset + elapsed;
-      setCurrentPlaybackMs(currentMs);
-
-      if (currentMs >= endOffset) {
-        stopAudioPreview();
-      }
-    }, checkInterval);
-  };
-
-  const stopAudioPreview = () => {
-    if (playbackTimerRef.current) {
-      clearInterval(playbackTimerRef.current);
-      playbackTimerRef.current = null;
-    }
-    spotifyPlayer.pauseTrack();
-    setIsPlayingPreview(false);
-    setCurrentPlaybackMs(null);
-  };
+  const {
+    currentPlaybackMs,
+    isPlayingPreview,
+    playAudioPreview,
+    stopAudioPreview,
+  } = useAudioPreview(selectedSong);
 
   if (isSessionLoading || isQuizLoading) {
     return (
@@ -212,10 +158,7 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
                 />
 
                 <div className="border-t border-cyan-500/5 pt-4">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                      Timeline Offsets & Crop
-                    </label>
+                  <div className="flex justify-end mb-2">
                     <Button
                       type="button"
                       variant={isPlayingPreview ? 'destructive' : 'cyan'}

@@ -29,7 +29,7 @@ function LobbyRoomWrapper() {
     );
   }
 
-  if (lobby.gameState.status === 'FINISHED') {
+  if (lobby.gameState.phase === 'COMPLETED') {
     return (
       <GameOverSummary
         players={lobby.gameState.players}
@@ -40,17 +40,16 @@ function LobbyRoomWrapper() {
     );
   }
 
-  if (lobby.gameState.status === 'WAITING') {
+  if (lobby.gameState.phase === 'LOBBY') {
     if (lobby.isHost) {
       return (
         <HostLobbyView
           lobbyId={lobbyId}
-          quizTitle={lobby.gameState.quizTitle}
           players={lobby.gameState.players}
-          songsCount={lobby.gameState.songs.length}
+          songsCount={lobby.gameState.totalSongs}
           selectedMode={lobby.selectedGameMode}
-          onSelectMode={lobby.setGameMode}
-          onStartGame={() => lobby.startGame(lobby.selectedGameMode)}
+          onSelectMode={lobby.setSelectedGameMode}
+          onStartGame={lobby.startGame}
           onLeave={lobby.handleLeave}
         />
       );
@@ -60,7 +59,6 @@ function LobbyRoomWrapper() {
       <PlayerWaitingRoomView
         lobbyId={lobbyId}
         username={username}
-        quizTitle={lobby.gameState.quizTitle}
         players={lobby.gameState.players}
         onLeave={lobby.handleLeave}
       />
@@ -72,11 +70,10 @@ function LobbyRoomWrapper() {
       <HostGameView
         lobbyId={lobbyId}
         gameState={lobby.gameState}
-        buzzerWinner={lobby.buzzerWinner}
         selectedGameMode={lobby.selectedGameMode}
         isSpeedRoundModalOpen={lobby.isSpeedRoundModalOpen}
         setIsSpeedRoundModalOpen={lobby.setIsSpeedRoundModalOpen}
-        onSelectGameMode={lobby.setGameMode}
+        onSelectGameMode={lobby.setSelectedGameMode}
         isPlaying={lobby.audio.isPlaying}
         onTogglePlayPause={lobby.audio.handleTogglePlayPause}
         onForceReveal={lobby.forceRevealAnswer}
@@ -93,13 +90,11 @@ function LobbyRoomWrapper() {
     <PlayerBuzzerScreen
       username={username}
       gameState={lobby.gameState}
-      isBuzzerWinner={lobby.isBuzzerWinner}
-      buzzerWinner={lobby.buzzerWinner}
       guessInput={lobby.guessInput}
       setGuessInput={lobby.setGuessInput}
       gapInputs={lobby.gapInputs}
       setGapInputs={lobby.setGapInputs}
-      onBuzzerClick={lobby.handleBuzzerClick}
+      onBuzzerClick={() => {}}
       onGuessSubmit={lobby.handleGuessSubmit}
       onGapSubmit={lobby.handleGapSubmit}
       onLeave={lobby.handleLeave}

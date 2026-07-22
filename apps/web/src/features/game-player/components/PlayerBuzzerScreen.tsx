@@ -5,12 +5,11 @@ import { Input } from '#/features/shared/components/ui/input';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { CavaVisualizer } from '#/features/lobby/components/CavaVisualizer';
 import { parseGapBlocks } from '#/features/lobby/utils/lobbyUtils';
-import type { GameState, Player } from '@spotify-music-quiz/shared/schema/game';
+import type { GameSessionState, Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface PlayerBuzzerScreenProps {
   username: string;
-  gameState: GameState;
-  isBuzzerWinner: boolean;
+  gameState: GameSessionState;
   buzzerWinner?: Player | null;
   guessInput: string;
   setGuessInput: (val: string) => void;
@@ -25,7 +24,6 @@ interface PlayerBuzzerScreenProps {
 export function PlayerBuzzerScreen({
   username,
   gameState,
-  isBuzzerWinner,
   buzzerWinner,
   guessInput,
   setGuessInput,
@@ -36,13 +34,13 @@ export function PlayerBuzzerScreen({
   onGapSubmit,
   onLeave,
 }: PlayerBuzzerScreenProps) {
-  const currentSong = gameState.currentSong;
-  const isPlaying = gameState.status === 'PLAYING';
-  const isRevealed = gameState.isRevealed;
-  const localPlayer = gameState.players.find((p) => p.username === username);
-  const isBuzzerMode = gameState.gameMode === 'BUZZER_NORMAL';
+  const activeSong = gameState.activeSong;
+  const isPlaying = gameState.phase === 'SPEED_ROUND' || gameState.phase === 'TURN_BASED';
+  const isRevealed = gameState.roundState === 'REVEALED';
+  const localPlayer = gameState.players.find((p: Player) => p.name === username);
+  const isBuzzerMode = gameState.gameMode === 'SPEED_MODE';
 
-  const gapBlocks = parseGapBlocks(currentSong?.lyricsGap);
+  const gapBlocks = parseGapBlocks(activeSong?.lyricsGap);
 
   return (
     <div className="relative w-full h-[100dvh] flex flex-col justify-between overflow-hidden px-6 py-6 bg-[#05070f] text-white select-none">
@@ -71,7 +69,7 @@ export function PlayerBuzzerScreen({
         {isPlaying ? (
           <div className="space-y-4">
             <Badge variant="magenta">
-              {currentSong?.questionType === 'FILL_IN_THE_GAP'
+              {activeSong?.questionType === 'FILL_IN_THE_GAP'
                 ? 'Fill in the Gap Lyrics'
                 : 'Guess the Track Title'}
             </Badge>
@@ -81,7 +79,7 @@ export function PlayerBuzzerScreen({
             {buzzerWinner && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl animate-bounce">
                 <span className="text-xs font-bold text-amber-400">
-                  ⚡ {buzzerWinner.username} buzzed in!
+                  ⚡ {buzzerWinner.name} buzzed in!
                 </span>
               </div>
             )}
@@ -106,7 +104,7 @@ export function PlayerBuzzerScreen({
           >
             <Sparkles size={20} /> BUZZ IN!
           </Button>
-        ) : currentSong?.questionType === 'FILL_IN_THE_GAP' ? (
+        ) : activeSong?.questionType === 'FILL_IN_THE_GAP' ? (
           <form onSubmit={onGapSubmit} className="space-y-3">
             <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
               {gapBlocks.map((block) => (
