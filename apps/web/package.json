@@ -18,6 +18,7 @@
   "dependencies": {
     "@spotify-music-quiz/backend": "workspace:*",
     "@spotify-music-quiz/shared": "workspace:*",
+    "@base-ui/react": "^1.6.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/ai": "latest",
     "@tanstack/ai-anthropic": "latest",
@@ -45,6 +46,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.7.0",
+    "shadcn": "^4.14.1",
     "socket.io-client": "^4.8.1",
     "streamdown": "^2.3.0",
     "tailwind-merge": "^3.0.2",
