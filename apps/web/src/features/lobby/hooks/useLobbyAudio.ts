@@ -5,7 +5,11 @@ import { LOBBY_CONSTANTS } from '../constants/lobbyConstants';
 import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
 import type { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 
-export function useLobbyAudio(gameState: GameSessionState | null, isHost: boolean) {
+export function useLobbyAudio(
+  gameState: GameSessionState | null,
+  isHost: boolean,
+  onAudioStarted?: () => void,
+) {
   const spotifyPlayer = useSpotifyPlayer(isHost);
   const [globalVolume] = useGlobalVolume();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -50,6 +54,7 @@ export function useLobbyAudio(gameState: GameSessionState | null, isHost: boolea
         spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
         setIsPlaying(true);
         setPlaybackMs(startOffset);
+        if (onAudioStarted) onAudioStarted();
 
         setTimeout(() => {
           if (!spotifyPlayer.isPlaying) {
@@ -64,6 +69,7 @@ export function useLobbyAudio(gameState: GameSessionState | null, isHost: boolea
         audioRef.current.volume = globalVolume;
         audioRef.current.play().catch(console.error);
         setIsPlaying(true);
+        if (onAudioStarted) onAudioStarted();
       }
 
       stopTimeoutRef.current = setTimeout(() => {

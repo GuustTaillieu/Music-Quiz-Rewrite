@@ -141,6 +141,27 @@ export class GameGateway implements OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('host_audio_started')
+  public async handleHostAudioStarted(
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const clientData = this.clientMap.get(client.id);
+    if (!clientData) {
+      return;
+    }
+
+    try {
+      const state = await this.gameService.startAudioTimer(
+        clientData.lobbyId,
+        client.id,
+      );
+      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to start audio timer';
+      client.emit('error', { message });
+    }
+  }
+
   @SubscribeMessage('submit_guess')
   public async handleGuess(
     @ConnectedSocket() client: Socket,

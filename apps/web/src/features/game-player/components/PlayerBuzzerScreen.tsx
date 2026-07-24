@@ -15,6 +15,7 @@ interface PlayerBuzzerScreenProps {
   setGuessInput: (val: string) => void;
   gapInputs: Record<number, string>;
   setGapInputs: (inputs: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => void;
+  localTimeLeft?: number | null;
   onBuzzerClick: () => void;
   onGuessSubmit: (e?: React.FormEvent) => void;
   onGapSubmit: (e?: React.FormEvent) => void;
@@ -29,6 +30,7 @@ export function PlayerBuzzerScreen({
   setGuessInput,
   gapInputs,
   setGapInputs,
+  localTimeLeft,
   onBuzzerClick,
   onGuessSubmit,
   onGapSubmit,
@@ -37,6 +39,8 @@ export function PlayerBuzzerScreen({
   const activeSong = gameState.activeSong;
   const isPlaying = gameState.phase === 'SPEED_ROUND' || gameState.phase === 'TURN_BASED';
   const isRevealed = gameState.roundState === 'REVEALED';
+  const isTimeUp = localTimeLeft === 0;
+  const isDisabled = !isPlaying || isRevealed || isTimeUp;
   const localPlayer = gameState.players.find((p: Player) => p.name === username);
   const isBuzzerMode = gameState.gameMode === 'SPEED_MODE';
 
@@ -54,6 +58,11 @@ export function PlayerBuzzerScreen({
         </div>
 
         <div className="flex items-center gap-3">
+          {localTimeLeft !== undefined && localTimeLeft !== null && (
+            <Badge variant={isTimeUp ? 'magenta' : 'default'} className="font-mono">
+              {isTimeUp ? "Time's Up!" : `${localTimeLeft}s`}
+            </Badge>
+          )}
           <Badge variant="default">{localPlayer?.score ?? 0} pts</Badge>
           <button
             onClick={onLeave}
@@ -99,7 +108,7 @@ export function PlayerBuzzerScreen({
             variant="default"
             size="lg"
             onClick={onBuzzerClick}
-            disabled={!isPlaying || isRevealed}
+            disabled={isDisabled}
             className="w-full py-6 text-lg tracking-widest shadow-[0_0_30px_rgba(0,240,255,0.4)]"
           >
             <Sparkles size={20} /> BUZZ IN!
@@ -114,8 +123,9 @@ export function PlayerBuzzerScreen({
                   </span>
                   <Input
                     type="text"
-                    placeholder={`Word... (${block.wordCount} words)`}
+                    placeholder={isTimeUp ? "Time's up!" : `Word... (${block.wordCount} words)`}
                     value={gapInputs[block.id] || ''}
+                    disabled={isDisabled}
                     onChange={(e) =>
                       setGapInputs((prev) => ({ ...prev, [block.id]: e.target.value }))
                     }
@@ -124,7 +134,7 @@ export function PlayerBuzzerScreen({
                 </div>
               ))}
             </div>
-            <Button type="submit" variant="spotify" size="lg" className="w-full">
+            <Button type="submit" variant="spotify" size="lg" disabled={isDisabled} className="w-full">
               Submit Lyric Answers
             </Button>
           </form>
@@ -132,13 +142,14 @@ export function PlayerBuzzerScreen({
           <form onSubmit={onGuessSubmit} className="flex gap-2">
             <Input
               type="text"
-              placeholder="Type your guess here..."
+              placeholder={isTimeUp ? "Time's up!" : "Type your guess here..."}
               value={guessInput}
+              disabled={isDisabled}
               onChange={(e) => setGuessInput(e.target.value)}
               autoFocus
               className="flex-1"
             />
-            <Button type="submit" variant="default">
+            <Button type="submit" variant="default" disabled={isDisabled}>
               Send
             </Button>
           </form>

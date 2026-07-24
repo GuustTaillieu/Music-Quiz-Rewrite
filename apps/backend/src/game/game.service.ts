@@ -89,6 +89,20 @@ export class GameService {
     return session.getSanitizedState(hostId);
   }
 
+  public async startAudioTimer(
+    lobbyId: string,
+    hostId: string,
+  ): Promise<GameSessionState> {
+    const session = await this.gameSessionRepository.findById(lobbyId);
+    if (!session) {
+      throw new NotFoundException(`Lobby ${lobbyId} not found`);
+    }
+
+    session.startAudioTimer(hostId);
+    await this.gameSessionRepository.save(session);
+    return session.getSanitizedState(hostId);
+  }
+
   public async submitGuess(
     lobbyId: string,
     playerId: string,

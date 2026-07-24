@@ -1,4 +1,4 @@
-import { Disc } from 'lucide-react';
+import { Disc, Sparkles } from 'lucide-react';
 import { CavaVisualizer } from './CavaVisualizer';
 
 interface HostDiscVisualizerProps {
@@ -60,8 +60,10 @@ export function HostDiscVisualizer({
           </p>
         </div>
       ) : (
-        <div className="mt-3 text-cyan-400 font-black text-sm uppercase tracking-widest animate-pulse">
-          &bull; &bull; &bull; &bull; &bull; &bull; &bull;
+        <div className="mt-3 animate-pulse flex flex-col items-center">
+          <div className="px-3.5 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-xs font-bold text-[#00f0ff] tracking-wider uppercase flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,240,255,0.15)]">
+            <Sparkles size={12} className="text-cyan-400" /> Guessing in Progress
+          </div>
         </div>
       )}
     </div>

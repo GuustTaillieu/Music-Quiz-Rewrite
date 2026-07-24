@@ -1,4 +1,4 @@
-import { Headphones, Sparkles, Copy, LogOut } from 'lucide-react';
+import { Headphones, Sparkles, Copy, Check, LogOut } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 
@@ -7,6 +7,7 @@ interface HostHeaderBarProps {
   lobbyId: string;
   currentSongIndex: number;
   totalSongs: number;
+  isCopied?: boolean;
   handleCopyCode: () => void;
   onOpenSpeedModal: () => void;
   onLeave: () => void;
@@ -17,6 +18,7 @@ export function HostHeaderBar({
   lobbyId,
   currentSongIndex,
   totalSongs,
+  isCopied,
   handleCopyCode,
   onOpenSpeedModal,
   onLeave,
@@ -37,7 +39,15 @@ export function HostHeaderBar({
               onClick={handleCopyCode}
               className="text-[10px] text-muted-foreground hover:text-cyan-400 transition-colors flex items-center gap-1 cursor-pointer"
             >
-              <Copy size={10} /> Copy
+              {isCopied ? (
+                <>
+                  <Check size={10} className="text-emerald-400" /> <span className="text-emerald-400 font-bold">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={10} /> Copy
+                </>
+              )}
             </button>
           </div>
         </div>

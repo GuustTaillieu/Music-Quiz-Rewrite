@@ -99,6 +99,7 @@ export const GameSessionStateSchema = z.object({
   lastRoundWinnerId: z.string().nullable().optional(),
   gameMode: z.enum(['SPEED_MODE', 'TURN_BASED']),
   guessingTimeLimit: z.number().int().positive(),
+  roundEndTime: z.number().nullable().optional(),
 });
 
 export type GameSessionState = z.infer<typeof GameSessionStateSchema>;

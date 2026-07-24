@@ -19,6 +19,7 @@ interface HostGameViewProps {
   onTogglePlayPause: () => void;
   onForceReveal: () => void;
   onNextSong: () => void;
+  isCopied?: boolean;
   handleCopyCode: () => void;
   onLeave: () => void;
   localTimeLeft: number | null;
@@ -37,6 +38,7 @@ export function HostGameView({
   onTogglePlayPause,
   onForceReveal,
   onNextSong,
+  isCopied,
   handleCopyCode,
   onLeave,
   localTimeLeft,
@@ -54,6 +56,7 @@ export function HostGameView({
         lobbyId={lobbyId}
         currentSongIndex={gameState.currentSongIndex ?? 0}
         totalSongs={gameState.totalSongs}
+        isCopied={isCopied}
         handleCopyCode={handleCopyCode}
         onOpenSpeedModal={() => setIsSpeedRoundModalOpen(true)}
         onLeave={onLeave}

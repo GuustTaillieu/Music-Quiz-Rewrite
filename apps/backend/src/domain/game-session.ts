@@ -20,6 +20,7 @@ export class GameSession {
   private _lastRoundWinnerId: string | null = null;
   private _gameMode: 'SPEED_MODE' | 'TURN_BASED' = 'TURN_BASED';
   private _guessingTimeLimit = 30;
+  private _roundEndTime: number | null = null;
 
   constructor(
     private readonly _lobbyId: string,
@@ -204,9 +205,28 @@ export class GameSession {
     }
   }
 
+  public startAudioTimer(hostId: string): void {
+    const caller = this._players.find((p) => p.id === hostId);
+    if (!caller || !caller.isHost) {
+      throw new Error('Only the host can start the audio timer');
+    }
+    if (this._roundState !== 'GUESSING') return;
+
+    const currentSong = this.getCurrentSong();
+    const timeLimitSecs = currentSong
+      ? Math.max(30, Math.ceil((currentSong.end_offset_ms - currentSong.start_offset_ms) / 1000))
+      : 30;
+
+    this._roundEndTime = Date.now() + timeLimitSecs * 1000;
+  }
+
   public submitGuess(playerId: string, guess: string): boolean {
     if (this._roundState === 'REVEALED') {
       throw new Error('Round is already over. Waiting for next song.');
+    }
+
+    if (this._roundEndTime && Date.now() > this._roundEndTime) {
+      throw new Error('Time for answering has expired');
     }
 
     const activeSong = this.getCurrentSong();
@@ -295,6 +315,7 @@ export class GameSession {
 
     this._roundState = 'GUESSING';
     this._lastRoundWinnerId = null;
+    this._roundEndTime = null;
     this.moveToNextSong();
   }
 
@@ -307,6 +328,7 @@ export class GameSession {
 
     this._roundState = 'REVEALED';
     this._lastRoundWinnerId = null;
+    this._roundEndTime = null;
   }
 
   public forceEnd(hostId: string): void {
@@ -318,6 +340,7 @@ export class GameSession {
     this._activePlayerId = null;
     this._songStarterPlayerId = null;
     this._roundState = 'REVEALED';
+    this._roundEndTime = null;
   }
 
   // ============================================================================
@@ -512,6 +535,7 @@ export class GameSession {
       guessingTimeLimit: currentSong
         ? Math.max(30, Math.ceil((currentSong.end_offset_ms - currentSong.start_offset_ms) / 1000))
         : 30,
+      roundEndTime: this._roundState === 'GUESSING' ? this._roundEndTime : null,
     };
   }
 

@@ -18,6 +18,7 @@ export function useLobbyController(lobbyId: string, username: string) {
     lastGuessResult,
     joinLobby,
     startGame,
+    startAudioTimer,
     submitGuess,
     passTurn,
     nextSong,
@@ -32,12 +33,13 @@ export function useLobbyController(lobbyId: string, username: string) {
   const [guessInput, setGuessInput] = useState('');
   const [gapInputs, setGapInputs] = useState<Record<number, string>>({});
   const [isSpeedRoundModalOpen, setIsSpeedRoundModalOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   // Sync Audio Playback
-  const audio = useLobbyAudio(gameState, isHost);
+  const audio = useLobbyAudio(gameState, isHost, startAudioTimer);
 
   // Sync Timer
-  const timer = useLobbyTimer(gameState, forceReveal);
+  const timer = useLobbyTimer(gameState, forceReveal, isHost);
 
   // Auto join lobby on mount / connect
   useEffect(() => {
@@ -61,7 +63,8 @@ export function useLobbyController(lobbyId: string, username: string) {
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(lobbyId);
-    alert('Lobby Code copied to clipboard!');
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   const handleLeave = () => {
@@ -97,6 +100,7 @@ export function useLobbyController(lobbyId: string, username: string) {
     error,
     lastGuessResult,
     isHost,
+    isCopied,
     selectedGameMode,
     setSelectedGameMode: handleSelectGameMode,
     guessInput,

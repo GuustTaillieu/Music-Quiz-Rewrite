@@ -51,6 +51,8 @@ function LobbyRoomWrapper() {
           onSelectMode={lobby.setSelectedGameMode}
           onStartGame={lobby.startGame}
           onLeave={lobby.handleLeave}
+          isCopied={lobby.isCopied}
+          handleCopyCode={lobby.handleCopyCode}
         />
       );
     }
@@ -78,6 +80,7 @@ function LobbyRoomWrapper() {
         onTogglePlayPause={lobby.audio.handleTogglePlayPause}
         onForceReveal={lobby.forceRevealAnswer}
         onNextSong={lobby.nextSong}
+        isCopied={lobby.isCopied}
         handleCopyCode={lobby.handleCopyCode}
         onLeave={lobby.handleLeave}
         localTimeLeft={lobby.timer.localTimeLeft}
@@ -94,6 +97,7 @@ function LobbyRoomWrapper() {
       setGuessInput={lobby.setGuessInput}
       gapInputs={lobby.gapInputs}
       setGapInputs={lobby.setGapInputs}
+      localTimeLeft={lobby.timer.localTimeLeft}
       onBuzzerClick={() => {}}
       onGuessSubmit={lobby.handleGuessSubmit}
       onGapSubmit={lobby.handleGapSubmit}

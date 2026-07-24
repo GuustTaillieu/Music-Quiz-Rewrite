@@ -39,40 +39,28 @@ export function GlobalVolumeWidget() {
       ref={widgetRef}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
-      className="fixed bottom-6 left-6 z-50 flex items-center gap-2.5 bg-black/75 border border-spotify/20 backdrop-blur-xl rounded-full p-2 px-3 shadow-[0_0_15px_rgba(29,185,84,0.15)] shadow-spotify/10 transition-all duration-300 select-none group"
-      style={{
-        width: isExpanded ? '180px' : '44px',
-        overflow: 'hidden',
-        height: '44px',
-      }}
+      data-expanded={isExpanded}
+      className="fixed size-11 bottom-6 left-6 z-50 flex flex-col-reverse items-center gap-2.5 opacity-60 hover:opacity-100 bg-spotify/5 border border-spotify/20 backdrop-blur-xl rounded-full p-2 py-3 shadow-[0_0_15px_rgba(29,185,84,0.15)] shadow-spotify/10 transition-all duration-300 select-none overflow-hidden data-[expanded=true]:h-46"
     >
       <Button
         size='icon'
         onClick={handleMuteToggle}
-        className='bg-transparent text-spotify hover:bg-transparent hover:shadow-transparent'
+        data-expanded={isExpanded}
+        className='bg-transparent shadow-transparent text-spotify size-6! transition-all duration-300'
       >
         <VolumeIcon size={18} />
       </Button>
 
-      <div
-        className="flex items-center gap-2 w-full transition-opacity duration-300"
-        style={{
-          opacity: isExpanded ? 1 : 0,
-          pointerEvents: isExpanded ? 'auto' : 'none',
-        }}
-      >
-        <Slider
-          min={AUDIO_CONFIG.MIN_VOLUME}
-          max={AUDIO_CONFIG.MAX_VOLUME}
-          step={AUDIO_CONFIG.VOLUME_STEP}
-          value={vol}
-          onValueChange={(value) => setVol(Number(value))}
-          orientation='horizontal'
-        />
-        <span className="text-[9px] font-mono text-muted-foreground w-6 text-right shrink-0">
-          {Math.round(vol * 100)}%
-        </span>
-      </div>
+      <Slider
+        min={AUDIO_CONFIG.MIN_VOLUME}
+        max={AUDIO_CONFIG.MAX_VOLUME}
+        step={AUDIO_CONFIG.VOLUME_STEP}
+        value={[vol]}
+        onValueChange={(value) => setVol(Number(value))}
+        orientation='vertical'
+        data-expanded={isExpanded}
+        className='h-28 data-[expanded=true]:opacity-100 data-[expanded=true]:pointer-events-auto opacity-0 pointer-events-none transition-all duration-300'
+      />
     </div>
   );
 }

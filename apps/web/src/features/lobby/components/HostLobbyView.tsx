@@ -1,4 +1,5 @@
-import { Users, Copy, Crown, Play } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Copy, Check, Crown, Play } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Card } from '#/features/shared/components/ui/card';
@@ -13,6 +14,8 @@ interface HostLobbyViewProps {
   onSelectMode: (mode: 'SPEED_MODE' | 'TURN_BASED') => void;
   onStartGame: () => void;
   onLeave: () => void;
+  isCopied?: boolean;
+  handleCopyCode?: () => void;
 }
 
 export function HostLobbyView({
@@ -22,8 +25,18 @@ export function HostLobbyView({
   songsCount,
   onStartGame,
   onLeave,
+  isCopied: propIsCopied,
+  handleCopyCode: propHandleCopyCode,
 }: HostLobbyViewProps) {
+  const [localIsCopied, setLocalIsCopied] = useState(false);
   const canStart = songsCount > 0 && players.length >= 1;
+
+  const isCopied = propIsCopied ?? localIsCopied;
+  const onCopy = propHandleCopyCode ?? (() => {
+    navigator.clipboard.writeText(lobbyId);
+    setLocalIsCopied(true);
+    setTimeout(() => setLocalIsCopied(false), 2000);
+  });
 
   return (
     <div className="relative w-full min-h-screen py-12 flex flex-col justify-center items-center overflow-hidden px-4 bg-[#05070f] text-white">
@@ -46,13 +59,14 @@ export function HostLobbyView({
             </span>
             <span className="font-black text-xl text-[#00f0ff] tracking-widest">{lobbyId}</span>
             <button
-              onClick={() => {
-                navigator.clipboard.writeText(lobbyId);
-                alert('Copied to clipboard!');
-              }}
-              className="p-1.5 text-cyan-400 hover:text-[#00f0ff] rounded-lg hover:bg-cyan-500/10 transition-colors cursor-pointer"
+              onClick={onCopy}
+              className="p-1.5 text-cyan-400 hover:text-[#00f0ff] rounded-lg hover:bg-cyan-500/10 transition-colors cursor-pointer flex items-center gap-1"
             >
-              <Copy size={16} />
+              {isCopied ? (
+                <Check size={16} className="text-emerald-400" />
+              ) : (
+                <Copy size={16} />
+              )}
             </button>
           </div>
         </div>

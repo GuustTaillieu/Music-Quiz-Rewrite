@@ -95,6 +95,10 @@ export function useQuizGame(wsUrl: string) {
     emit('end_game');
   }, [emit]);
 
+  const startAudioTimer = useCallback(() => {
+    emit('host_audio_started');
+  }, [emit]);
+
   return {
     isConnected,
     gameState,
@@ -102,6 +106,7 @@ export function useQuizGame(wsUrl: string) {
     lastGuessResult,
     joinLobby,
     startGame,
+    startAudioTimer,
     submitGuess,
     passTurn,
     nextSong,
