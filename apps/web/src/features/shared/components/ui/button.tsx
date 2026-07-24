@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { cva } from 'class-variance-authority';
-import type { VariantProps } from 'class-variance-authority';
+import { Button as BaseButton } from '@base-ui/react/button';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '#/features/shared/lib/utils';
 
 const buttonVariants = cva(
@@ -28,6 +28,8 @@ const buttonVariants = cva(
           'border border-rose-500/30 hover:bg-rose-500/10 text-rose-400',
         secondary:
           'bg-black/40 border border-cyan-500/20 text-white hover:border-[#00f0ff]',
+        link:
+          'text-[#00f0ff] underline-offset-4 hover:underline lowercase tracking-normal font-normal',
       },
       size: {
         default: 'py-2.5 px-4',
@@ -45,16 +47,14 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-  VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
+    VariantProps<typeof buttonVariants> {}
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => {
     return (
-      <button
-        className={cn(buttonVariants({ variant, size, className }))}
+      <BaseButton
         ref={ref}
+        className={cn(buttonVariants({ variant, size, className }))}
         {...props}
       />
     );

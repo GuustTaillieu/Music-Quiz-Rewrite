@@ -1,5 +1,5 @@
 import { Slider as SliderPrimitive } from "@base-ui/react/slider"
-import { cn } from "#/features/shared/lib/utils.ts"
+import { cn } from '#/features/shared/lib/utils';
 
 function Slider({
   className,
@@ -11,13 +11,17 @@ function Slider({
 }: SliderPrimitive.Root.Props) {
   const _values = Array.isArray(value)
     ? value
-    : Array.isArray(defaultValue)
-      ? defaultValue
-      : [min, max]
+    : typeof value === 'number'
+      ? [value]
+      : Array.isArray(defaultValue)
+        ? defaultValue
+        : typeof defaultValue === 'number'
+          ? [defaultValue]
+          : [min, max]
 
   return (
     <SliderPrimitive.Root
-      className={cn("", className)}
+      className={cn("flex items-center", className)}
       data-slot="slider"
       defaultValue={defaultValue}
       value={value}
@@ -30,11 +34,11 @@ function Slider({
         className="relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-6 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col">
         <SliderPrimitive.Track
           data-slot="slider-track"
-          className="relative grow overflow-hidden rounded-full bg-spotify/60 border border-spotify/20 data-[orientation=horizontal]:h-2 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+          className="relative grow overflow-hidden rounded-full bg-cyan-950/60 border border-cyan-500/20 data-[orientation=horizontal]:h-2 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-2"
         >
           <SliderPrimitive.Indicator
             data-slot="slider-range"
-            className="bg-spotify select-none data-[orientation=horizontal]:w-full data-[orientation=vertical]:w-full shadow-[0_0_8px_rgba(0,240,255,0.6)]"
+            className="bg-gradient-to-r from-cyan-500 to-[#00f0ff] select-none data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full shadow-[0_0_8px_rgba(0,240,255,0.6)]"
           />
         </SliderPrimitive.Track>
         {Array.from({ length: _values.length }, (_, index) => (

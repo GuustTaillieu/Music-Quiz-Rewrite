@@ -2,6 +2,7 @@
   "name": "spotify-music-quiz",
   "private": true,
   "version": "0.0.1",
+  "packageManager": "pnpm@11.3.0",
   "scripts": {
     "web:dev": "pnpm --filter @spotify-music-quiz/web dev",
     "backend:dev": "docker compose up -d db && pnpm --filter @spotify-music-quiz/backend start:dev",
