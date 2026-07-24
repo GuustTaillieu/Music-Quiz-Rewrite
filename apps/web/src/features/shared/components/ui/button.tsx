@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button as BaseButton } from '@base-ui/react/button';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '#/features/shared/lib/utils';
+import { cn } from '#/features/shared/lib/utils.ts';
 
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00f0ff] disabled:pointer-events-none disabled:opacity-40 active:scale-98 select-none',
@@ -26,6 +26,8 @@ const buttonVariants = cva(
           'text-muted-foreground hover:text-white hover:bg-white/5',
         destructive:
           'border border-rose-500/30 hover:bg-rose-500/10 text-rose-400',
+        destructive_ghost:
+          'text-red-400 hover:text-red-300 hover:bg-red-500/40',
         secondary:
           'bg-black/40 border border-cyan-500/20 text-white hover:border-[#00f0ff]',
         link:
@@ -47,7 +49,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+  VariantProps<typeof buttonVariants> { }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => {

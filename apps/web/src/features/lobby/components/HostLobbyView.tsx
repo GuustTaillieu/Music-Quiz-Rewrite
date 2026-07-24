@@ -29,7 +29,7 @@ export function HostLobbyView({
   handleCopyCode: propHandleCopyCode,
 }: HostLobbyViewProps) {
   const [localIsCopied, setLocalIsCopied] = useState(false);
-  const canStart = songsCount > 0 && players.length >= 1;
+  const canStart = songsCount > 0 && players.length >= 3
 
   const isCopied = propIsCopied ?? localIsCopied;
   const onCopy = propHandleCopyCode ?? (() => {
@@ -105,7 +105,7 @@ export function HostLobbyView({
             <Button variant="outline" size="sm" onClick={onLeave}>
               Exit
             </Button>
-            <Button variant="default" size="sm" onClick={onStartGame} disabled={!canStart}>
+            <Button variant='default' size="sm" onClick={onStartGame} disabled={!canStart}>
               <Play size={14} fill="currentColor" /> Start Game
             </Button>
           </div>

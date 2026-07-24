@@ -4,6 +4,7 @@ import { BsSpotify } from 'react-icons/bs';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Card } from '#/features/shared/components/ui/card';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '#/features/shared/components/ui/input-otp';
 import { DASHBOARD_CONSTANTS } from '../constants/dashboardConstants';
 
 interface GuestJoinPortalProps {
@@ -83,24 +84,24 @@ export function GuestJoinPortal({
               <div className="h-px bg-cyan-500/10 flex-1" />
             </div>
 
-            <div className="relative w-full mb-3">
-              <Input
-                type="text"
+            <div className="relative w-full mb-3 flex flex-col items-center justify-center">
+              <InputOTP
                 maxLength={DASHBOARD_CONSTANTS.LOBBY_CODE_MAX_LENGTH}
-                placeholder={DASHBOARD_CONSTANTS.PLACEHOLDERS.JOIN_CODE}
                 value={lobbyCode}
-                onChange={(e) => handleCodeChange(e.target.value)}
+                onChange={(val) => handleCodeChange(val.toUpperCase())}
                 disabled={isCodeValidating}
-                className={`py-3.5 font-mono font-black text-center text-2xl uppercase placeholder-cyan-500/10 ${
-                  isCodeInvalid
-                    ? 'border-rose-500 text-rose-500 focus:border-rose-500 shadow-[0_0_15px_rgba(239,68,68,0.25)]'
-                    : 'border-cyan-500/20 text-[#00f0ff] focus:border-[#00f0ff]'
-                }`}
-                style={{ letterSpacing: '0.6em' }}
-              />
+              >
+                <InputOTPGroup className="gap-2">
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={0} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={1} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={2} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={3} />
+                </InputOTPGroup>
+              </InputOTP>
+
               {isCodeValidating && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <Loader2 size={20} className="animate-spin text-cyan-400" />
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-cyan-400 font-bold animate-pulse">
+                  <Loader2 size={14} className="animate-spin" /> Validating lobby code...
                 </div>
               )}
             </div>

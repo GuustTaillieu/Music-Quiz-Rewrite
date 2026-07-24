@@ -4,6 +4,8 @@ import { BsMusicNoteList } from 'react-icons/bs';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Badge } from '#/features/shared/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '#/features/shared/components/ui/avatar';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '#/features/shared/components/ui/tooltip';
 import { ActiveSessionsTable } from './ActiveSessionsTable';
 import { CreateQuizModal } from './CreateQuizModal';
 import type { QuizMeta, ActiveSession } from '../api/dashboardService';
@@ -50,53 +52,55 @@ export function HostDashboardView({
   const navigate = useNavigate();
 
   return (
-    <div className="relative w-full min-h-screen pb-16 flex flex-col bg-[#05070f] text-white">
-      {/* Synthwave static grid backdrop */}
-      <div className="synth-grid absolute inset-0 pointer-events-none opacity-40" />
+    <TooltipProvider>
+      <div className="relative w-full min-h-screen pb-16 flex flex-col bg-[#05070f] text-white">
+        {/* Synthwave static grid backdrop */}
+        <div className="synth-grid absolute inset-0 pointer-events-none opacity-40" />
 
-      {/* Top Premium Navbar */}
-      <header className="relative w-full border-b border-cyan-500/10 bg-black/40 backdrop-blur-md z-10 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-spotify/10 border border-spotify/30 rounded-xl text-spotify">
-            <Headphones size={20} />
-          </div>
-          <div>
-            <h1 className="font-extrabold text-md leading-none text-white tracking-tight">soundquiz</h1>
-            <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5 block">
-              Host Console
-            </span>
-          </div>
-        </div>
-
-        {/* User Badge / Actions */}
-        {sessionData && (
-          <div className="flex items-center gap-3 bg-black/40 border border-cyan-500/10 rounded-2xl py-1.5 pl-2.5 pr-1.5">
-            <div className="flex items-center gap-2">
-              {sessionData.user.image ? (
-                <img
-                  src={sessionData.user.image}
-                  alt={sessionData.user.name}
-                  className="h-7 w-7 rounded-full border border-cyan-500/20"
-                />
-              ) : (
-                <div className="h-7 w-7 rounded-full bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 font-bold text-xs">
-                  {sessionData.user.name.slice(0, 1)}
-                </div>
-              )}
-              <span className="text-xs font-bold text-muted-foreground pr-1 hidden sm:inline">
-                {sessionData.user.name}
+        {/* Top Premium Navbar */}
+        <header className="relative w-full border-b border-cyan-500/10 bg-black/40 backdrop-blur-md z-10 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-spotify/10 border border-spotify/30 rounded-xl text-spotify">
+              <Headphones size={20} />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-md leading-none text-white tracking-tight">soundquiz</h1>
+              <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5 block">
+                Host Console
               </span>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="p-1.5 text-muted-foreground hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
-              title="Sign Out"
-            >
-              <LogOut size={14} />
-            </button>
           </div>
-        )}
-      </header>
+
+          {/* User Badge / Actions */}
+          {sessionData && (
+            <div className="flex items-center gap-3 bg-black/40 border border-cyan-500/10 rounded-2xl py-1.5 pl-2.5 pr-1.5">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-7 w-7 border-cyan-500/20">
+                  {sessionData.user.image ? (
+                    <AvatarImage src={sessionData.user.image} alt={sessionData.user.name} />
+                  ) : null}
+                  <AvatarFallback className="text-[10px] font-black text-cyan-400 bg-cyan-500/10">
+                    {sessionData.user.name.slice(0, 1)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs font-bold text-muted-foreground pr-1 hidden sm:inline">
+                  {sessionData.user.name}
+                </span>
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleSignOut}
+                    className="p-1.5 text-muted-foreground hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Sign Out</TooltipContent>
+              </Tooltip>
+            </div>
+          )}
+        </header>
 
       {/* Main Page Area */}
       <main className="w-full max-w-4xl mx-auto px-6 py-10 z-10 flex-1">
@@ -249,6 +253,7 @@ export function HostDashboardView({
         }}
         isPending={createQuizMutation.isPending}
       />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

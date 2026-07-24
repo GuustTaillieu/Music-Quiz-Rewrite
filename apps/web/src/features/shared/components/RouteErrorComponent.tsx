@@ -1,4 +1,4 @@
-import { useRouter } from '@tanstack/react-router';
+import { Link, useRouter } from '@tanstack/react-router';
 import { AlertCircle, RotateCcw, Home } from 'lucide-react';
 
 export function RouteErrorComponent({ error }: { error: Error }) {
@@ -20,16 +20,16 @@ export function RouteErrorComponent({ error }: { error: Error }) {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => router.invalidate()}
-            className="flex-1 bg-gradient-to-r from-lagoon to-lagoon-deep text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className="flex-1 bg-linear-to-r from-lagoon to-lagoon-deep text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             <RotateCcw size={16} /> Retry
           </button>
-          <a
-            href="/"
+          <Link
+            to="/"
             className="flex-1 bg-foam/15 hover:bg-foam/25 border border-line text-foreground font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer active:scale-98 text-sm text-center"
           >
             <Home size={16} /> Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

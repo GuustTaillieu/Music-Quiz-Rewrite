@@ -1,4 +1,5 @@
 import { Users, Crown } from 'lucide-react';
+import { Avatar, AvatarFallback } from '#/features/shared/components/ui/avatar';
 import type { Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface HostLeaderboardSidebarProps {
@@ -31,13 +32,18 @@ export function HostLeaderboardSidebar({ players, buzzerWinner }: HostLeaderboar
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="text-[10px] font-mono font-bold w-4 text-center text-cyan-500">
+                <span className="text-[10px] font-mono font-bold w-4 text-center text-cyan-500 shrink-0">
                   #{idx + 1}
                 </span>
+                <Avatar className="h-6 w-6 border-cyan-500/30 shrink-0">
+                  <AvatarFallback className="text-[9px] font-black text-cyan-400 bg-cyan-500/20">
+                    {player.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 {idx === 0 && <Crown size={12} className="text-amber-400 shrink-0" />}
                 <span className="font-bold text-xs truncate">{player.name}</span>
               </div>
-              <span className="font-mono font-black text-xs text-[#00f0ff]">{player.score} pts</span>
+              <span className="font-mono font-black text-xs text-[#00f0ff] shrink-0">{player.score} pts</span>
             </div>
           );
         })}

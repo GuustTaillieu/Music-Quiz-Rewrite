@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { Home, HelpCircle } from 'lucide-react';
 
 export function RouteNotFoundComponent() {
@@ -18,12 +19,12 @@ export function RouteNotFoundComponent() {
           The page you are looking for does not exist, has been moved, or is temporarily unavailable.
         </p>
 
-        <a
-          href="/"
+        <Link
+          to="/"
           className="w-full bg-linear-to-r from-lagoon to-lagoon-deep text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 cursor-pointer active:scale-98 text-sm"
         >
           <Home size={16} /> Go Back Home
-        </a>
+        </Link>
       </div>
     </div>
   );
