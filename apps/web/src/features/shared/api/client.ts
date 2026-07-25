@@ -36,7 +36,7 @@ export async function apiFetch(
       : `${import.meta.env.VITE_BACKEND_URL}${endpoint}`;
 
     const { schema, ...init } = options ?? {};
-    
+
     // Always include credentials (session cookies) for cross-origin requests
     const response = await fetch(url, {
       credentials: 'include',

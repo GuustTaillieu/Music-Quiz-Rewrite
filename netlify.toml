@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm --filter @spotify-music-quiz/web web:build"
+  command = "pnpm --filter @spotify-music-quiz/web build"
   publish = "apps/web/dist/client"
 [dev]
   command = "pnpm --filter @spotify-music-quiz/web web:dev"

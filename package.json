@@ -5,7 +5,9 @@
   "packageManager": "pnpm@11.3.0",
   "scripts": {
     "web:dev": "pnpm --filter @spotify-music-quiz/web dev",
+    "web:build": "pnpm --filter @spotify-music-quiz/web build",
     "backend:dev": "docker compose up -d db && pnpm --filter @spotify-music-quiz/backend start:dev",
+    "backend:build": "pnpm --filter @spotify-music-quiz/backend build",
     "shared:build": "pnpm --filter @spotify-music-quiz/shared build"
   },
   "dependencies": {

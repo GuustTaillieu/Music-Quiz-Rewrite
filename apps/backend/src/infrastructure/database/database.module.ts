@@ -13,10 +13,18 @@ import type { DrizzleDb } from './database.constants';
 const databaseProvider: Provider = {
   provide: DATABASE_CONNECTION,
   useFactory: () => {
+    const connectionString =
+      process.env.DATABASE_URL ??
+      'postgresql://postgres:postgres@localhost:5432/spotify_quiz';
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    const hasSslParam =
+      connectionString.includes('sslmode=require') ||
+      connectionString.includes('ssl=true');
+
     const pool = new Pool({
-      connectionString:
-        process.env.DATABASE_URL ??
-        'postgresql://postgres:postgres@localhost:5432/spotify_quiz',
+      connectionString,
+      ssl: isProduction || hasSslParam ? { rejectUnauthorized: false } : false,
     });
     return drizzle(pool, { schema });
   },
