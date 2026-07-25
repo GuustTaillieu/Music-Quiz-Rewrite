@@ -90,6 +90,8 @@ export function GuestJoinPortal({
                 value={lobbyCode}
                 onChange={(val) => handleCodeChange(val)}
                 disabled={isCodeValidating}
+                inputMode="numeric"
+
               >
                 <InputOTPGroup className="gap-1.5 sm:gap-2">
                   {Array.from({ length: DASHBOARD_CONSTANTS.LOBBY_CODE_MAX_LENGTH }).map((_, index) => (

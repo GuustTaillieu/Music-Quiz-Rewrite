@@ -61,7 +61,7 @@ export function useDashboardController() {
   );
 
   const handleCodeChange = async (val: string) => {
-    const code = val.toUpperCase().slice(0, DASHBOARD_CONSTANTS.LOBBY_CODE_MAX_LENGTH).replace(/[^A-Z]/g, '');
+    const code = val.toUpperCase().slice(0, DASHBOARD_CONSTANTS.LOBBY_CODE_MAX_LENGTH)
     setLobbyCode(code);
     setIsCodeInvalid(false);
     setJoinError('');
