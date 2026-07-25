@@ -80,14 +80,16 @@ export function HostLobbyView({
             {players.map((p) => (
               <div
                 key={p.id}
-                className="flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors"
+                className={`flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${
+                  p.isDisconnected ? 'opacity-50' : ''
+                }`}
               >
                 <span className="font-bold text-white text-xs flex items-center gap-2">
                   {p.name}
                   {p.isHost && <Crown size={14} className="text-amber-500 fill-amber-500" />}
                 </span>
-                <Badge variant={p.isHost ? 'default' : 'magenta'}>
-                  {p.isHost ? 'Host' : 'Player'}
+                <Badge variant={p.isHost ? 'default' : p.isDisconnected ? 'outline' : 'magenta'}>
+                  {p.isDisconnected ? 'Reconnecting...' : p.isHost ? 'Host' : 'Player'}
                 </Badge>
               </div>
             ))}

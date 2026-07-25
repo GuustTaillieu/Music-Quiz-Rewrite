@@ -75,17 +75,19 @@ export function PlayerWaitingRoomView({
               {players.map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors"
+                  className={`flex items-center justify-between p-3 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${
+                    p.isDisconnected ? 'opacity-50' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    <span className="w-2 h-2 rounded-full bg-[#00f0ff] shadow-[0_0_8px_#00f0ff] shrink-0" />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${p.isDisconnected ? 'bg-amber-400 animate-pulse' : 'bg-[#00f0ff] shadow-[0_0_8px_#00f0ff]'}`} />
                     <span className="font-bold text-white text-xs flex items-center gap-1.5 truncate">
                       <span className="truncate">{p.name}</span>
                       {p.isHost && <Crown size={14} className="text-amber-500 fill-amber-500 shrink-0" />}
                     </span>
                   </div>
-                  <Badge variant={p.isHost ? 'default' : 'magenta'} className="shrink-0">
-                    {p.isHost ? 'Host' : 'Player'}
+                  <Badge variant={p.isHost ? 'default' : p.isDisconnected ? 'outline' : 'magenta'} className="shrink-0">
+                    {p.isDisconnected ? 'Reconnecting...' : p.isHost ? 'Host' : 'Player'}
                   </Badge>
                 </div>
               ))}
