@@ -36,11 +36,6 @@ export function HostLeaderboardSidebar({ players, buzzerWinner }: HostLeaderboar
                 <span className="text-[10px] font-mono font-bold w-4 text-center text-cyan-500 shrink-0">
                   #{idx + 1}
                 </span>
-                <Avatar className="h-6 w-6 border-cyan-500/30 shrink-0">
-                  <AvatarFallback className="text-[9px] font-black text-cyan-400 bg-cyan-500/20">
-                    {player.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
                 {idx === 0 && <Crown size={12} className="text-amber-400 shrink-0" />}
                 <span className="font-bold text-xs truncate">{player.name}</span>
               </div>

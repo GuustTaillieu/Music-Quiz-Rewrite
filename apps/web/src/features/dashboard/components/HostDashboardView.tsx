@@ -210,7 +210,7 @@ export function HostDashboardView({
                 return (
                   <Card
                     key={quiz.id}
-                    className="bg-[#0b0e17]/80 border border-cyan-500/10 hover:border-cyan-500/25 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgba(0,0,0,0.2)]"
+                    className="bg-card-foreground/80 border border-cyan-500/10 hover:border-cyan-500/25 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:-translate-y-0.5 shadow-[0_4px_16px_rgba(0,0,0,0.2)]"
                   >
                     {/* Info Block */}
                     <div className="flex items-center gap-4 flex-1 min-w-0">

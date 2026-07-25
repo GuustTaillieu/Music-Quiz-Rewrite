@@ -74,8 +74,8 @@ export function PlayerBuzzerScreen({
 
       {/* High-Stakes Videogame Countdown Overlay (Last 5 Seconds) */}
       {isCritical && secondsLeft !== null && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-          <div key={secondsLeft} className="animate-ping text-8xl sm:text-9xl font-black text-rose-500 drop-shadow-[0_0_35px_rgba(244,63,94,0.9)]">
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none select-none">
+          <div key={secondsLeft} className="animate-ping text-8xl sm:text-9xl font-black text-rose-500 drop-shadow-[0_0_35px_rgba(244,63,94,0.9)] pointer-events-none">
             {secondsLeft}
           </div>
         </div>
@@ -144,7 +144,7 @@ export function PlayerBuzzerScreen({
       </div>
 
       {/* Action / Input Footer */}
-      <div className="z-10 bg-black/60 border border-cyan-500/20 rounded-3xl p-5 backdrop-blur-lg shrink-0 w-full max-w-md mx-auto mb-2 space-y-3">
+      <div className="relative z-40 bg-black/60 border border-cyan-500/20 rounded-3xl p-5 backdrop-blur-lg shrink-0 w-full max-w-md mx-auto mb-2 space-y-3 pointer-events-auto">
         {isBuzzerMode && !buzzerWinner ? (
           <Button
             variant="default"

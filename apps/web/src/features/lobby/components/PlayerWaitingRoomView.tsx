@@ -78,11 +78,7 @@ export function PlayerWaitingRoomView({
                   className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    <Avatar className="h-7 w-7 border-cyan-500/30 shrink-0">
-                      <AvatarFallback className="text-[9px] font-black text-cyan-400 bg-cyan-500/20">
-                        {p.name.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <span className="w-2 h-2 rounded-full bg-[#00f0ff] shadow-[0_0_8px_#00f0ff] shrink-0" />
                     <span className="font-bold text-white text-xs flex items-center gap-1.5 truncate">
                       <span className="truncate">{p.name}</span>
                       {p.isHost && <Crown size={14} className="text-amber-500 fill-amber-500 shrink-0" />}
