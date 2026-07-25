@@ -33,12 +33,13 @@ export async function apiFetch(
   try {
     const baseUrl =
       typeof window !== 'undefined'
-        ? ''
-        : (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3000');
+        ? '/api'
+        : (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3000/api');
 
+    const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const url = endpoint.startsWith('http')
       ? endpoint
-      : `${baseUrl}${endpoint}`;
+      : `${baseUrl}${formattedEndpoint}`;
 
     const { schema, ...init } = options ?? {};
 

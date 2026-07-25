@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.set('trust proxy', 1);
+  app.setGlobalPrefix('api');
   const frontendUrl = process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000';
   const allowedOrigins = [
     frontendUrl,
