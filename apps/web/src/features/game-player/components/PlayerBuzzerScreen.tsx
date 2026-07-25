@@ -1,10 +1,14 @@
 import React from 'react';
-import { Crown, LogOut, Clock, Sparkles } from 'lucide-react';
+import { Clock, Sparkles } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { CavaVisualizer } from '#/features/lobby/components/CavaVisualizer';
 import { parseGapBlocks } from '#/features/lobby/utils/lobbyUtils';
+import { PlayerHeaderBar } from './PlayerHeaderBar';
+import { PlayerLeaveButton } from './PlayerLeaveButton';
+import { RoundSummaryOverlay } from './RoundSummaryOverlay';
+import { useCountdownVFX } from '../hooks/useCountdownVFX';
 import type { GameSessionState, Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface PlayerBuzzerScreenProps {
@@ -41,45 +45,52 @@ export function PlayerBuzzerScreen({
   const activeSong = gameState.activeSong;
   const isPlaying = gameState.phase === 'SPEED_ROUND' || gameState.phase === 'TURN_BASED';
   const isRevealed = gameState.roundState === 'REVEALED';
-  const isTimeUp = localTimeLeft === 0;
-  const isDisabled = !isPlaying || isRevealed || isTimeUp;
-  const localPlayer = gameState.players.find((p: Player) => p.name === username);
   const isBuzzerMode = gameState.gameMode === 'SPEED_MODE';
 
+  // Custom countdown visual effects hook
+  const { hasTimer, isTimeUp, isCritical, secondsLeft } = useCountdownVFX(localTimeLeft);
+  const isDisabled = !isPlaying || isRevealed || isTimeUp;
+
   const gapBlocks = parseGapBlocks(activeSong?.lyricsGap);
+  const progressPercent = hasTimer && maxTimeLimit > 0
+    ? Math.max(0, Math.min(100, ((secondsLeft ?? 0) / maxTimeLimit) * 100))
+    : 100;
 
   return (
-    <div className="relative w-full h-[100dvh] flex flex-col justify-between overflow-hidden px-6 py-6 bg-[#05070f] text-white select-none">
+    <div
+      className={`relative w-full h-[100dvh] flex flex-col justify-between overflow-hidden px-6 py-6 bg-[#05070f] text-white select-none transition-all duration-300 ${
+        isCritical ? 'shadow-[inset_0_0_100px_rgba(244,63,94,0.7)] border-4 border-rose-500/80 animate-pulse' : ''
+      }`}
+    >
       <div className="synth-grid absolute inset-0 pointer-events-none opacity-30" />
 
-      {/* Header bar */}
-      <div className="z-10 bg-black/40 border border-cyan-500/10 rounded-2xl p-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <Crown size={14} className="text-amber-500" />
-          <span className="text-xs font-bold text-white">{username}</span>
+      {/* Top Bar: Separated Player Status & Floating Leave Button */}
+      <div className="z-20 flex items-center justify-between gap-4 w-full">
+        <div className="flex-1 max-w-sm">
+          <PlayerHeaderBar username={username} players={gameState.players} />
         </div>
-
-        <div className="flex items-center gap-3">
-          {localTimeLeft !== undefined && localTimeLeft !== null && (
-            <Badge variant={isTimeUp ? 'magenta' : 'default'} className="font-mono">
-              {isTimeUp ? "Time's Up!" : `${localTimeLeft}s`}
-            </Badge>
-          )}
-          <Badge variant="default">{localPlayer?.score ?? 0} pts</Badge>
-          <button
-            onClick={onLeave}
-            className="p-1 text-muted-foreground hover:text-rose-400 cursor-pointer"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
+        <PlayerLeaveButton onLeave={onLeave} />
       </div>
 
+      {/* High-Stakes Videogame Countdown Overlay (Last 5 Seconds) */}
+      {isCritical && secondsLeft !== null && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+          <div key={secondsLeft} className="animate-ping text-8xl sm:text-9xl font-black text-rose-500 drop-shadow-[0_0_35px_rgba(244,63,94,0.9)]">
+            {secondsLeft}
+          </div>
+        </div>
+      )}
+
+      {/* End of Round Summary Overlay */}
+      {isRevealed && (
+        <RoundSummaryOverlay gameState={gameState} username={username} />
+      )}
+
       {/* Main Visualizer Area */}
-      <div className="z-10 flex-1 flex flex-col items-center justify-center min-h-0 py-6 text-center">
+      <div className="z-10 flex-1 flex flex-col items-center justify-center min-h-0 py-4 text-center">
         {isPlaying ? (
           <div className="space-y-4">
-            <Badge variant="magenta">
+            <Badge variant={isCritical ? 'destructive' : 'magenta'} className="px-4 py-1.5 text-xs font-black uppercase tracking-widest shadow-md">
               {activeSong?.questionType === 'FILL_IN_THE_GAP'
                 ? 'Fill in the Gap Lyrics'
                 : 'Guess the Track Title'}
@@ -98,26 +109,39 @@ export function PlayerBuzzerScreen({
         ) : (
           <div className="text-center space-y-2">
             <Clock size={28} className="mx-auto text-cyan-400 animate-spin" />
-            <p className="text-xs text-muted-foreground font-bold">Waiting for host...</p>
+            <p className="text-xs text-muted-foreground font-bold">Waiting for host to start...</p>
           </div>
         )}
       </div>
 
-      {/* Synchronized Shared Progress Bar Timer */}
-      {localTimeLeft !== null && localTimeLeft !== undefined && maxTimeLimit > 0 && (
-        <div className="z-10 w-full max-w-md mx-auto h-2 bg-cyan-500/10 rounded-full overflow-hidden mb-2 border border-cyan-500/20">
-          <div
-            className={`h-full transition-all duration-300 ease-linear ${
-              isTimeUp
-                ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'
-                : 'bg-[#00f0ff] shadow-[0_0_10px_#00f0ff]'
-            }`}
-            style={{
-              width: `${Math.max(0, Math.min(100, (localTimeLeft / maxTimeLimit) * 100))}%`,
-            }}
-          />
-        </div>
-      )}
+      {/* Integrated Progress Bar & Seconds Readout (Positioned Above Input Footer) */}
+      <div className="z-10 w-full max-w-md mx-auto space-y-1.5 mb-2">
+        {hasTimer && (
+          <div className="flex items-center justify-between text-[11px] font-mono font-black tracking-wider px-1">
+            <span className={isCritical ? 'text-rose-400 animate-pulse' : 'text-cyan-400'}>
+              {isTimeUp ? "TIME'S UP!" : isCritical ? '⚠️ TIME RUNNING OUT' : 'TIME REMAINING'}
+            </span>
+            <span className={`text-xs ${isCritical ? 'text-rose-400 font-extrabold animate-bounce' : 'text-[#00f0ff]'}`}>
+              {isTimeUp ? '0s' : `${secondsLeft}s`}
+            </span>
+          </div>
+        )}
+
+        {hasTimer && (
+          <div className="h-2.5 w-full bg-cyan-500/10 rounded-full overflow-hidden border border-cyan-500/20 shadow-inner">
+            <div
+              className={`h-full transition-all duration-300 ease-linear ${
+                isTimeUp
+                  ? 'bg-rose-600 shadow-[0_0_12px_#f43f5e]'
+                  : isCritical
+                  ? 'bg-rose-500 shadow-[0_0_15px_#f43f5e] animate-pulse'
+                  : 'bg-[#00f0ff] shadow-[0_0_10px_#00f0ff]'
+              }`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Action / Input Footer */}
       <div className="z-10 bg-black/60 border border-cyan-500/20 rounded-3xl p-5 backdrop-blur-lg shrink-0 w-full max-w-md mx-auto mb-2 space-y-3">

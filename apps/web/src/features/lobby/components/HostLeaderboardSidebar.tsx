@@ -8,12 +8,13 @@ interface HostLeaderboardSidebarProps {
 }
 
 export function HostLeaderboardSidebar({ players, buzzerWinner }: HostLeaderboardSidebarProps) {
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  const contestants = players.filter((p) => !p.isHost);
+  const sortedPlayers = [...contestants].sort((a, b) => b.score - a.score);
 
   return (
     <div className="w-full lg:w-72 bg-black/50 border border-cyan-500/10 backdrop-blur-xl rounded-2xl p-4 flex flex-col shrink-0">
       <div className="flex items-center gap-2 pb-3 border-b border-cyan-500/10 mb-3 text-cyan-400 font-black text-xs uppercase tracking-wider">
-        <Users size={14} /> Live Leaderboard ({players.length})
+        <Users size={14} /> Live Leaderboard ({contestants.length})
       </div>
 
       <div className="space-y-2 overflow-y-auto max-h-[500px] pr-1">

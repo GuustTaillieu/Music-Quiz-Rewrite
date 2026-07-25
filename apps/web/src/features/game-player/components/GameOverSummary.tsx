@@ -16,7 +16,8 @@ export function GameOverSummary({
   onRestart,
   onLeave,
 }: GameOverSummaryProps) {
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  const contestants = players.filter((p) => !p.isHost);
+  const sortedPlayers = [...contestants].sort((a, b) => b.score - a.score);
 
   return (
     <div className="relative w-full min-h-screen py-12 flex flex-col justify-center items-center overflow-hidden px-4 bg-[#05070f] text-white">
