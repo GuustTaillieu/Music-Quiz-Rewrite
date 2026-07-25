@@ -171,11 +171,13 @@ export function HostDashboardView({
               <div className="relative">
                 <Input
                   type="text"
-                  maxLength={4}
+                  maxLength={6}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="Join Code"
                   value={lobbyCode}
-                  onChange={(e) => handleCodeChange(e.target.value.toUpperCase())}
-                  className="py-1.5 px-3 text-xs w-36 uppercase font-mono font-bold"
+                  onChange={(e) => handleCodeChange(e.target.value.replace(/\D/g, ''))}
+                  className="py-1.5 px-3 text-xs w-36 font-mono font-bold"
                 />
                 {isCodeValidating && (
                   <Loader2 size={12} className="animate-spin text-cyan-400 absolute right-2.5 top-1/2 -translate-y-1/2" />
@@ -290,15 +292,22 @@ export function HostDashboardView({
               })}
             </div>
           ) : (
-            <div className="text-center py-16 border border-dashed border-cyan-500/10 rounded-3xl bg-[#0b0e17]/50 max-w-md mx-auto">
-              <Music size={40} className="mx-auto text-cyan-400/30 mb-4 animate-pulse" />
-              <h3 className="font-bold text-white text-lg mb-2">No quizzes available</h3>
-              <p className="text-xs text-muted-foreground max-w-xs mx-auto mb-6">
-                Create a custom Spotify quiz library to host live multiplayer trivia rounds with friends.
-              </p>
-              <Button variant="spotify" onClick={() => setIsCreateModalOpen(true)}>
-                Create Your First Quiz
-              </Button>
+            <div className="relative w-full rounded-3xl border border-cyan-500/20 bg-linear-to-b from-[#0b0e17]/90 to-[#05070f]/95 p-10 sm:p-14 text-center shadow-[0_0_50px_rgba(0,240,255,0.06)] overflow-hidden">
+              {/* Subtle ambient glowing orb */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full pointer-events-none" />
+
+              <div className="relative z-10 max-w-md mx-auto flex flex-col items-center">
+                <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl text-cyan-400 mb-5 shadow-[0_0_20px_rgba(0,240,255,0.2)]">
+                  <Music size={32} className="animate-pulse" />
+                </div>
+                <h3 className="font-extrabold text-white text-xl tracking-tight mb-2">No Quizzes Created Yet</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed max-w-sm mb-8">
+                  Create a custom Spotify quiz library or fork an existing community quiz to host live trivia rounds.
+                </p>
+                <Button variant="spotify" size="lg" onClick={() => setIsCreateModalOpen(true)}>
+                  <Plus size={16} /> Create Your First Quiz
+                </Button>
+              </div>
             </div>
           )}
         </main>

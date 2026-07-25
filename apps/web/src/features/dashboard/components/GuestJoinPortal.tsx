@@ -88,14 +88,18 @@ export function GuestJoinPortal({
               <InputOTP
                 maxLength={DASHBOARD_CONSTANTS.LOBBY_CODE_MAX_LENGTH}
                 value={lobbyCode}
-                onChange={(val) => handleCodeChange(val.toUpperCase())}
+                onChange={(val) => handleCodeChange(val.replace(/\D/g, ''))}
                 disabled={isCodeValidating}
+                pattern="[0-9]*"
+                inputMode="numeric"
               >
-                <InputOTPGroup className="gap-2">
+                <InputOTPGroup className="gap-1.5 sm:gap-2">
                   <InputOTPSlot aria-invalid={isCodeInvalid} index={0} />
                   <InputOTPSlot aria-invalid={isCodeInvalid} index={1} />
                   <InputOTPSlot aria-invalid={isCodeInvalid} index={2} />
                   <InputOTPSlot aria-invalid={isCodeInvalid} index={3} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={4} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={5} />
                 </InputOTPGroup>
               </InputOTP>
 

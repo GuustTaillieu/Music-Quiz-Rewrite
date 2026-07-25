@@ -203,6 +203,8 @@ export class GameSession {
         this._songStarterPlayerId = this._activePlayerId;
       }
     }
+
+    this.startRoundTimerInternal();
   }
 
   public startAudioTimer(hostId: string): void {
@@ -212,10 +214,14 @@ export class GameSession {
     }
     if (this._roundState !== 'GUESSING') return;
 
+    this.startRoundTimerInternal();
+  }
+
+  private startRoundTimerInternal(): void {
     const currentSong = this.getCurrentSong();
     const timeLimitSecs = currentSong
       ? Math.max(30, Math.ceil((currentSong.end_offset_ms - currentSong.start_offset_ms) / 1000))
-      : 30;
+      : this._guessingTimeLimit;
 
     this._roundEndTime = Date.now() + timeLimitSecs * 1000;
   }
@@ -467,6 +473,8 @@ export class GameSession {
       this._songStarterPlayerId = this.findNextTurnPlayer(this._songStarterPlayerId);
       this._activePlayerId = this._songStarterPlayerId;
     }
+
+    this.startRoundTimerInternal();
   }
 
   // ============================================================================
