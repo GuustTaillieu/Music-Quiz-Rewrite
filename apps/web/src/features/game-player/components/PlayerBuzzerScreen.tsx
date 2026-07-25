@@ -16,6 +16,7 @@ interface PlayerBuzzerScreenProps {
   gapInputs: Record<number, string>;
   setGapInputs: (inputs: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => void;
   localTimeLeft?: number | null;
+  maxTimeLimit?: number;
   onBuzzerClick: () => void;
   onGuessSubmit: (e?: React.FormEvent) => void;
   onGapSubmit: (e?: React.FormEvent) => void;
@@ -31,6 +32,7 @@ export function PlayerBuzzerScreen({
   gapInputs,
   setGapInputs,
   localTimeLeft,
+  maxTimeLimit = 30,
   onBuzzerClick,
   onGuessSubmit,
   onGapSubmit,
@@ -100,6 +102,22 @@ export function PlayerBuzzerScreen({
           </div>
         )}
       </div>
+
+      {/* Synchronized Shared Progress Bar Timer */}
+      {localTimeLeft !== null && localTimeLeft !== undefined && maxTimeLimit > 0 && (
+        <div className="z-10 w-full max-w-md mx-auto h-2 bg-cyan-500/10 rounded-full overflow-hidden mb-2 border border-cyan-500/20">
+          <div
+            className={`h-full transition-all duration-300 ease-linear ${
+              isTimeUp
+                ? 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'
+                : 'bg-[#00f0ff] shadow-[0_0_10px_#00f0ff]'
+            }`}
+            style={{
+              width: `${Math.max(0, Math.min(100, (localTimeLeft / maxTimeLimit) * 100))}%`,
+            }}
+          />
+        </div>
+      )}
 
       {/* Action / Input Footer */}
       <div className="z-10 bg-black/60 border border-cyan-500/20 rounded-3xl p-5 backdrop-blur-lg shrink-0 w-full max-w-md mx-auto mb-2 space-y-3">

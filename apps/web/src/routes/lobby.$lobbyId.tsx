@@ -98,6 +98,7 @@ function LobbyRoomWrapper() {
       gapInputs={lobby.gapInputs}
       setGapInputs={lobby.setGapInputs}
       localTimeLeft={lobby.timer.localTimeLeft}
+      maxTimeLimit={lobby.timer.maxTimeLimit}
       onBuzzerClick={() => {}}
       onGuessSubmit={lobby.handleGuessSubmit}
       onGapSubmit={lobby.handleGapSubmit}

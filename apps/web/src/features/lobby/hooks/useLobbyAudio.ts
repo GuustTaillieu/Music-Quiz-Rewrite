@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSpotifyPlayer } from '#/features/audio-player/hooks/useSpotifyPlayer';
 import { useGlobalVolume } from '#/features/audio-player/hooks/useGlobalVolume';
-import { LOBBY_CONSTANTS } from '../constants/lobbyConstants';
 import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
 import type { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 
@@ -17,7 +16,7 @@ export function useLobbyAudio(
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const prevSongIndexRef = useRef<number | null>(null);
+  const playedSongIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
     spotifyPlayer.setVolume(globalVolume);
@@ -40,37 +39,41 @@ export function useLobbyAudio(
       return;
     }
 
-    const isNewSong = prevSongIndexRef.current !== songIndex;
-    prevSongIndexRef.current = songIndex;
+    // Only start audio once per song index when player device or previewUrl is ready
+    if (playedSongIndexRef.current === songIndex) {
+      return;
+    }
 
-    if (isNewSong) {
-      const startOffset = activeSong.start_offset_ms || 0;
-      const endOffset = activeSong.end_offset_ms || GAME_CONFIG.DEFAULT_SNIPPET_WINDOW_MS;
-      const durationMs = Math.max(GAME_CONFIG.MIN_SNIPPET_WINDOW_MS, endOffset - startOffset);
+    const startOffset = activeSong.start_offset_ms || 0;
+    const endOffset = activeSong.end_offset_ms || GAME_CONFIG.DEFAULT_SNIPPET_WINDOW_MS;
+    const durationMs = Math.max(GAME_CONFIG.MIN_SNIPPET_WINDOW_MS, endOffset - startOffset);
 
+    if (spotifyPlayer.deviceId) {
+      playedSongIndexRef.current = songIndex;
       if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
 
-      if (spotifyPlayer.deviceId) {
-        spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
-        setIsPlaying(true);
-        setPlaybackMs(startOffset);
-        if (onAudioStarted) onAudioStarted();
+      spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
+      setIsPlaying(true);
+      setPlaybackMs(startOffset);
+      if (onAudioStarted) onAudioStarted();
 
-        setTimeout(() => {
-          if (!spotifyPlayer.isPlaying) {
-            spotifyPlayer.playTrack(activeSong.spotifyTrackId, startOffset);
-          }
-        }, LOBBY_CONSTANTS.RETRY_PLAYBACK_DELAY_MS);
-      } else if (activeSong.previewUrl) {
-        if (!audioRef.current) {
-          audioRef.current = new Audio();
-        }
-        audioRef.current.src = activeSong.previewUrl;
-        audioRef.current.volume = globalVolume;
-        audioRef.current.play().catch(console.error);
-        setIsPlaying(true);
-        if (onAudioStarted) onAudioStarted();
+      stopTimeoutRef.current = setTimeout(() => {
+        spotifyPlayer.pauseTrack();
+        if (audioRef.current) audioRef.current.pause();
+        setIsPlaying(false);
+      }, durationMs);
+    } else if (activeSong.previewUrl) {
+      playedSongIndexRef.current = songIndex;
+      if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
+
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
       }
+      audioRef.current.src = activeSong.previewUrl;
+      audioRef.current.volume = globalVolume;
+      audioRef.current.play().catch(console.error);
+      setIsPlaying(true);
+      if (onAudioStarted) onAudioStarted();
 
       stopTimeoutRef.current = setTimeout(() => {
         spotifyPlayer.pauseTrack();
