@@ -111,13 +111,12 @@ export class GameSession {
     );
 
     if (existingPlayer) {
-      if (existingPlayer.isDisconnected) {
-        existingPlayer.id = id;
-        existingPlayer.isDisconnected = false;
-        return;
-      } else {
-        throw new Error(`Username "${trimmedName}" is already taken in this lobby`);
+      existingPlayer.id = id;
+      existingPlayer.isDisconnected = false;
+      if (userId && userId === this._hostId) {
+        existingPlayer.isHost = true;
       }
+      return;
     }
 
     if (this._phase !== 'LOBBY') {
@@ -136,8 +135,11 @@ export class GameSession {
 
   public removePlayer(id: string): void {
     if (this._phase === 'LOBBY') {
-      // Completely remove in lobby phase
-      this._players = this._players.filter((p) => p.id !== id);
+      // Mark as disconnected in lobby phase so host refresh reconnects cleanly
+      const player = this._players.find((p) => p.id === id);
+      if (player) {
+        player.isDisconnected = true;
+      }
     } else {
       // Mark as disconnected in gameplay phases
       const player = this._players.find((p) => p.id === id);
@@ -183,6 +185,7 @@ export class GameSession {
     this._currentSongIndex = 0;
     this._playersGuessed = [];
     this._playersPassed = [];
+    this._roundEndTime = null;
 
     // Check if SPEED_MODE was selected
     if (this._gameMode === 'SPEED_MODE') {
@@ -203,8 +206,6 @@ export class GameSession {
         this._songStarterPlayerId = this._activePlayerId;
       }
     }
-
-    this.startRoundTimerInternal();
   }
 
   public startAudioTimer(hostId: string): void {
@@ -473,8 +474,6 @@ export class GameSession {
       this._songStarterPlayerId = this.findNextTurnPlayer(this._songStarterPlayerId);
       this._activePlayerId = this._songStarterPlayerId;
     }
-
-    this.startRoundTimerInternal();
   }
 
   // ============================================================================

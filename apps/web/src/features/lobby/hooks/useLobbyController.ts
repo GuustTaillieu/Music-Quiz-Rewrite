@@ -27,7 +27,12 @@ export function useLobbyController(lobbyId: string, username: string) {
     endGame,
   } = useQuizGame(wsUrl);
 
-  const isHost = gameState ? sessionData?.user.id === gameState.hostId : false;
+  const isHost = gameState
+    ? Boolean(
+        (sessionData?.user.id && sessionData.user.id === gameState.hostId) ||
+          gameState.players.find((p) => p.name.toLowerCase() === username.trim().toLowerCase())?.isHost
+      )
+    : false;
 
   const [selectedGameMode, setSelectedGameMode] = useState<'SPEED_MODE' | 'TURN_BASED'>('TURN_BASED');
   const [guessInput, setGuessInput] = useState('');

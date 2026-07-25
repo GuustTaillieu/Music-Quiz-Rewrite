@@ -58,8 +58,8 @@ export function PlayerBuzzerScreen({
 
   return (
     <div
-      className={`relative w-full h-[100dvh] flex flex-col justify-between overflow-hidden px-6 py-6 bg-[#05070f] text-white select-none transition-all duration-300 ${
-        isCritical ? 'shadow-[inset_0_0_100px_rgba(244,63,94,0.7)] border-4 border-rose-500/80 animate-pulse' : ''
+      className={`relative w-full h-[100dvh] flex flex-col justify-between overflow-hidden px-6 py-6 bg-[#05070f] text-white transition-all duration-300 ${
+        isCritical ? 'shadow-[inset_0_0_100px_rgba(244,63,94,0.7)] border-4 border-rose-500/80' : ''
       }`}
     >
       <div className="synth-grid absolute inset-0 pointer-events-none opacity-30" />
@@ -75,7 +75,7 @@ export function PlayerBuzzerScreen({
       {/* High-Stakes Videogame Countdown Overlay (Last 5 Seconds) */}
       {isCritical && secondsLeft !== null && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none select-none">
-          <div key={secondsLeft} className="animate-ping text-8xl sm:text-9xl font-black text-rose-500 drop-shadow-[0_0_35px_rgba(244,63,94,0.9)] pointer-events-none">
+          <div className="text-8xl sm:text-9xl font-black text-rose-500 drop-shadow-[0_0_35px_rgba(244,63,94,0.9)] pointer-events-none">
             {secondsLeft}
           </div>
         </div>
