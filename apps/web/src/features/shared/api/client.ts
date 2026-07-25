@@ -31,7 +31,10 @@ export async function apiFetch(
   options?: ApiFetchOptions,
 ): Promise<FetchResult<any>> {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3000';
+    const baseUrl =
+      typeof window !== 'undefined'
+        ? ''
+        : (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3000');
 
     const url = endpoint.startsWith('http')
       ? endpoint
