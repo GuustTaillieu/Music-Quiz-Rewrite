@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Sparkles } from 'lucide-react';
+import { Clock, Sparkles, XCircle } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Badge } from '#/features/shared/components/ui/badge';
@@ -46,6 +46,23 @@ export function PlayerBuzzerScreen({
   const isPlaying = gameState.phase === 'SPEED_ROUND' || gameState.phase === 'TURN_BASED';
   const isRevealed = gameState.roundState === 'REVEALED';
   const isBuzzerMode = gameState.gameMode === 'SPEED_MODE';
+
+  const currentPlayer = gameState.players.find(
+    (p) => p.name.toLowerCase() === username.trim().toLowerCase(),
+  );
+  const currentPlayerId = currentPlayer?.id;
+
+  const hasAlreadyGuessed = currentPlayerId
+    ? gameState.playersGuessed.includes(currentPlayerId)
+    : false;
+
+  const isMyTurn = isBuzzerMode
+    ? true
+    : currentPlayerId
+    ? gameState.activePlayerId === currentPlayerId
+    : false;
+
+  const activeTurnPlayer = gameState.players.find((p) => p.id === gameState.activePlayerId);
 
   // Custom countdown visual effects hook
   const { hasTimer, isTimeUp, isCritical, secondsLeft } = useCountdownVFX(localTimeLeft);
@@ -145,7 +162,25 @@ export function PlayerBuzzerScreen({
 
       {/* Action / Input Footer */}
       <div className="relative z-40 bg-black/60 border border-cyan-500/20 rounded-3xl p-5 backdrop-blur-lg shrink-0 w-full max-w-md mx-auto mb-2 space-y-3 pointer-events-auto">
-        {isBuzzerMode && !buzzerWinner ? (
+        {hasAlreadyGuessed && !isRevealed ? (
+          <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-center space-y-1.5 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-center gap-2 text-rose-400 font-black text-xs uppercase tracking-wider">
+              <XCircle size={18} /> Incorrect Answer
+            </div>
+            <p className="text-xs text-rose-200/80 font-medium leading-relaxed">
+              Your guess was incorrect. Please wait for the round to end...
+            </p>
+          </div>
+        ) : !isBuzzerMode && !isMyTurn && !isRevealed ? (
+          <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl text-center space-y-1.5">
+            <div className="flex items-center justify-center gap-2 text-cyan-400 font-bold text-xs uppercase tracking-wider">
+              <Clock size={16} className="animate-spin" /> Waiting for Turn
+            </div>
+            <p className="text-xs text-cyan-200/80 font-medium">
+              It is currently <strong className="text-white">{activeTurnPlayer?.name || 'another player'}</strong>'s turn to guess!
+            </p>
+          </div>
+        ) : isBuzzerMode && !buzzerWinner ? (
           <Button
             variant="default"
             size="lg"

@@ -280,9 +280,9 @@ export class GameSession {
         return true;
       } else {
         this._playersGuessed.push(playerId);
-        // If everyone has guessed wrong, transition to reveal
+        // If everyone has guessed wrong or passed, transition to reveal immediately
         const activeCount = this.getActivePlayersCount();
-        if (this._playersGuessed.length >= activeCount) {
+        if (this._playersGuessed.length + this._playersPassed.length >= activeCount) {
           this._roundState = 'REVEALED';
           this._lastRoundWinnerId = null;
         }
