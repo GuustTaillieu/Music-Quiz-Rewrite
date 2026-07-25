@@ -167,5 +167,6 @@ export function useDashboardController() {
     setNewDescription,
     createQuizMutation,
     terminateLobbyMutation,
+    refetchQuizzes: () => queryClient.invalidateQueries({ queryKey: ['quizzes'] }),
   };
 }

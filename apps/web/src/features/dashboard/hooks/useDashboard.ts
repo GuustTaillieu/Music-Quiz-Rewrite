@@ -66,7 +66,7 @@ export function useDashboard() {
   const { data: sessionData, isPending: isSessionLoading } = authClient.useSession();
   const isLoggedIn = !!sessionData?.user;
 
-  const { data: quizzes, isLoading: isQuizzesLoading } = useQuery(
+  const { data: quizzes, isLoading: isQuizzesLoading, refetch: refetchQuizzes } = useQuery(
     quizzesQueryOptions(isLoggedIn),
   );
 
@@ -75,12 +75,12 @@ export function useDashboard() {
   );
 
   const handleCodeChange = async (val: string) => {
-    const code = val.toUpperCase().slice(0, 4).replace(/[^A-Z]/g, '');
+    const code = val.toUpperCase().slice(0, 6);
     setLobbyCode(code);
     setIsCodeInvalid(false);
     setJoinError('');
 
-    if (code.length === 4) {
+    if (code.length === 6) {
       setIsCodeValidating(true);
       const { data, error } = await apiFetch<{ exists: boolean }>(`/game/lobby/${code}/exists`);
       setIsCodeValidating(false);
@@ -101,8 +101,8 @@ export function useDashboard() {
     const code = lobbyCode.trim().toUpperCase();
     const name = guestName.trim();
 
-    if (code.length !== 4) {
-      setJoinError('Lobby code must be exactly 4 letters.');
+    if (code.length !== 6) {
+      setJoinError('Lobby code must be exactly 6 characters.');
       return;
     }
     if (!name) {
@@ -195,5 +195,6 @@ export function useDashboard() {
     setNewDescription,
     createQuizMutation,
     terminateLobbyMutation,
+    refetchQuizzes,
   };
 }

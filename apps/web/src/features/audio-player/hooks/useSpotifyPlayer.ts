@@ -135,8 +135,19 @@ export function useSpotifyPlayer(enabled: boolean) {
     };
   }, [enabled]);
 
+  const activateElement = async () => {
+    if (player && typeof player.activateElement === 'function') {
+      try {
+        await player.activateElement();
+      } catch (e) {
+        console.warn('Spotify SDK activateElement error:', e);
+      }
+    }
+  };
+
   const playTrack = async (trackId: string, offsetMs = 0, retries = 2): Promise<void> => {
     if (!deviceId) return;
+    await activateElement();
     try {
       const { error } = await apiFetch('/spotify/play', {
         method: 'POST',
@@ -196,6 +207,7 @@ export function useSpotifyPlayer(enabled: boolean) {
 
   const resumeTrack = async (retries = 2): Promise<void> => {
     if (!player) return;
+    await activateElement();
     try {
       await player.resume();
     } catch (e) {
@@ -210,6 +222,7 @@ export function useSpotifyPlayer(enabled: boolean) {
 
   const togglePlay = async (retries = 2): Promise<void> => {
     if (!player) return;
+    await activateElement();
     try {
       await player.togglePlay();
     } catch (e) {
@@ -246,6 +259,8 @@ export function useSpotifyPlayer(enabled: boolean) {
     pauseTrack,
     seekTrack,
     resumeTrack,
+    togglePlay,
     setVolume,
+    activateElement,
   };
 }

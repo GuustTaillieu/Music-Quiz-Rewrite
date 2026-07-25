@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { QuizRepository } from '../../ports/quiz.repository.port';
 import { DATABASE_CONNECTION } from './database.constants';
 import type { DrizzleDb } from './database.constants';
-import { quizzes, quizSongs } from './schema';
+import { quizzes, quizSongs, user } from './schema';
 import { Quiz, QuizMeta } from '@spotify-music-quiz/shared/schema/game';
 
 @Injectable()
@@ -18,6 +18,12 @@ export class DrizzleQuizRepository implements QuizRepository {
       where: eq(quizzes.id, id),
       with: {
         songs: true,
+        creator: true,
+        forkedFromQuiz: {
+          with: {
+            creator: true,
+          },
+        },
       },
     });
 
@@ -31,8 +37,18 @@ export class DrizzleQuizRepository implements QuizRepository {
       description: result.description,
       creatorId: result.creatorId,
       createdAt: result.createdAt.toISOString(),
+      forkedFromQuizId: result.forkedFromQuizId,
+      forkedFrom: result.forkedFromQuiz
+        ? {
+            id: result.forkedFromQuiz.id,
+            title: result.forkedFromQuiz.title,
+            creatorName: result.forkedFromQuiz.creator?.name ?? 'Unknown',
+          }
+        : null,
       songs: result.songs.map((song) => ({
         id: song.id,
+        originalSongId: song.originalSongId,
+        isUserModified: song.isUserModified,
         spotifyTrackId: song.spotifyTrackId,
         questionType: song.questionType as
           | 'TRACK_NAME'
@@ -61,6 +77,11 @@ export class DrizzleQuizRepository implements QuizRepository {
             id: true,
           },
         },
+        forkedFromQuiz: {
+          with: {
+            creator: true,
+          },
+        },
       },
     });
     return results.map((result) => ({
@@ -70,6 +91,14 @@ export class DrizzleQuizRepository implements QuizRepository {
       creatorId: result.creatorId,
       createdAt: result.createdAt.toISOString(),
       songCount: result.songs?.length ?? 0,
+      forkedFromQuizId: result.forkedFromQuizId,
+      forkedFrom: result.forkedFromQuiz
+        ? {
+            id: result.forkedFromQuiz.id,
+            title: result.forkedFromQuiz.title,
+            creatorName: result.forkedFromQuiz.creator?.name ?? 'Unknown',
+          }
+        : null,
     }));
   }
 
@@ -82,11 +111,14 @@ export class DrizzleQuizRepository implements QuizRepository {
           title: quiz.title,
           description: quiz.description,
           creatorId: quiz.creatorId,
+          forkedFromQuizId: quiz.forkedFromQuizId ?? null,
         })
         .returning();
 
       const songsToInsert = quiz.songs.map((song) => ({
         quizId: insertedQuiz.id,
+        originalSongId: song.originalSongId ?? null,
+        isUserModified: song.isUserModified ?? false,
         spotifyTrackId: song.spotifyTrackId,
         trackTitle: song.track.title,
         trackArtist: song.track.artist,
@@ -114,8 +146,11 @@ export class DrizzleQuizRepository implements QuizRepository {
         description: insertedQuiz.description,
         creatorId: insertedQuiz.creatorId,
         createdAt: insertedQuiz.createdAt.toISOString(),
+        forkedFromQuizId: insertedQuiz.forkedFromQuizId,
         songs: insertedSongs.map((song) => ({
           id: song.id,
+          originalSongId: song.originalSongId,
+          isUserModified: song.isUserModified,
           spotifyTrackId: song.spotifyTrackId,
           questionType: song.questionType as
             | 'TRACK_NAME'
@@ -158,9 +193,11 @@ export class DrizzleQuizRepository implements QuizRepository {
       // Delete existing songs
       await tx.delete(quizSongs).where(eq(quizSongs.quizId, id));
 
-      // Insert new songs
+      // Insert updated songs
       const songsToInsert = quiz.songs.map((song) => ({
         quizId: id,
+        originalSongId: song.originalSongId ?? null,
+        isUserModified: song.isUserModified ?? true,
         spotifyTrackId: song.spotifyTrackId,
         trackTitle: song.track.title,
         trackArtist: song.track.artist,
@@ -188,8 +225,11 @@ export class DrizzleQuizRepository implements QuizRepository {
         description: updatedQuiz.description,
         creatorId: updatedQuiz.creatorId,
         createdAt: updatedQuiz.createdAt.toISOString(),
+        forkedFromQuizId: updatedQuiz.forkedFromQuizId,
         songs: insertedSongs.map((song) => ({
           id: song.id,
+          originalSongId: song.originalSongId,
+          isUserModified: song.isUserModified,
           spotifyTrackId: song.spotifyTrackId,
           questionType: song.questionType as
             | 'TRACK_NAME'

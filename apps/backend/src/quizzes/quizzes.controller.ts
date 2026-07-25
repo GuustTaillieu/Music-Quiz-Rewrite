@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   AuthGuard,
@@ -14,13 +15,16 @@ import {
   type UserSession,
 } from '@thallesp/nestjs-better-auth';
 import { QuizzesService } from './quizzes.service';
-import { Quiz, QuizMeta } from '@spotify-music-quiz/shared/schema/game';
+import { Quiz, QuizMeta, SyncResult, QuizTitleSchema, QuizDescriptionSchema } from '@spotify-music-quiz/shared/schema/game';
 import { randomUUID } from 'crypto';
 
 export class CreateQuizDto {
   title!: string;
   description?: string;
   songs!: Array<{
+    id?: string;
+    originalSongId?: string | null;
+    isUserModified?: boolean;
     spotifyTrackId: string;
     track: {
       id: string;
@@ -57,9 +61,20 @@ export class QuizzesController {
     @Body() body: CreateQuizDto,
     @Session() session: UserSession,
   ): Promise<Quiz> {
+    const titleResult = QuizTitleSchema.safeParse(body.title);
+    if (!titleResult.success) {
+      throw new BadRequestException(titleResult.error.issues[0]?.message || titleResult.error.message);
+    }
+    const descriptionResult = QuizDescriptionSchema.safeParse(body.description);
+    if (!descriptionResult.success) {
+      throw new BadRequestException(descriptionResult.error.issues[0]?.message || descriptionResult.error.message);
+    }
+
     const quizId = randomUUID();
-    const formattedSongs = body.songs.map((song) => ({
-      id: randomUUID(),
+    const formattedSongs = (body.songs || []).map((song) => ({
+      id: song.id || randomUUID(),
+      originalSongId: song.originalSongId || null,
+      isUserModified: song.isUserModified || false,
       spotifyTrackId: song.spotifyTrackId,
       questionType: song.questionType,
       start_offset_ms: song.start_offset_ms,
@@ -76,11 +91,26 @@ export class QuizzesController {
     }));
     return this.quizzesService.create({
       id: quizId,
-      title: body.title,
-      description: body.description ?? null,
+      title: titleResult.data,
+      description: descriptionResult.data ?? null,
       creatorId: session.user.id,
       songs: formattedSongs,
     });
+  }
+
+  @Post(':id/fork')
+  public async fork(
+    @Param('id') id: string,
+    @Session() session: UserSession,
+  ): Promise<Quiz> {
+    return this.quizzesService.forkQuiz(id, session.user.id);
+  }
+
+  @Post(':id/sync')
+  public async sync(
+    @Param('id') id: string,
+  ): Promise<SyncResult> {
+    return this.quizzesService.syncQuizWithParent(id);
   }
 
   @Put(':id')
@@ -88,8 +118,19 @@ export class QuizzesController {
     @Param('id') id: string,
     @Body() body: CreateQuizDto,
   ): Promise<Quiz> {
-    const formattedSongs = body.songs.map((song) => ({
-      id: randomUUID(),
+    const titleResult = QuizTitleSchema.safeParse(body.title);
+    if (!titleResult.success) {
+      throw new BadRequestException(titleResult.error.issues[0]?.message || titleResult.error.message);
+    }
+    const descriptionResult = QuizDescriptionSchema.safeParse(body.description);
+    if (!descriptionResult.success) {
+      throw new BadRequestException(descriptionResult.error.issues[0]?.message || descriptionResult.error.message);
+    }
+
+    const formattedSongs = (body.songs || []).map((song) => ({
+      id: song.id || randomUUID(),
+      originalSongId: song.originalSongId || null,
+      isUserModified: song.isUserModified ?? true,
       spotifyTrackId: song.spotifyTrackId,
       questionType: song.questionType,
       start_offset_ms: song.start_offset_ms,
@@ -105,8 +146,8 @@ export class QuizzesController {
       },
     }));
     return this.quizzesService.update(id, {
-      title: body.title,
-      description: body.description ?? null,
+      title: titleResult.data,
+      description: descriptionResult.data ?? null,
       songs: formattedSongs,
     });
   }

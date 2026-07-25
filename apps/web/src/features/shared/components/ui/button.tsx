@@ -18,6 +18,8 @@ const buttonVariants = cva(
           'bg-[#ff007f]/20 hover:bg-[#ff007f]/30 text-[#ff007f] border border-[#ff007f]/40 shadow-[0_0_10px_rgba(255,0,127,0.2)]',
         emerald:
           'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black hover:shadow-[0_0_20px_rgba(52,211,153,0.4)] border border-emerald-400/20',
+        emerald_inverted:
+          'border-1 border-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400',
         amber:
           'bg-amber-500 hover:bg-amber-600 text-black hover:shadow-[0_0_15px_rgba(245,158,11,0.3)]',
         outline:

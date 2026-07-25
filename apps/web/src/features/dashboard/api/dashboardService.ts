@@ -7,6 +7,12 @@ export interface QuizMeta {
   description?: string | null;
   createdAt?: string;
   songCount?: number;
+  forkedFromQuizId?: string | null;
+  forkedFrom?: {
+    id: string;
+    title: string;
+    creatorName: string;
+  } | null;
 }
 
 export interface ActiveSession {
@@ -20,6 +26,12 @@ const clientQuizMetaSchema = z.object({
   description: z.string().nullable().optional(),
   createdAt: z.string().optional(),
   songCount: z.number().optional(),
+  forkedFromQuizId: z.string().nullable().optional(),
+  forkedFrom: z.object({
+    id: z.string(),
+    title: z.string(),
+    creatorName: z.string(),
+  }).nullable().optional(),
 });
 
 const createLobbyResponseSchema = z.object({
@@ -70,6 +82,29 @@ export const dashboardService = {
 
   terminateLobby: async (lobbyId: string): Promise<void> => {
     const { error } = await apiFetch(`/game/lobby/${lobbyId}`, {
+      method: 'DELETE',
+    });
+    if (error) throw error;
+  },
+
+  forkQuiz: async (quizId: string): Promise<any> => {
+    const { data, error } = await apiFetch<any>(`/quizzes/${quizId}/fork`, {
+      method: 'POST',
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  syncQuiz: async (quizId: string): Promise<{ addedCount: number; updatedCount: number; preservedCount: number }> => {
+    const { data, error } = await apiFetch<{ addedCount: number; updatedCount: number; preservedCount: number }>(`/quizzes/${quizId}/sync`, {
+      method: 'POST',
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  deleteQuiz: async (quizId: string): Promise<void> => {
+    const { error } = await apiFetch(`/quizzes/${quizId}`, {
       method: 'DELETE',
     });
     if (error) throw error;

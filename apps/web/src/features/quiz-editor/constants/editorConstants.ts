@@ -7,7 +7,7 @@ export const EDITOR_CONSTANTS = Object.freeze({
   SAMPLE_ADELE_GAP: "Never mind, I'll find [someone] like [you]",
   ERRORS: {
     PREVIEW_UNAVAILABLE: 'Preview not available for this track.',
-    SPOTIFY_SDK_NOT_READY: "Spotify Web Player is not ready. Please make sure your Spotify app is open and playing to activate the device 'Spotify Music Quiz Board'.",
+    SPOTIFY_SDK_NOT_READY: 'Spotify player is initializing... Please try again in a moment.',
     NO_LYRICS_FOUND: 'No lyrics found for this track.',
     MISSING_METADATA: 'Missing artist or track title metadata.',
   },

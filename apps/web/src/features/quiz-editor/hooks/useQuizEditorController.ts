@@ -36,7 +36,7 @@ export function useQuizEditorController(quizId: string) {
   const parentRef = useRef<HTMLDivElement | null>(null);
 
   // Load Quiz if editing
-  const { data: loadedQuiz, isLoading: isQuizLoading } = useQuery(
+  const { data: loadedQuiz, isLoading: isQuizLoading, refetch: refetchQuiz } = useQuery(
     editorQueries.quiz(quizId, isLoggedIn),
   );
 
@@ -198,6 +198,7 @@ export function useQuizEditorController(quizId: string) {
     stopPreview,
     selectedSong,
     loadedQuiz,
+    refetchQuiz,
     isPending,
     startTransition,
     showSavedSuccess,

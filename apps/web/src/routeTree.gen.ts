@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LobbyLobbyIdRouteImport } from './routes/lobby.$lobbyId'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioQuizIdRouteImport } from './routes/studio.$quizId'
+import { Route as QuizShareQuizIdRouteImport } from './routes/quiz.share.$quizId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const StudioQuizIdRoute = StudioQuizIdRouteImport.update({
   path: '/studio/$quizId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuizShareQuizIdRoute = QuizShareQuizIdRouteImport.update({
+  id: '/quiz/share/$quizId',
+  path: '/quiz/share/$quizId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
   '/studio/$quizId': typeof StudioQuizIdRoute
   '/studio/': typeof StudioIndexRoute
+  '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
   '/studio/$quizId': typeof StudioQuizIdRoute
   '/studio': typeof StudioIndexRoute
+  '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,30 @@ export interface FileRoutesById {
   '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
   '/studio/$quizId': typeof StudioQuizIdRoute
   '/studio/': typeof StudioIndexRoute
+  '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/lobby/$lobbyId' | '/studio/$quizId' | '/studio/'
+  fullPaths:
+    | '/'
+    | '/lobby/$lobbyId'
+    | '/studio/$quizId'
+    | '/studio/'
+    | '/quiz/share/$quizId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/lobby/$lobbyId' | '/studio/$quizId' | '/studio'
-  id: '__root__' | '/' | '/lobby/$lobbyId' | '/studio/$quizId' | '/studio/'
+  to:
+    | '/'
+    | '/lobby/$lobbyId'
+    | '/studio/$quizId'
+    | '/studio'
+    | '/quiz/share/$quizId'
+  id:
+    | '__root__'
+    | '/'
+    | '/lobby/$lobbyId'
+    | '/studio/$quizId'
+    | '/studio/'
+    | '/quiz/share/$quizId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +92,7 @@ export interface RootRouteChildren {
   LobbyLobbyIdRoute: typeof LobbyLobbyIdRoute
   StudioQuizIdRoute: typeof StudioQuizIdRoute
   StudioIndexRoute: typeof StudioIndexRoute
+  QuizShareQuizIdRoute: typeof QuizShareQuizIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioQuizIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quiz/share/$quizId': {
+      id: '/quiz/share/$quizId'
+      path: '/quiz/share/$quizId'
+      fullPath: '/quiz/share/$quizId'
+      preLoaderRoute: typeof QuizShareQuizIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +140,7 @@ const rootRouteChildren: RootRouteChildren = {
   LobbyLobbyIdRoute: LobbyLobbyIdRoute,
   StudioQuizIdRoute: StudioQuizIdRoute,
   StudioIndexRoute: StudioIndexRoute,
+  QuizShareQuizIdRoute: QuizShareQuizIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

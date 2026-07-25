@@ -38,7 +38,7 @@ export class SpotifyService {
     deviceId: string,
     trackId: string,
     positionMs = 0,
-    retries = 2,
+    retries = 3,
   ): Promise<void> {
     try {
       const res = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
@@ -55,14 +55,37 @@ export class SpotifyService {
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        const errMsg = errJson?.error?.message || '';
+        const errMsg = errJson?.error?.message || errJson?.error?.reason || '';
 
         if (errMsg.includes('Restriction violated')) {
           return;
         }
 
+        // If device is not active or not found yet on Spotify's servers, transfer playback
+        if (
+          res.status === 404 ||
+          errMsg.includes('Device not found') ||
+          errMsg.includes('NO_ACTIVE_DEVICE')
+        ) {
+          try {
+            await fetch('https://api.spotify.com/v1/me/player', {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                device_ids: [deviceId],
+                play: false,
+              }),
+            });
+          } catch (tErr) {
+            console.warn('Failed to transfer playback to device:', tErr);
+          }
+        }
+
         if (retries > 0) {
-          await new Promise((r) => setTimeout(r, 800));
+          await new Promise((r) => setTimeout(r, 1000));
           return this.playTrack(token, deviceId, trackId, positionMs, retries - 1);
         } else {
           throw new Error(errMsg || `Spotify play failed with status ${res.status}`);
@@ -70,7 +93,7 @@ export class SpotifyService {
       }
     } catch (e) {
       if (retries > 0) {
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 1000));
         return this.playTrack(token, deviceId, trackId, positionMs, retries - 1);
       }
       throw e;

@@ -45,6 +45,11 @@ export function CreateQuizModal({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
+          {title.length > 0 && title.trim().length < 2 && (
+            <p className="text-[10px] text-rose-400 font-bold mt-1">
+              Title must be at least 2 characters long.
+            </p>
+          )}
         </div>
 
         <div>
@@ -71,7 +76,7 @@ export function CreateQuizModal({
           <Button
             type="submit"
             variant="spotify"
-            disabled={isPending || !title.trim()}
+            disabled={isPending || title.trim().length < 2}
             className="flex-1 py-3"
           >
             {isPending ? <Loader2 size={14} className="animate-spin" /> : 'Create Quiz'}

@@ -10,7 +10,22 @@ interface TooltipTriggerProps extends React.ComponentPropsWithoutRef<typeof Tool
 }
 
 const TooltipTrigger = React.forwardRef<HTMLButtonElement, TooltipTriggerProps>(
-  ({ asChild, ...props }, ref) => <TooltipPrimitive.Trigger ref={ref} {...props} />,
+  ({ asChild, children, ...props }, ref) => {
+    if (asChild && React.isValidElement(children)) {
+      return (
+        <TooltipPrimitive.Trigger
+          ref={ref}
+          {...props}
+          render={(triggerProps) => React.cloneElement(children as React.ReactElement, triggerProps)}
+        />
+      );
+    }
+    return (
+      <TooltipPrimitive.Trigger ref={ref} {...props}>
+        {children}
+      </TooltipPrimitive.Trigger>
+    );
+  },
 );
 TooltipTrigger.displayName = 'TooltipTrigger';
 
@@ -22,11 +37,11 @@ interface TooltipContentProps
 const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentProps>(
   ({ className, children, sideOffset = 4, ...props }, ref) => (
     <TooltipPrimitive.Portal>
-      <TooltipPrimitive.Positioner sideOffset={sideOffset}>
+      <TooltipPrimitive.Positioner sideOffset={sideOffset} className="z-[99999]">
         <TooltipPrimitive.Popup
           ref={ref}
           className={cn(
-            'z-100 overflow-hidden rounded-xl border border-cyan-500/20 bg-black/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#00f0ff] shadow-xl backdrop-blur-md transition-all duration-150 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0',
+            'z-[99999] overflow-hidden rounded-xl border border-cyan-500/20 bg-black/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#00f0ff] shadow-xl backdrop-blur-md transition-all duration-150 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0',
             className,
           )}
           {...props}

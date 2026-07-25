@@ -56,6 +56,7 @@ function DashboardRouteComponent() {
       setNewDescription={dashboard.setNewDescription}
       createQuizMutation={dashboard.createQuizMutation}
       handleCreateLobby={dashboard.handleCreateLobby}
+      refetchQuizzes={dashboard.refetchQuizzes}
     />
   );
 }

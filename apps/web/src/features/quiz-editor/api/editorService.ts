@@ -32,6 +32,9 @@ export const editorService = {
         title: payload.title,
         description: payload.description,
         songs: payload.songs.map((s) => ({
+          id: s.id,
+          originalSongId: s.originalSongId,
+          isUserModified: true, // Mark song as customized by user when saved in studio
           spotifyTrackId: s.spotifyTrackId,
           track: s.track,
           questionType: s.questionType,
@@ -40,6 +43,14 @@ export const editorService = {
           lyricsGap: s.lyricsGap,
         })),
       }),
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  syncQuiz: async (quizId: string): Promise<{ addedCount: number; updatedCount: number; preservedCount: number }> => {
+    const { data, error } = await apiFetch<{ addedCount: number; updatedCount: number; preservedCount: number }>(`/quizzes/${quizId}/sync`, {
+      method: 'POST',
     });
     if (error) throw error;
     return data;

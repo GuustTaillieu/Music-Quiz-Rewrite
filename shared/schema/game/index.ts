@@ -19,8 +19,18 @@ export type SpotifyTrack = z.infer<typeof SpotifyTrackSchema>;
 export const QuestionTypeEnum = z.enum(['TRACK_NAME', 'ARTIST_NAME', 'FILL_IN_THE_GAP']);
 export type QuestionType = z.infer<typeof QuestionTypeEnum>;
 
+export const ForkedFromInfoSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  creatorName: z.string(),
+});
+
+export type ForkedFromInfo = z.infer<typeof ForkedFromInfoSchema>;
+
 export const QuizSongSchema = z.object({
   id: z.string().uuid().optional(),
+  originalSongId: z.string().uuid().nullable().optional(),
+  isUserModified: z.boolean().optional(),
   spotifyTrackId: z.string(),
   track: SpotifyTrackSchema,
   questionType: QuestionTypeEnum,
@@ -31,16 +41,39 @@ export const QuizSongSchema = z.object({
 
 export type QuizSong = z.infer<typeof QuizSongSchema>;
 
+export const QuizTitleSchema = z
+  .string()
+  .trim()
+  .min(2, 'Title must be at least 2 characters long')
+  .max(100, 'Title cannot exceed 100 characters');
+
+export const QuizDescriptionSchema = z
+  .string()
+  .trim()
+  .max(500, 'Description cannot exceed 500 characters')
+  .nullable()
+  .optional();
+
 export const QuizMetaSchema = z.object({
   id: z.string().uuid(),
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().nullable().optional(),
+  title: QuizTitleSchema,
+  description: QuizDescriptionSchema,
   creatorId: z.string(),
-  createdAt: z.string().datetime(),
+  createdAt: z.string(),
   songCount: z.number().int().nonnegative().optional(),
+  forkedFromQuizId: z.string().uuid().nullable().optional(),
+  forkedFrom: ForkedFromInfoSchema.nullable().optional(),
 });
 
 export type QuizMeta = z.infer<typeof QuizMetaSchema>;
+
+export const SyncResultSchema = z.object({
+  addedCount: z.number().int().nonnegative(),
+  updatedCount: z.number().int().nonnegative(),
+  preservedCount: z.number().int().nonnegative(),
+});
+
+export type SyncResult = z.infer<typeof SyncResultSchema>;
 
 export const QuizSchema = QuizMetaSchema.extend({
   songs: z.array(QuizSongSchema),

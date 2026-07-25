@@ -61,6 +61,7 @@ export const quizzes = pgTable('quizzes', {
   title: text('title').notNull(),
   description: text('description'),
   creatorId: text('creator_id').notNull(), // Guest creator or Auth creator
+  forkedFromQuizId: uuid('forked_from_quiz_id').references((): any => quizzes.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -70,6 +71,8 @@ export const quizSongs = pgTable('quiz_songs', {
   quizId: uuid('quiz_id')
     .notNull()
     .references(() => quizzes.id, { onDelete: 'cascade' }),
+  originalSongId: uuid('original_song_id'),
+  isUserModified: boolean('is_user_modified').default(false).notNull(),
   spotifyTrackId: text('spotify_track_id').notNull(),
   trackTitle: text('track_title').notNull(),
   trackArtist: text('track_artist').notNull(),
@@ -83,8 +86,17 @@ export const quizSongs = pgTable('quiz_songs', {
 });
 
 // Relations
-export const quizzesRelations = relations(quizzes, ({ many }) => ({
+export const quizzesRelations = relations(quizzes, ({ one, many }) => ({
   songs: many(quizSongs),
+  creator: one(user, {
+    fields: [quizzes.creatorId],
+    references: [user.id],
+  }),
+  forkedFromQuiz: one(quizzes, {
+    fields: [quizzes.forkedFromQuizId],
+    references: [quizzes.id],
+    relationName: 'quizForks',
+  }),
 }));
 
 export const quizSongsRelations = relations(quizSongs, ({ one }) => ({
