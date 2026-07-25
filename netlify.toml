@@ -5,3 +5,9 @@
   command = "pnpm --filter @spotify-music-quiz/web web:dev"
   targetPort = 3000
   port = 8888
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://music-quiz-backend-acib.onrender.com/api/:splat"
+  status = 200
+  force = true
