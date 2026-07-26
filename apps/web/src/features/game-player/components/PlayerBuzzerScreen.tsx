@@ -3,8 +3,8 @@ import { Clock, XCircle } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Badge } from '#/features/shared/components/ui/badge';
-import { CavaVisualizer } from '#/features/lobby/components/CavaVisualizer';
-import { parseGapBlocks } from '#/features/lobby/utils/lobbyUtils';
+import { CavaVisualizer } from '#/features/game-host';
+import { parseGapBlocks } from '#/features/shared/utils/lobbyUtils';
 import { PlayerHeaderBar } from './PlayerHeaderBar';
 import { PlayerLeaveButton } from './PlayerLeaveButton';
 import { RoundSummaryOverlay } from './RoundSummaryOverlay';
@@ -130,7 +130,7 @@ export function PlayerBuzzerScreen({
         )}
       </div>
 
-      {/* Integrated Progress Bar & Seconds Readout (Positioned Above Input Footer) */}
+      {/* Integrated Progress Bar & Seconds Readout */}
       <div className="z-10 w-full max-w-md mx-auto space-y-1.5 mb-2">
         {hasTimer && (
           <div className="flex items-center justify-between text-[11px] font-mono font-black tracking-wider px-1">

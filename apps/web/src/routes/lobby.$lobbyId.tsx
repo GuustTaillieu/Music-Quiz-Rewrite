@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
-import { useLobbyController } from '#/features/lobby/hooks/useLobbyController';
-import { HostLobbyView } from '#/features/lobby/components/HostLobbyView';
-import { PlayerWaitingRoomView } from '#/features/lobby/components/PlayerWaitingRoomView';
-import { HostGameView } from '#/features/lobby/components/HostGameView';
-import { PlayerBuzzerScreen } from '#/features/game-player/components/PlayerBuzzerScreen';
-import { GameOverSummary } from '#/features/game-player/components/GameOverSummary';
+import { HostLobbyView, PlayerWaitingRoomView } from '#/features/game-lobby';
+import { HostGameView, useLobbyAudio, useLobbyTimer } from '#/features/game-host';
+import { PlayerBuzzerScreen, GameOverSummary, useQuizGame } from '#/features/game-player';
+import { useAuth } from '#/features/auth';
+import { parseGapBlocks } from '#/features/shared/utils/lobbyUtils';
 import { Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const lobbySearchSchema = z.object({
   username: z.string(),
@@ -20,10 +20,87 @@ export const Route = createFileRoute('/lobby/$lobbyId')({
 function LobbyRoomWrapper() {
   const { lobbyId } = Route.useParams();
   const { username } = Route.useSearch();
-  const lobby = useLobbyController(lobbyId, username);
+  const { user } = useAuth();
+  const wsUrl = import.meta.env.VITE_WS_URL ?? 'http://localhost:3001';
 
+  const {
+    isConnected,
+    gameState,
+    joinLobby,
+    startGame,
+    startAudioTimer,
+    submitGuess,
+    nextSong,
+    configureLobby,
+    forceReveal,
+    endGame,
+  } = useQuizGame(wsUrl);
 
-  if (!lobby.gameState) {
+  const isHost = gameState
+    ? Boolean(
+      (user?.id && user.id === gameState.hostId) ||
+      gameState.players.find((p) => p.name.toLowerCase() === username.trim().toLowerCase())?.isHost
+    )
+    : false;
+
+  const [selectedGameMode, setSelectedGameMode] = useState<'SPEED_MODE' | 'TURN_BASED'>('TURN_BASED');
+  const [guessInput, setGuessInput] = useState('');
+  const [gapInputs, setGapInputs] = useState<Record<number, string>>({});
+  const [isSpeedRoundModalOpen, setIsSpeedRoundModalOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const audio = useLobbyAudio(gameState, isHost, startAudioTimer);
+  const timer = useLobbyTimer(gameState, forceReveal, isHost);
+
+  useEffect(() => {
+    if (isConnected) {
+      joinLobby(lobbyId, username, user?.id);
+    }
+  }, [isConnected, lobbyId, username, joinLobby, user?.id]);
+
+  useEffect(() => {
+    if (gameState?.gameMode) {
+      setSelectedGameMode(gameState.gameMode);
+    }
+  }, [gameState?.gameMode]);
+
+  useEffect(() => {
+    setGuessInput('');
+    setGapInputs({});
+  }, [gameState?.currentSongIndex]);
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(lobbyId);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const handleLeave = () => {
+    endGame();
+    window.location.href = '/';
+  };
+
+  const handleGuessSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!guessInput.trim()) return;
+    submitGuess(guessInput.trim());
+    setGuessInput('');
+  };
+
+  const handleGapSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const activeSong = gameState?.activeSong;
+    const gapBlocks = parseGapBlocks(activeSong?.lyricsGap);
+    const answers = gapBlocks.map((block) => (gapInputs[block.id] || '').trim());
+    submitGuess(answers.join(' '));
+  };
+
+  const handleSelectGameMode = (mode: 'SPEED_MODE' | 'TURN_BASED') => {
+    setSelectedGameMode(mode);
+    configureLobby(mode, gameState?.guessingTimeLimit ?? 30);
+  };
+
+  if (!gameState) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#05070f] text-cyan-400 font-bold gap-2">
         <Loader2 className="animate-spin" size={24} />
@@ -32,30 +109,30 @@ function LobbyRoomWrapper() {
     );
   }
 
-  if (lobby.gameState.phase === 'COMPLETED') {
+  if (gameState.phase === 'COMPLETED') {
     return (
       <GameOverSummary
-        players={lobby.gameState.players}
-        isHost={lobby.isHost}
-        onRestart={lobby.restartGame}
-        onLeave={lobby.handleLeave}
+        players={gameState.players}
+        isHost={isHost}
+        onRestart={startGame}
+        onLeave={handleLeave}
       />
     );
   }
 
-  if (lobby.gameState.phase === 'LOBBY') {
-    if (lobby.isHost) {
+  if (gameState.phase === 'LOBBY') {
+    if (isHost) {
       return (
         <HostLobbyView
           lobbyId={lobbyId}
-          players={lobby.gameState.players}
-          songsCount={lobby.gameState.totalSongs}
-          selectedMode={lobby.selectedGameMode}
-          onSelectMode={lobby.setSelectedGameMode}
-          onStartGame={lobby.startGame}
-          onLeave={lobby.handleLeave}
-          isCopied={lobby.isCopied}
-          handleCopyCode={lobby.handleCopyCode}
+          players={gameState.players}
+          songsCount={gameState.totalSongs}
+          selectedMode={selectedGameMode}
+          onSelectMode={handleSelectGameMode}
+          onStartGame={startGame}
+          onLeave={handleLeave}
+          isCopied={isCopied}
+          handleCopyCode={handleCopyCode}
         />
       );
     }
@@ -64,34 +141,34 @@ function LobbyRoomWrapper() {
       <PlayerWaitingRoomView
         lobbyId={lobbyId}
         username={username}
-        players={lobby.gameState.players}
-        onLeave={lobby.handleLeave}
+        players={gameState.players}
+        onLeave={handleLeave}
       />
     );
   }
 
-  if (lobby.isHost) {
+  if (isHost) {
     return (
       <HostGameView
         lobbyId={lobbyId}
-        gameState={lobby.gameState}
-        selectedGameMode={lobby.selectedGameMode}
-        isSpeedRoundModalOpen={lobby.isSpeedRoundModalOpen}
-        setIsSpeedRoundModalOpen={lobby.setIsSpeedRoundModalOpen}
-        onSelectGameMode={lobby.setSelectedGameMode}
-        isPlaying={lobby.audio.isPlaying}
-        onTogglePlayPause={lobby.audio.handleTogglePlayPause}
-        onRestartTimer={lobby.audio.restartSongAndTimer}
-        onForceReveal={lobby.forceRevealAnswer}
-        onNextSong={lobby.nextSong}
-        onSeek={lobby.audio.seekTrack}
-        currentPositionMs={lobby.audio.currentPositionMs}
-        durationMs={lobby.audio.durationMs}
-        isCopied={lobby.isCopied}
-        handleCopyCode={lobby.handleCopyCode}
-        onLeave={lobby.handleLeave}
-        localTimeLeft={lobby.timer.localTimeLeft}
-        maxTimeLimit={lobby.timer.maxTimeLimit}
+        gameState={gameState}
+        selectedGameMode={selectedGameMode}
+        isSpeedRoundModalOpen={isSpeedRoundModalOpen}
+        setIsSpeedRoundModalOpen={setIsSpeedRoundModalOpen}
+        onSelectGameMode={handleSelectGameMode}
+        isPlaying={audio.isPlaying}
+        onTogglePlayPause={audio.handleTogglePlayPause}
+        onRestartTimer={audio.restartSongAndTimer}
+        onForceReveal={forceReveal}
+        onNextSong={nextSong}
+        onSeek={audio.seekTrack}
+        currentPositionMs={audio.currentPositionMs}
+        durationMs={audio.durationMs}
+        isCopied={isCopied}
+        handleCopyCode={handleCopyCode}
+        onLeave={handleLeave}
+        localTimeLeft={timer.localTimeLeft}
+        maxTimeLimit={timer.maxTimeLimit}
       />
     );
   }
@@ -99,17 +176,17 @@ function LobbyRoomWrapper() {
   return (
     <PlayerBuzzerScreen
       username={username}
-      gameState={lobby.gameState}
-      guessInput={lobby.guessInput}
-      setGuessInput={lobby.setGuessInput}
-      gapInputs={lobby.gapInputs}
-      setGapInputs={lobby.setGapInputs}
-      localTimeLeft={lobby.timer.localTimeLeft}
-      maxTimeLimit={lobby.timer.maxTimeLimit}
+      gameState={gameState}
+      guessInput={guessInput}
+      setGuessInput={setGuessInput}
+      gapInputs={gapInputs}
+      setGapInputs={setGapInputs}
+      localTimeLeft={timer.localTimeLeft}
+      maxTimeLimit={timer.maxTimeLimit}
       onBuzzerClick={() => { }}
-      onGuessSubmit={lobby.handleGuessSubmit}
-      onGapSubmit={lobby.handleGapSubmit}
-      onLeave={lobby.handleLeave}
+      onGuessSubmit={handleGuessSubmit}
+      onGapSubmit={handleGapSubmit}
+      onLeave={handleLeave}
     />
   );
 }

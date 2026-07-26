@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSpotifyPlayer } from './useSpotifyPlayer';
 import { useGlobalVolume } from './useGlobalVolume';
-import { EDITOR_CONSTANTS } from '#/features/quiz-editor/constants/editorConstants';
 import type { QuizSong } from '@spotify-music-quiz/shared/schema/game';
+
+const DEFAULT_START_OFFSET_MS = 0;
+const DEFAULT_END_OFFSET_MS = 30000;
+const PREVIEW_CHECK_INTERVAL_MS = 100;
 
 export function useAudioPreview(selectedSong: QuizSong | null) {
   const spotifyPlayer = useSpotifyPlayer(true);
@@ -10,13 +13,9 @@ export function useAudioPreview(selectedSong: QuizSong | null) {
   const [currentPlaybackMs, setCurrentPlaybackMs] = useState<number | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const playbackTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     spotifyPlayer.setVolume(globalVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = globalVolume;
-    }
   }, [globalVolume, spotifyPlayer.deviceId]);
 
   useEffect(() => {
@@ -26,10 +25,6 @@ export function useAudioPreview(selectedSong: QuizSong | null) {
   useEffect(() => {
     return () => {
       if (playbackTimerRef.current) clearInterval(playbackTimerRef.current);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
     };
   }, []);
 
@@ -39,10 +34,6 @@ export function useAudioPreview(selectedSong: QuizSong | null) {
       playbackTimerRef.current = null;
     }
     spotifyPlayer.pauseTrack();
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
     setIsPlayingPreview(false);
     setCurrentPlaybackMs(null);
   };
@@ -51,10 +42,9 @@ export function useAudioPreview(selectedSong: QuizSong | null) {
     if (!selectedSong) return;
     stopAudioPreview();
 
-    const startOffset = selectedSong.start_offset_ms || EDITOR_CONSTANTS.DEFAULT_START_OFFSET_MS;
-    const endOffset = selectedSong.end_offset_ms || EDITOR_CONSTANTS.DEFAULT_END_OFFSET_MS;
+    const startOffset = selectedSong.start_offset_ms || DEFAULT_START_OFFSET_MS;
+    const endOffset = selectedSong.end_offset_ms || DEFAULT_END_OFFSET_MS;
 
-    // Check if deviceId is ready or wait briefly (up to 1.5s)
     let activeDeviceId = spotifyPlayer.deviceId;
     if (!activeDeviceId) {
       for (let i = 0; i < 15; i++) {
@@ -71,45 +61,22 @@ export function useAudioPreview(selectedSong: QuizSong | null) {
       setIsPlayingPreview(true);
       setCurrentPlaybackMs(startOffset);
 
-      const checkInterval = EDITOR_CONSTANTS.PREVIEW_CHECK_INTERVAL_MS;
       let elapsed = 0;
       playbackTimerRef.current = setInterval(() => {
-        elapsed += checkInterval;
+        elapsed += PREVIEW_CHECK_INTERVAL_MS;
         const currentMs = startOffset + elapsed;
         setCurrentPlaybackMs(currentMs);
 
         if (currentMs >= endOffset) {
           stopAudioPreview();
         }
-      }, checkInterval);
-    } else if (selectedSong.track.previewUrl) {
-      // Fallback to previewUrl HTML5 audio if Web Playback SDK is not ready yet
-      audioRef.current = new Audio(selectedSong.track.previewUrl);
-      audioRef.current.volume = globalVolume;
-      audioRef.current.currentTime = startOffset / 1000;
-      audioRef.current.play().catch(console.error);
-
-      setIsPlayingPreview(true);
-      setCurrentPlaybackMs(startOffset);
-
-      const checkInterval = EDITOR_CONSTANTS.PREVIEW_CHECK_INTERVAL_MS;
-      let elapsed = 0;
-      playbackTimerRef.current = setInterval(() => {
-        elapsed += checkInterval;
-        const currentMs = startOffset + elapsed;
-        setCurrentPlaybackMs(currentMs);
-
-        if (currentMs >= endOffset) {
-          stopAudioPreview();
-        }
-      }, checkInterval);
+      }, PREVIEW_CHECK_INTERVAL_MS);
     } else {
-      alert(EDITOR_CONSTANTS.ERRORS.SPOTIFY_SDK_NOT_READY);
+      alert('Spotify Player is initializing... Please try again in a moment.');
     }
   };
 
   return {
-    spotifyPlayer,
     currentPlaybackMs,
     isPlayingPreview,
     playAudioPreview,

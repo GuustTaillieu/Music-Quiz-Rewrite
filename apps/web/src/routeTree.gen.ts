@@ -10,8 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as JoinRouteImport } from './routes/join'
 import { Route as LobbyLobbyIdRouteImport } from './routes/lobby.$lobbyId'
-import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioQuizIdRouteImport } from './routes/studio.$quizId'
 import { Route as QuizShareQuizIdRouteImport } from './routes/quiz.share.$quizId'
 
@@ -20,14 +20,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LobbyLobbyIdRoute = LobbyLobbyIdRouteImport.update({
   id: '/lobby/$lobbyId',
   path: '/lobby/$lobbyId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudioIndexRoute = StudioIndexRouteImport.update({
-  id: '/studio/',
-  path: '/studio/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudioQuizIdRoute = StudioQuizIdRouteImport.update({
@@ -43,55 +43,55 @@ const QuizShareQuizIdRoute = QuizShareQuizIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/join': typeof JoinRoute
   '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
   '/studio/$quizId': typeof StudioQuizIdRoute
-  '/studio/': typeof StudioIndexRoute
   '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/join': typeof JoinRoute
   '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
   '/studio/$quizId': typeof StudioQuizIdRoute
-  '/studio': typeof StudioIndexRoute
   '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/join': typeof JoinRoute
   '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
   '/studio/$quizId': typeof StudioQuizIdRoute
-  '/studio/': typeof StudioIndexRoute
   '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/join'
     | '/lobby/$lobbyId'
     | '/studio/$quizId'
-    | '/studio/'
     | '/quiz/share/$quizId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/join'
     | '/lobby/$lobbyId'
     | '/studio/$quizId'
-    | '/studio'
     | '/quiz/share/$quizId'
   id:
     | '__root__'
     | '/'
+    | '/join'
     | '/lobby/$lobbyId'
     | '/studio/$quizId'
-    | '/studio/'
     | '/quiz/share/$quizId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  JoinRoute: typeof JoinRoute
   LobbyLobbyIdRoute: typeof LobbyLobbyIdRoute
   StudioQuizIdRoute: typeof StudioQuizIdRoute
-  StudioIndexRoute: typeof StudioIndexRoute
   QuizShareQuizIdRoute: typeof QuizShareQuizIdRoute
 }
 
@@ -104,18 +104,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lobby/$lobbyId': {
       id: '/lobby/$lobbyId'
       path: '/lobby/$lobbyId'
       fullPath: '/lobby/$lobbyId'
       preLoaderRoute: typeof LobbyLobbyIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/studio/': {
-      id: '/studio/'
-      path: '/studio'
-      fullPath: '/studio/'
-      preLoaderRoute: typeof StudioIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/studio/$quizId': {
@@ -137,9 +137,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  JoinRoute: JoinRoute,
   LobbyLobbyIdRoute: LobbyLobbyIdRoute,
   StudioQuizIdRoute: StudioQuizIdRoute,
-  StudioIndexRoute: StudioIndexRoute,
   QuizShareQuizIdRoute: QuizShareQuizIdRoute,
 }
 export const routeTree = rootRouteImport
