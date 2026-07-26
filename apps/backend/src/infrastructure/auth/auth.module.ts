@@ -14,18 +14,28 @@ import * as schema from '../database/schema';
       imports: [DatabaseModule],
       inject: [DATABASE_CONNECTION],
       useFactory: (db: DrizzleDb) => {
+        const isDev = process.env.NODE_ENV !== 'production';
+        const frontendUrl = process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000';
+        const authBaseUrl = process.env.BETTER_AUTH_URL ?? `${frontendUrl}/api/auth`;
+
         const auth = betterAuth({
           database: drizzleAdapter(db, {
             provider: 'pg',
             schema: schema,
           }),
-          baseURL: process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000/api/auth',
-          errorPage: (process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000') + '/?error=premium_required',
+          baseURL: authBaseUrl,
+          errorPage: `${frontendUrl}/?error=premium_required`,
           trustedOrigins: [
-            process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000',
+            frontendUrl,
             'http://localhost:3000',
             'http://127.0.0.1:3000',
+            'http://127.0.0.1:3001',
+            'http://localhost:3001',
+            'https://*.netlify.app',
           ],
+          advanced: {
+            useSecureCookies: !isDev && authBaseUrl.startsWith('https://'),
+          },
           accountLinking: {
             enabled: true,
             trustedProviders: ['spotify'],
@@ -34,7 +44,7 @@ import * as schema from '../database/schema';
             spotify: {
               clientId: process.env.SPOTIFY_CLIENT_ID!,
               clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-              redirectURI: `${process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000'}/api/auth/callback/spotify`,
+              redirectURI: `${frontendUrl}/api/auth/callback/spotify`,
               scope: [
                 'streaming',
                 'user-read-email',
@@ -64,4 +74,4 @@ import * as schema from '../database/schema';
   ],
   exports: [NestBetterAuthModule],
 })
-export class AuthModule { }
+export class AuthModule {}

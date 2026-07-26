@@ -20,10 +20,10 @@ import { ShareQuizModal } from './ShareQuizModal';
 import { SyncSummaryModal } from './SyncSummaryModal';
 import { dashboardService, type QuizMeta, type ActiveSession } from '../api/dashboardService';
 import { Card } from '#/features/shared/components/ui/card';
+import { authClient } from '#/features/auth/api/auth-client';
 
 interface HostDashboardViewProps {
   sessionData: any;
-  handleSignOut: () => void;
   activeSessions?: ActiveSession[];
   terminateLobbyMutation: any;
   quizzes?: QuizMeta[];
@@ -44,7 +44,6 @@ interface HostDashboardViewProps {
 
 export function HostDashboardView({
   sessionData,
-  handleSignOut,
   activeSessions,
   terminateLobbyMutation,
   quizzes,
@@ -91,6 +90,12 @@ export function HostDashboardView({
     }
   };
 
+  const handleSignOut = async () => {
+    console.log("Signout called")
+    await authClient.signOut();
+    window.location.reload();
+  };
+
   return (
     <TooltipProvider>
       <div className="relative w-full min-h-screen pb-16 flex flex-col bg-[#05070f] text-white">
@@ -128,13 +133,14 @@ export function HostDashboardView({
                 </span>
               </div>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={handleSignOut}
-                    className="p-1.5 text-muted-foreground hover:text-rose-500 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                <TooltipTrigger asChild onClick={handleSignOut}>
+                  <Button
+                    variant="destructive_ghost"
+                    size="icon"
+                    className="text-muted-foreground"
                   >
                     <LogOut size={14} />
-                  </button>
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>Sign Out</TooltipContent>
               </Tooltip>

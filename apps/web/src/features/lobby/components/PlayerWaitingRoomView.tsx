@@ -3,7 +3,6 @@ import { Users, Copy, Check, Crown } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Card } from '#/features/shared/components/ui/card';
-import { Avatar, AvatarFallback } from '#/features/shared/components/ui/avatar';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '#/features/shared/components/ui/tooltip';
 import type { Player } from '@spotify-music-quiz/shared/schema/game';
 

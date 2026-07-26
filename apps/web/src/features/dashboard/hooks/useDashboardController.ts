@@ -131,10 +131,6 @@ export function useDashboardController() {
     },
   });
 
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    window.location.reload();
-  };
 
   return {
     lobbyCode,
@@ -153,7 +149,6 @@ export function useDashboardController() {
     handleJoinLobby,
     handleCreateLobby,
     handleSpotifyLogin,
-    handleSignOut,
     step,
     setStep,
     isCodeValidating,

@@ -40,7 +40,6 @@ function DashboardRouteComponent() {
   return (
     <HostDashboardView
       sessionData={dashboard.sessionData}
-      handleSignOut={dashboard.handleSignOut}
       activeSessions={dashboard.activeSessions}
       terminateLobbyMutation={dashboard.terminateLobbyMutation}
       quizzes={dashboard.quizzes}

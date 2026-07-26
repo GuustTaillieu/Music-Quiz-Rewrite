@@ -1,5 +1,4 @@
 import { Users, Crown } from 'lucide-react';
-import { Avatar, AvatarFallback } from '#/features/shared/components/ui/avatar';
 import type { Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface HostLeaderboardSidebarProps {
