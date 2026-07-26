@@ -61,11 +61,21 @@ export class GameSession {
   }
 
   public configure(mode: 'SPEED_MODE' | 'TURN_BASED', timeLimit: number): void {
-    if (this._phase !== 'LOBBY') {
-      throw new Error('Cannot change settings after game starts');
-    }
     this._gameMode = mode;
     this._guessingTimeLimit = timeLimit;
+
+    // Immediately adjust phase and turn state if game is currently in active gameplay
+    if (this._phase === 'SPEED_ROUND' || this._phase === 'TURN_BASED') {
+      if (mode === 'SPEED_MODE') {
+        this._phase = 'SPEED_ROUND';
+        this._activePlayerId = null;
+      } else {
+        this._phase = 'TURN_BASED';
+        if (!this._activePlayerId) {
+          this._activePlayerId = this.findNextTurnPlayer(null);
+        }
+      }
+    }
   }
 
   public get currentSongIndex(): number {
@@ -141,20 +151,13 @@ export class GameSession {
         player.isDisconnected = true;
       }
     } else {
-      // Mark as disconnected in gameplay phases
+      // Mark as disconnected in gameplay phases, allowing them to refresh and rejoin seamlessly
       const player = this._players.find((p) => p.id === id);
       if (player) {
         player.isDisconnected = true;
       }
 
-      // If active guessers drops below 2, end the game immediately
-      const activeCount = this.getActivePlayersCount();
-      if (activeCount < 2 && this._phase !== 'COMPLETED') {
-        this._phase = 'COMPLETED';
-        this._activePlayerId = null;
-        this._songStarterPlayerId = null;
-        this._roundState = 'REVEALED';
-      } else if (this._phase === 'TURN_BASED' && this._activePlayerId === id) {
+      if (this._phase === 'TURN_BASED' && this._activePlayerId === id) {
         // If the active player disconnected, we pass the turn
         this.passTurn(id);
       }

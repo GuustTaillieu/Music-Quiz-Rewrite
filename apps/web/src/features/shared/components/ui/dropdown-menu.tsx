@@ -16,7 +16,7 @@ const DropdownMenuTrigger = React.forwardRef<HTMLButtonElement, DropdownMenuTrig
         <MenuPrimitive.Trigger
           ref={ref}
           {...props}
-          render={(triggerProps) => React.cloneElement(children as React.ReactElement, triggerProps)}
+          render={children}
         />
       );
     }

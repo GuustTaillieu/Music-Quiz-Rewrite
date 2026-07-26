@@ -16,7 +16,7 @@ const TooltipTrigger = React.forwardRef<HTMLButtonElement, TooltipTriggerProps>(
         <TooltipPrimitive.Trigger
           ref={ref}
           {...props}
-          render={(triggerProps) => React.cloneElement(children as React.ReactElement, triggerProps)}
+          render={children}
         />
       );
     }

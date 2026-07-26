@@ -133,11 +133,12 @@ export function HostDashboardView({
                 </span>
               </div>
               <Tooltip>
-                <TooltipTrigger asChild onClick={handleSignOut}>
+                <TooltipTrigger asChild>
                   <Button
                     variant="destructive_ghost"
                     size="icon"
-                    className="text-muted-foreground"
+                    onClick={handleSignOut}
+                    className="text-muted-foreground cursor-pointer"
                   >
                     <LogOut size={14} />
                   </Button>

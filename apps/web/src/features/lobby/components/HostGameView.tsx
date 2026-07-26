@@ -17,8 +17,12 @@ interface HostGameViewProps {
   onSelectGameMode: (mode: 'SPEED_MODE' | 'TURN_BASED') => void;
   isPlaying: boolean;
   onTogglePlayPause: () => void;
+  onRestartTimer: () => void;
   onForceReveal: () => void;
   onNextSong: () => void;
+  onSeek?: (positionMs: number) => void;
+  currentPositionMs?: number;
+  durationMs?: number;
   isCopied?: boolean;
   handleCopyCode: () => void;
   onLeave: () => void;
@@ -36,8 +40,12 @@ export function HostGameView({
   onSelectGameMode,
   isPlaying,
   onTogglePlayPause,
+  onRestartTimer,
   onForceReveal,
   onNextSong,
+  onSeek,
+  currentPositionMs,
+  durationMs,
   isCopied,
   handleCopyCode,
   onLeave,
@@ -56,9 +64,10 @@ export function HostGameView({
         lobbyId={lobbyId}
         currentSongIndex={gameState.currentSongIndex ?? 0}
         totalSongs={gameState.totalSongs}
+        selectedMode={selectedGameMode}
+        onSelectMode={onSelectGameMode}
         isCopied={isCopied}
         handleCopyCode={handleCopyCode}
-        onOpenSpeedModal={() => setIsSpeedRoundModalOpen(true)}
         onLeave={onLeave}
       />
 
@@ -86,8 +95,12 @@ export function HostGameView({
           <HostAudioControls
             isPlaying={isPlaying}
             onTogglePlayPause={onTogglePlayPause}
+            onRestartTimer={onRestartTimer}
             onForceReveal={onForceReveal}
             onNextSong={onNextSong}
+            onSeek={onSeek}
+            currentPositionMs={currentPositionMs}
+            durationMs={durationMs}
             revealed={isRevealed}
             isLastSong={isLastSong}
           />

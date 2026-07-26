@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Sparkles, XCircle } from 'lucide-react';
+import { Clock, XCircle } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Badge } from '#/features/shared/components/ui/badge';
@@ -37,7 +37,6 @@ export function PlayerBuzzerScreen({
   setGapInputs,
   localTimeLeft,
   maxTimeLimit = 30,
-  onBuzzerClick,
   onGuessSubmit,
   onGapSubmit,
   onLeave,
@@ -45,7 +44,7 @@ export function PlayerBuzzerScreen({
   const activeSong = gameState.activeSong;
   const isPlaying = gameState.phase === 'SPEED_ROUND' || gameState.phase === 'TURN_BASED';
   const isRevealed = gameState.roundState === 'REVEALED';
-  const isBuzzerMode = gameState.gameMode === 'SPEED_MODE';
+  const isSpeedMode = gameState.gameMode === 'SPEED_MODE';
 
   const currentPlayer = gameState.players.find(
     (p) => p.name.toLowerCase() === username.trim().toLowerCase(),
@@ -56,7 +55,7 @@ export function PlayerBuzzerScreen({
     ? gameState.playersGuessed.includes(currentPlayerId)
     : false;
 
-  const isMyTurn = isBuzzerMode
+  const isMyTurn = isSpeedMode
     ? true
     : currentPlayerId
     ? gameState.activePlayerId === currentPlayerId
@@ -118,7 +117,7 @@ export function PlayerBuzzerScreen({
             {buzzerWinner && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl animate-bounce">
                 <span className="text-xs font-bold text-amber-400">
-                  ⚡ {buzzerWinner.name} buzzed in!
+                  ⚡ {buzzerWinner.name} guessed correctly!
                 </span>
               </div>
             )}
@@ -171,7 +170,7 @@ export function PlayerBuzzerScreen({
               Your guess was incorrect. Please wait for the round to end...
             </p>
           </div>
-        ) : !isBuzzerMode && !isMyTurn && !isRevealed ? (
+        ) : !isSpeedMode && !isMyTurn && !isRevealed ? (
           <div className="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl text-center space-y-1.5">
             <div className="flex items-center justify-center gap-2 text-cyan-400 font-bold text-xs uppercase tracking-wider">
               <Clock size={16} className="animate-spin" /> Waiting for Turn
@@ -180,16 +179,6 @@ export function PlayerBuzzerScreen({
               It is currently <strong className="text-white">{activeTurnPlayer?.name || 'another player'}</strong>'s turn to guess!
             </p>
           </div>
-        ) : isBuzzerMode && !buzzerWinner ? (
-          <Button
-            variant="default"
-            size="lg"
-            onClick={onBuzzerClick}
-            disabled={isDisabled}
-            className="w-full py-6 text-lg tracking-widest shadow-[0_0_30px_rgba(0,240,255,0.4)]"
-          >
-            <Sparkles size={20} /> BUZZ IN!
-          </Button>
         ) : activeSong?.questionType === 'FILL_IN_THE_GAP' ? (
           <form onSubmit={onGapSubmit} className="space-y-3">
             <div className="space-y-2 max-h-40 overflow-y-auto pr-1">

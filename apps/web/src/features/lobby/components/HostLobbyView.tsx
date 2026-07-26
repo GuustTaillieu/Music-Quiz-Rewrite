@@ -3,6 +3,7 @@ import { Users, Copy, Check, Crown, Play } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Card } from '#/features/shared/components/ui/card';
+import { GameModeToggleSwitch } from './GameModeToggleSwitch';
 import type { Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface HostLobbyViewProps {
@@ -23,13 +24,15 @@ export function HostLobbyView({
   quizTitle,
   players,
   songsCount,
+  selectedMode,
+  onSelectMode,
   onStartGame,
   onLeave,
   isCopied: propIsCopied,
   handleCopyCode: propHandleCopyCode,
 }: HostLobbyViewProps) {
   const [localIsCopied, setLocalIsCopied] = useState(false);
-  const canStart = songsCount > 0 && players.length >= 3
+  const canStart = songsCount > 0 && players.length >= 3;
 
   const isCopied = propIsCopied ?? localIsCopied;
   const onCopy = propHandleCopyCode ?? (() => {
@@ -38,38 +41,44 @@ export function HostLobbyView({
     setTimeout(() => setLocalIsCopied(false), 2000);
   });
 
+  const formattedLobbyId = lobbyId.length === 6 ? `${lobbyId.slice(0, 3)}-${lobbyId.slice(3)}` : lobbyId;
+
   return (
     <div className="relative w-full min-h-screen py-12 flex flex-col justify-center items-center overflow-hidden px-4 bg-[#05070f] text-white">
       <div className="synth-grid absolute inset-0 pointer-events-none" />
 
       <Card className="w-full max-w-2xl p-8 z-10 text-left">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-cyan-500/10 mb-8">
-          <div>
-            <span className="text-pink-400 font-bold uppercase tracking-wider text-xs block mb-1">
-              Multiplayer Lobby
-            </span>
+        <div className='flex flex-col gap-4 mb-6 pb-6 border-b border-cyan-500/10'>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <h1 className="text-3xl font-black text-white">
               {quizTitle || 'Waiting Room'}
             </h1>
-          </div>
 
-          <div className="flex items-center gap-2 bg-black/40 border border-cyan-500/20 px-4 py-2.5 rounded-2xl">
-            <span className="text-[10px] text-cyan-400 font-black uppercase tracking-wider">
-              Lobby ID:
-            </span>
-            <span className="font-black text-xl text-[#00f0ff] tracking-widest">{lobbyId}</span>
-            <button
-              onClick={onCopy}
-              className="p-1.5 text-cyan-400 hover:text-[#00f0ff] rounded-lg hover:bg-cyan-500/10 transition-colors cursor-pointer flex items-center gap-1"
-            >
-              {isCopied ? (
-                <Check size={16} className="text-emerald-400" />
-              ) : (
-                <Copy size={16} />
-              )}
-            </button>
+            <div className="flex items-center gap-2 bg-black/40 border border-cyan-500/20 px-4 py-2.5 rounded-2xl shadow-inner">
+              <span className="text-[10px] text-cyan-400 font-black uppercase tracking-wider">
+                Lobby Code:
+              </span>
+              <span className="font-black text-xl text-[#00f0ff] tracking-widest font-mono">{formattedLobbyId}</span>
+              <button
+                type="button"
+                onClick={onCopy}
+                className="p-1.5 text-cyan-400 hover:text-[#00f0ff] rounded-lg hover:bg-cyan-500/10 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                {isCopied ? (
+                  <Check size={16} className="text-emerald-400" />
+                ) : (
+                  <Copy size={16} />
+                )}
+              </button>
+            </div>
           </div>
+          <GameModeToggleSwitch
+            selectedMode={selectedMode}
+            onSelectMode={onSelectMode}
+          />
         </div>
+
+
 
         {/* Players List Grid */}
         <div className="mb-8">
@@ -80,9 +89,8 @@ export function HostLobbyView({
             {players.map((p) => (
               <div
                 key={p.id}
-                className={`flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${
-                  p.isDisconnected ? 'opacity-50' : ''
-                }`}
+                className={`flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${p.isDisconnected ? 'opacity-50' : ''
+                  }`}
               >
                 <span className="font-bold text-white text-xs flex items-center gap-2">
                   {p.name}
@@ -107,12 +115,12 @@ export function HostLobbyView({
             <Button variant="outline" size="sm" onClick={onLeave}>
               Exit
             </Button>
-            <Button variant='default' size="sm" onClick={onStartGame} disabled={!canStart}>
+            <Button variant="default" size="sm" onClick={onStartGame} disabled={!canStart}>
               <Play size={14} fill="currentColor" /> Start Game
             </Button>
           </div>
         </div>
-      </Card>
-    </div>
+      </Card >
+    </div >
   );
 }

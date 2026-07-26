@@ -32,7 +32,7 @@ export function PlayerWaitingRoomView({
 
   return (
     <TooltipProvider>
-      <div className="relative w-full min-h-[100dvh] pt-6 sm:py-12 pb-12 flex flex-col justify-start sm:justify-center items-center overflow-hidden px-4 bg-[#05070f] text-white">
+      <div className="relative w-full min-h-dvh pt-6 sm:py-12 pb-12 flex flex-col justify-start sm:justify-center items-center overflow-hidden px-4 bg-[#05070f] text-white">
         <div className="synth-grid absolute inset-0 pointer-events-none" />
 
         <Card className="w-full max-w-2xl p-5 sm:p-8 z-10 text-left">
@@ -50,7 +50,7 @@ export function PlayerWaitingRoomView({
               <span className="text-[10px] text-cyan-400 font-black uppercase tracking-wider">
                 Lobby ID:
               </span>
-              <span className="font-black text-lg sm:text-xl text-[#00f0ff] tracking-widest font-mono">{lobbyId}</span>
+              <span className="font-black text-lg sm:text-xl text-[#00f0ff] tracking-widest font-mono">{lobbyId.slice(0, 3)}-{lobbyId.slice(3, 6)}</span>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -74,9 +74,8 @@ export function PlayerWaitingRoomView({
               {players.map((p) => (
                 <div
                   key={p.id}
-                  className={`flex items-center justify-between p-3 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${
-                    p.isDisconnected ? 'opacity-50' : ''
-                  }`}
+                  className={`flex items-center justify-between p-3 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${p.isDisconnected ? 'opacity-50' : ''
+                    }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 pr-2">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${p.isDisconnected ? 'bg-amber-400 animate-pulse' : 'bg-[#00f0ff] shadow-[0_0_8px_#00f0ff]'}`} />

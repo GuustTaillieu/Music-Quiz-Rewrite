@@ -4,7 +4,7 @@ import { BsSpotify } from 'react-icons/bs';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Card } from '#/features/shared/components/ui/card';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '#/features/shared/components/ui/input-otp';
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '#/features/shared/components/ui/input-otp';
 import { DASHBOARD_CONSTANTS } from '../constants/dashboardConstants';
 
 interface GuestJoinPortalProps {
@@ -48,7 +48,7 @@ export function GuestJoinPortal({
               <Headphones size={36} />
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-white mb-0.5">SoundQuiz</h2>
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-12">
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-8">
               Powered by Spotify
             </span>
 
@@ -67,52 +67,63 @@ export function GuestJoinPortal({
               </div>
             )}
 
-            <Button
-              variant="spotify"
-              size="lg"
-              onClick={handleSpotifyLogin}
-              className="w-full mb-8"
-            >
-              <BsSpotify size={16} /> Sign In with Spotify
-            </Button>
+            {/* Desktop Only: Spotify Login Button */}
+            <div className="hidden md:block w-full mb-8">
+              <Button
+                variant="spotify"
+                size="lg"
+                onClick={handleSpotifyLogin}
+                className="w-full"
+              >
+                <BsSpotify size={16} /> Sign In with Spotify
+              </Button>
+            </div>
 
             <div className="w-full flex items-center gap-3 mb-6">
               <div className="h-px bg-cyan-500/10 flex-1" />
               <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
-                have a join code?
+                enter join code
               </span>
               <div className="h-px bg-cyan-500/10 flex-1" />
             </div>
 
-            <div className="relative w-full mb-3 flex flex-col items-center justify-center">
+            {/* Split XXX - XXX OTP Input */}
+            <div className="relative w-full mb-4 flex flex-col items-center justify-center">
               <InputOTP
                 maxLength={DASHBOARD_CONSTANTS.LOBBY_CODE_MAX_LENGTH}
                 value={lobbyCode}
                 onChange={(val) => handleCodeChange(val)}
                 disabled={isCodeValidating}
                 inputMode="numeric"
-
               >
                 <InputOTPGroup className="gap-1.5 sm:gap-2">
-                  {Array.from({ length: DASHBOARD_CONSTANTS.LOBBY_CODE_MAX_LENGTH }).map((_, index) => (
-                    <InputOTPSlot aria-invalid={isCodeInvalid} index={index} key={index} />
-                  ))}
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={0} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={1} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={2} />
+                </InputOTPGroup>
+
+                <InputOTPSeparator className="text-cyan-400/60 font-bold px-1" />
+
+                <InputOTPGroup className="gap-1.5 sm:gap-2">
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={3} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={4} />
+                  <InputOTPSlot aria-invalid={isCodeInvalid} index={5} />
                 </InputOTPGroup>
               </InputOTP>
 
               {isCodeValidating && (
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-cyan-400 font-bold animate-pulse">
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-cyan-400 font-bold animate-pulse">
                   <Loader2 size={14} className="animate-spin" /> Validating lobby code...
                 </div>
               )}
             </div>
 
             {joinError ? (
-              <p className="text-[11px] font-bold text-rose-500">{joinError}</p>
+              <p className="text-[11px] font-bold text-rose-500 mb-2">{joinError}</p>
             ) : (
               <div className="text-[10px] text-muted-foreground/60 leading-normal">
-                Spotify Premium required to create quizzes<br />
-                Guests can join and play any quiz
+                <span className="hidden md:inline">Spotify Premium required to host & create quizzes.<br /></span>
+                Guests can join and play on any device.
               </div>
             )}
           </div>
@@ -129,7 +140,7 @@ export function GuestJoinPortal({
 
             <h2 className="text-2xl font-black text-white mb-1">Enter Nickname</h2>
             <p className="text-muted-foreground text-xs mb-6">
-              Joining quiz lobby <span className="text-[#00f0ff] font-bold">{lobbyCode}</span>
+              Joining quiz lobby <span className="text-[#00f0ff] font-bold font-mono">{lobbyCode.length === 6 ? `${lobbyCode.slice(0, 3)}-${lobbyCode.slice(3)}` : lobbyCode}</span>
             </p>
 
             <form onSubmit={handleJoinLobby} className="w-full space-y-4">
