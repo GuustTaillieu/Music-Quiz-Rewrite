@@ -1,5 +1,5 @@
 import { GameSession } from './game-session';
-import { Quiz } from '@spotify-music-quiz/shared/schema/game';
+import { GamePhase, Quiz, RoundState } from '@spotify-music-quiz/shared/schema/game';
 
 describe('GameSession State Machine & Gameplay Rules', () => {
   let mockQuiz: Quiz;
@@ -100,7 +100,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
 
       expect(() => session.start('guest-1')).toThrow('Only the host can start the quiz');
       expect(() => session.start('host-id')).not.toThrow();
-      expect(session.phase).toBe('TURN_BASED');
+      expect(session.phase).toBe(GamePhase.TURN_BASED);
     });
 
     it('should initialize turn order and set the first active player', () => {
@@ -171,7 +171,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       // First song is TRACK_NAME: 'Blinding Lights'
       const isCorrect = session.submitGuess('guest-1', '  blinding lights  ');
       expect(isCorrect).toBe(true);
-      expect(session.roundState).toBe('REVEALED');
+      expect(session.roundState).toBe(RoundState.REVEALED);
 
       // Bob score should be 1
       const bob = session.players.find((p) => p.id === 'guest-1');
@@ -212,7 +212,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       session.passTurn('guest-3');
 
       // Should transition to reveal state
-      expect(session.roundState).toBe('REVEALED');
+      expect(session.roundState).toBe(RoundState.REVEALED);
 
       // Host advances the round
       session.advanceRound('host-id');
@@ -234,15 +234,15 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       session.addPlayer('guest-3', 'Daisy');
       session.start('host-id');
 
-      expect(session.phase).toBe('TURN_BASED');
+      expect(session.phase).toBe(GamePhase.TURN_BASED);
 
       // Solve first song. Songs remaining: 2 (indices 1 & 2). Players: 3.
       session.submitGuess('guest-1', 'Blinding Lights');
-      expect(session.roundState).toBe('REVEALED');
+      expect(session.roundState).toBe(RoundState.REVEALED);
       session.advanceRound('host-id');
 
       // Since remaining songs (2) < players (3), it must transition to SPEED_ROUND!
-      expect(session.phase).toBe('SPEED_ROUND');
+      expect(session.phase).toBe(GamePhase.SPEED_ROUND);
       expect(session.activePlayerId).toBeNull(); // No active player in Speed Round
     });
 
@@ -257,7 +257,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       // Solve song 0 to enter Speed Round
       session.submitGuess('guest-1', 'Blinding Lights');
       session.advanceRound('host-id');
-      expect(session.phase).toBe('SPEED_ROUND');
+      expect(session.phase).toBe(GamePhase.SPEED_ROUND);
 
       // Song 1 is ARTIST_NAME: 'Dua Lipa'
       // Bob (guest-1) guesses incorrectly
@@ -269,7 +269,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       const guessCharlie = session.submitGuess('guest-2', 'Dua Lipa');
       expect(guessCharlie).toBe(true);
       expect(session.players.find((p) => p.id === 'guest-2')?.score).toBe(1);
-      
+
       // Advance to song 2
       session.advanceRound('host-id');
       expect(session.currentSongIndex).toBe(2);
@@ -285,7 +285,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
 
       session.submitGuess('guest-1', 'Blinding Lights'); // triggers Speed Round
       session.advanceRound('host-id');
-      expect(session.phase).toBe('SPEED_ROUND');
+      expect(session.phase).toBe(GamePhase.SPEED_ROUND);
 
       session.submitGuess('guest-1', 'Wrong 1');
       expect(() => session.submitGuess('guest-1', 'Dua Lipa')).toThrow(
@@ -295,14 +295,14 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       // Guess wrong by all remaining active players
       session.submitGuess('guest-2', 'Wrong 2');
       session.submitGuess('guest-3', 'Wrong 3');
-      expect(session.roundState).toBe('REVEALED');
+      expect(session.roundState).toBe(RoundState.REVEALED);
 
       // Advance round
       session.advanceRound('host-id');
 
       // All 3 guessed incorrectly, game moves to song 2
       expect(session.currentSongIndex).toBe(2);
-      expect(session.phase).toBe('SPEED_ROUND');
+      expect(session.phase).toBe(GamePhase.SPEED_ROUND);
     });
 
     it('should transition to COMPLETED when all songs are spent', () => {
@@ -316,18 +316,18 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       // Song 0: solved
       session.submitGuess('guest-1', 'Blinding Lights');
       session.advanceRound('host-id');
-      expect(session.phase).toBe('SPEED_ROUND');
+      expect(session.phase).toBe(GamePhase.SPEED_ROUND);
 
       // Song 1: solved
       session.submitGuess('guest-2', 'Dua Lipa');
       session.advanceRound('host-id');
-      expect(session.phase).toBe('SPEED_ROUND');
+      expect(session.phase).toBe(GamePhase.SPEED_ROUND);
 
       // Song 2: solved (FILL_IN_THE_GAP: "Never mind, I'll find")
       session.submitGuess('guest-3', "Never mind, I'll find");
       session.advanceRound('host-id');
 
-      expect(session.phase).toBe('COMPLETED');
+      expect(session.phase).toBe(GamePhase.COMPLETED);
       expect(session.activePlayerId).toBeNull();
     });
   });

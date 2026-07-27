@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWebSocket } from './useWebSocket';
-import type { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
+import type { GameMode, GameSessionState } from '@spotify-music-quiz/shared/schema/game';
+import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
+import { GAME_EVENTS } from '@spotify-music-quiz/shared/constants/game-events';
 
-export function useQuizGame(wsUrl: string) {
-  const { isConnected, emit, registerHandler } = useWebSocket(wsUrl);
+export function useQuizGame() {
+  const { isConnected, emit, registerHandler } = useWebSocket(GAME_CONFIG.WS_URL);
   const [gameState, setGameState] = useState<GameSessionState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastGuessResult, setLastGuessResult] = useState<boolean | null>(null);
 
   useEffect(() => {
     const unsubState = registerHandler<GameSessionState>(
-      'game_state_update',
+      GAME_EVENTS.GAME_STATE_UPDATE,
       (state) => {
         setGameState(state);
         setError(null);
@@ -20,24 +22,24 @@ export function useQuizGame(wsUrl: string) {
     const unsubJoinSuccess = registerHandler<{
       lobbyId: string;
       state: GameSessionState;
-    }>('join_success', ({ state }) => {
+    }>(GAME_EVENTS.JOIN_SUCCESS, ({ state }) => {
       setGameState(state);
       setError(null);
     });
 
     const unsubJoinError = registerHandler<{ message: string }>(
-      'join_error',
+      GAME_EVENTS.JOIN_ERROR,
       ({ message }) => {
         setError(message);
       },
     );
 
-    const unsubError = registerHandler<{ message: string }>('error', ({ message }) => {
+    const unsubError = registerHandler<{ message: string }>(GAME_EVENTS.ERROR, ({ message }) => {
       setError(message);
     });
 
     const unsubGuessResult = registerHandler<{ correct: boolean }>(
-      'guess_result',
+      GAME_EVENTS.GUESS_RESULT,
       ({ correct }) => {
         setLastGuessResult(correct);
         setTimeout(() => setLastGuessResult(null), 3000); // clear after 3 seconds
@@ -56,47 +58,47 @@ export function useQuizGame(wsUrl: string) {
   const joinLobby = useCallback(
     (lobbyId: string, username: string, userId?: string) => {
       setError(null);
-      emit('join_lobby', { lobbyId, username, userId });
+      emit(GAME_EVENTS.JOIN_LOBBY, { lobbyId, username, userId });
     },
     [emit],
   );
 
   const startGame = useCallback(() => {
-    emit('game_start');
+    emit(GAME_EVENTS.GAME_START);
   }, [emit]);
 
   const submitGuess = useCallback(
     (guess: string) => {
-      emit('submit_guess', { guess });
+      emit(GAME_EVENTS.SUBMIT_GUESS, { guess });
     },
     [emit],
   );
 
   const passTurn = useCallback(() => {
-    emit('pass_turn');
+    emit(GAME_EVENTS.PASS_TURN);
   }, [emit]);
 
   const nextSong = useCallback(() => {
-    emit('next_song');
+    emit(GAME_EVENTS.NEXT_SONG);
   }, [emit]);
 
   const configureLobby = useCallback(
-    (gameMode: 'SPEED_MODE' | 'TURN_BASED', guessingTimeLimit: number) => {
-      emit('configure_lobby', { gameMode, guessingTimeLimit });
+    (gameMode: GameMode, guessingTimeLimit: number) => {
+      emit(GAME_EVENTS.CONFIGURE_LOBBY, { gameMode, guessingTimeLimit });
     },
     [emit],
   );
 
   const forceReveal = useCallback(() => {
-    emit('force_reveal');
+    emit(GAME_EVENTS.FORCE_REVEAL);
   }, [emit]);
 
   const endGame = useCallback(() => {
-    emit('end_game');
+    emit(GAME_EVENTS.END_GAME);
   }, [emit]);
 
   const startAudioTimer = useCallback(() => {
-    emit('host_audio_started');
+    emit(GAME_EVENTS.HOST_AUDIO_STARTED);
   }, [emit]);
 
   return {

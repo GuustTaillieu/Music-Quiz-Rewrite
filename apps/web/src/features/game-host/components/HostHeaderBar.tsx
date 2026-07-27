@@ -3,14 +3,15 @@ import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '#/features/shared/components/ui/tooltip';
 import { GameModeToggleSwitch } from '#/features/game-lobby';
+import type { GameMode } from '@spotify-music-quiz/shared/schema/game';
 
 interface HostHeaderBarProps {
   quizTitle?: string;
   lobbyId: string;
   currentSongIndex: number;
   totalSongs: number;
-  selectedMode: 'SPEED_MODE' | 'TURN_BASED';
-  onSelectMode: (mode: 'SPEED_MODE' | 'TURN_BASED') => void;
+  selectedMode: GameMode;
+  onSelectMode: (mode: GameMode) => void;
   isCopied?: boolean;
   handleCopyCode: () => void;
   onLeave: () => void;
@@ -33,7 +34,7 @@ export function HostHeaderBar({
     <TooltipProvider>
       <header className="relative w-full border-b border-cyan-500/10 bg-black/40 backdrop-blur-md z-10 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#1DB954]/10 border border-[#1DB954]/30 rounded-xl text-[#1DB954]">
+          <div className="p-2 bg-spotify/10 border border-spotify/30 rounded-xl text-spotify">
             <Headphones size={20} />
           </div>
           <div>

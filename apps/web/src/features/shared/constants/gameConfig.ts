@@ -1,4 +1,5 @@
 export const GAME_CONFIG = Object.freeze({
+  WS_URL: import.meta.env.VITE_WS_URL ?? 'http://localhost:3001',
   DEFAULT_GUESSING_TIME_LIMIT_SECS: 30,
   FAST_GUESS_WARNING_TIME_LIMIT_SECS: 10,
   GET_READY_COUNTDOWN_SECS: 3,
@@ -21,11 +22,4 @@ export const AUDIO_CONFIG = Object.freeze({
   STORAGE_KEY: 'spotify-quiz-volume',
   SDK_PLAYER_NAME: 'Spotify Music Quiz Board',
   SDK_SCRIPT_SRC: 'https://sdk.scdn.co/spotify-player.js',
-});
-
-export const THEME_CONFIG = Object.freeze({
-  SPOTIFY_GREEN: '#1DB954',
-  NEON_CYAN: '#00f0ff',
-  NEON_MAGENTA: '#ff007f',
-  BG_DARK: '#05070f',
 });

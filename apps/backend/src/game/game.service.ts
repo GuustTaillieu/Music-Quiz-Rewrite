@@ -2,14 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { QuizRepository } from '../ports/quiz.repository.port';
 import { GameSessionRepository } from '../ports/game-session.repository.port';
 import { GameSession } from '../domain/game-session';
-import { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
+import { GameMode, GamePhase, GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 
 @Injectable()
 export class GameService {
   constructor(
     private readonly quizRepository: QuizRepository,
     private readonly gameSessionRepository: GameSessionRepository,
-  ) {}
+  ) { }
 
   public async createLobby(quizId: string, hostId: string): Promise<string> {
     const quiz = await this.quizRepository.findById(quizId);
@@ -57,7 +57,7 @@ export class GameService {
   public async configureLobby(
     lobbyId: string,
     hostId: string,
-    gameMode: 'SPEED_MODE' | 'TURN_BASED',
+    gameMode: GameMode,
     guessingTimeLimit: number,
   ): Promise<GameSessionState> {
     const session = await this.gameSessionRepository.findById(lobbyId);
@@ -210,7 +210,7 @@ export class GameService {
     hostId: string,
   ): Promise<Array<{ lobbyId: string; quizTitle: string }>> {
     const sessions = await this.gameSessionRepository.findAll();
-    const active = sessions.filter((s) => s.hostId === hostId && s.phase !== 'COMPLETED');
+    const active = sessions.filter((s) => s.hostId === hostId && s.phase !== GamePhase.COMPLETED);
     return active.map((s) => ({
       lobbyId: s.lobbyId,
       quizTitle: s.quiz.title,

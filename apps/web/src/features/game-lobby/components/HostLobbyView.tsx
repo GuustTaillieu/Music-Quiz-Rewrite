@@ -4,15 +4,15 @@ import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Card } from '#/features/shared/components/ui/card';
 import { GameModeToggleSwitch } from './GameModeToggleSwitch';
-import type { Player } from '@spotify-music-quiz/shared/schema/game';
+import type { GameMode, Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface HostLobbyViewProps {
   lobbyId: string;
   quizTitle?: string;
   players: Player[];
   songsCount: number;
-  selectedMode: 'SPEED_MODE' | 'TURN_BASED';
-  onSelectMode: (mode: 'SPEED_MODE' | 'TURN_BASED') => void;
+  selectedMode: GameMode;
+  onSelectMode: (mode: GameMode) => void;
   onStartGame: () => void;
   onLeave: () => void;
   isCopied?: boolean;
@@ -82,16 +82,15 @@ export function HostLobbyView({
 
         {/* Players List Grid */}
         <div className="mb-8">
-          <h3 className="font-bold text-foreground text-xs uppercase tracking-wider mb-4 flex items-center gap-2 text-pink-400">
+          <h3 className="font-bold text-xs uppercase tracking-wider mb-4 flex items-center gap-2 text-pink-400">
             <Users size={16} /> Players Joined ({players.length})
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
             {players.map((p) => (
               <div
                 key={p.id}
-                className={`flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${
-                  p.isDisconnected ? 'opacity-50' : ''
-                }`}
+                className={`flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${p.isDisconnected ? 'opacity-50' : ''
+                  }`}
               >
                 <span className="font-bold text-white text-xs flex items-center gap-2">
                   {p.name}

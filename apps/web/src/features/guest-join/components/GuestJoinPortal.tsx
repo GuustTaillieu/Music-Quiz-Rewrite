@@ -43,7 +43,7 @@ export function GuestJoinPortal() {
       <Card className="w-full max-w-md p-8 z-10 text-center shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
         {step === 'code' ? (
           <div className="flex flex-col items-center">
-            <div className="inline-flex items-center justify-center p-4 bg-[#1DB954]/10 rounded-2xl border border-[#1DB954]/30 text-[#1DB954] mb-3 shadow-[0_0_15px_rgba(29,185,84,0.15)]">
+            <div className="inline-flex items-center justify-center p-4 bg-spotify/10 rounded-2xl border border-spotify/30 text-spotify mb-3 shadow-[0_0_15px_rgba(29,185,84,0.15)]">
               <Headphones size={36} />
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-white mb-0.5">SoundQuiz</h2>
@@ -53,7 +53,7 @@ export function GuestJoinPortal() {
 
             <h1 className="text-4xl font-extrabold text-white leading-tight tracking-tight mb-3">
               Music trivia,<br />
-              <span className="text-[#1DB954]">done right.</span>
+              <span className="text-spotify">done right.</span>
             </h1>
             <p className="text-muted-foreground text-xs leading-relaxed max-w-xs mb-8">
               Build quizzes from your Spotify library and challenge friends with live multiplayer rounds.

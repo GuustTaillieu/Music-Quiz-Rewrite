@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSpotifyPlayer, useGlobalVolume } from '#/features/audio-player';
 import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
-import type { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
+import { GamePhase, RoundState, type GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 
 export function useLobbyAudio(
   gameState: GameSessionState | null,
@@ -25,8 +25,8 @@ export function useLobbyAudio(
 
   const activeSong = gameState?.activeSong;
   const songIndex = gameState?.currentSongIndex ?? null;
-  const isPlayingPhase = gameState?.phase === 'SPEED_ROUND' || gameState?.phase === 'TURN_BASED';
-  const isRevealed = gameState?.roundState === 'REVEALED';
+  const isPlayingPhase = gameState?.phase === GamePhase.SPEED_ROUND || gameState?.phase === GamePhase.TURN_BASED;
+  const isRevealed = gameState?.roundState === RoundState.REVEALED;
 
   useEffect(() => {
     if (!isHost || !gameState || !isPlayingPhase || songIndex === null || !activeSong) {

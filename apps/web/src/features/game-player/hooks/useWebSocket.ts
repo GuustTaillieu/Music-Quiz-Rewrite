@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
+import type { GameEvent } from '@spotify-music-quiz/shared/constants/game-events';
 
 export function useWebSocket(url: string) {
   const [isConnected, setIsConnected] = useState(false);
@@ -27,14 +28,14 @@ export function useWebSocket(url: string) {
     };
   }, [url]);
 
-  const emit = useCallback((event: string, data?: unknown) => {
+  const emit = useCallback((event: GameEvent | string, data?: unknown) => {
     if (socketRef.current) {
       socketRef.current.emit(event, data);
     }
   }, []);
 
   const registerHandler = useCallback(
-    <T>(event: string, callback: (data: T) => void) => {
+    <T>(event: GameEvent | string, callback: (data: T) => void) => {
       const socket = socketRef.current;
       if (socket) {
         socket.on(event, callback);

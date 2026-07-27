@@ -12,6 +12,14 @@
     "./schema/game": {
       "types": "./schema/game/index.ts",
       "default": "./schema/game/index.ts"
+    },
+    "./constants": {
+      "types": "./constants/index.ts",
+      "default": "./constants/index.ts"
+    },
+    "./constants/game-events": {
+      "types": "./constants/game-events/index.ts",
+      "default": "./constants/game-events/index.ts"
     }
   },
   "dependencies": {

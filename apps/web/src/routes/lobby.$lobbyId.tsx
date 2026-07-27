@@ -6,7 +6,8 @@ import { PlayerBuzzerScreen, GameOverSummary, useQuizGame } from '#/features/gam
 import { useAuth } from '#/features/auth';
 import { parseGapBlocks } from '#/features/shared/utils/lobbyUtils';
 import { Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type SubmitEventHandler } from 'react';
+import { GameMode, GamePhase } from '@spotify-music-quiz/shared/schema/game';
 
 const lobbySearchSchema = z.object({
   username: z.string(),
@@ -21,7 +22,6 @@ function LobbyRoomWrapper() {
   const { lobbyId } = Route.useParams();
   const { username } = Route.useSearch();
   const { user } = useAuth();
-  const wsUrl = import.meta.env.VITE_WS_URL ?? 'http://localhost:3001';
 
   const {
     isConnected,
@@ -34,7 +34,7 @@ function LobbyRoomWrapper() {
     configureLobby,
     forceReveal,
     endGame,
-  } = useQuizGame(wsUrl);
+  } = useQuizGame();
 
   const isHost = gameState
     ? Boolean(
@@ -43,7 +43,7 @@ function LobbyRoomWrapper() {
     )
     : false;
 
-  const [selectedGameMode, setSelectedGameMode] = useState<'SPEED_MODE' | 'TURN_BASED'>('TURN_BASED');
+  const [selectedGameMode, setSelectedGameMode] = useState<GameMode>(GameMode.TURN_BASED);
   const [guessInput, setGuessInput] = useState('');
   const [gapInputs, setGapInputs] = useState<Record<number, string>>({});
   const [isSpeedRoundModalOpen, setIsSpeedRoundModalOpen] = useState(false);
@@ -80,22 +80,22 @@ function LobbyRoomWrapper() {
     window.location.href = '/';
   };
 
-  const handleGuessSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleGuessSubmit: SubmitEventHandler = (e) => {
+    e.preventDefault();
     if (!guessInput.trim()) return;
     submitGuess(guessInput.trim());
     setGuessInput('');
   };
 
-  const handleGapSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleGapSubmit: SubmitEventHandler = (e) => {
+    e.preventDefault();
     const activeSong = gameState?.activeSong;
     const gapBlocks = parseGapBlocks(activeSong?.lyricsGap);
     const answers = gapBlocks.map((block) => (gapInputs[block.id] || '').trim());
     submitGuess(answers.join(' '));
   };
 
-  const handleSelectGameMode = (mode: 'SPEED_MODE' | 'TURN_BASED') => {
+  const handleSelectGameMode = (mode: GameMode) => {
     setSelectedGameMode(mode);
     configureLobby(mode, gameState?.guessingTimeLimit ?? 30);
   };
@@ -109,7 +109,7 @@ function LobbyRoomWrapper() {
     );
   }
 
-  if (gameState.phase === 'COMPLETED') {
+  if (gameState.phase === GamePhase.COMPLETED) {
     return (
       <GameOverSummary
         players={gameState.players}
@@ -120,7 +120,7 @@ function LobbyRoomWrapper() {
     );
   }
 
-  if (gameState.phase === 'LOBBY') {
+  if (gameState.phase === GamePhase.LOBBY) {
     if (isHost) {
       return (
         <HostLobbyView

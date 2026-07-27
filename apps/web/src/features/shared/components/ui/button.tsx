@@ -11,7 +11,7 @@ const buttonVariants = cva(
         default:
           'bg-gradient-to-r from-[#00f0ff] to-[#00a8cc] text-black hover:shadow-[0_0_20px_rgba(0,240,255,0.4)]',
         spotify:
-          'bg-[#1DB954] hover:bg-[#1ed760] text-black hover:shadow-[0_0_15px_rgba(29,185,84,0.35)]',
+          'bg-spotify hover:bg-[#1ed760] text-black hover:shadow-[0_0_15px_rgba(29,185,84,0.35)]',
         cyan:
           'bg-cyan-500/10 hover:bg-cyan-500/20 text-[#00f0ff] border border-cyan-500/30 shadow-[0_0_10px_rgba(0,240,255,0.15)]',
         magenta:

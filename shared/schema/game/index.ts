@@ -16,7 +16,12 @@ export const SpotifyTrackSchema = z.object({
 
 export type SpotifyTrack = z.infer<typeof SpotifyTrackSchema>;
 
-export const QuestionTypeEnum = z.enum(['TRACK_NAME', 'ARTIST_NAME', 'FILL_IN_THE_GAP']);
+export const QuestionType = {
+  TRACK_NAME: 'TRACK_NAME',
+  ARTIST_NAME: 'ARTIST_NAME',
+  FILL_IN_THE_GAP: 'FILL_IN_THE_GAP',
+} as const;
+export const QuestionTypeEnum = z.enum(QuestionType);
 export type QuestionType = z.infer<typeof QuestionTypeEnum>;
 
 export const ForkedFromInfoSchema = z.object({
@@ -55,7 +60,7 @@ export const QuizDescriptionSchema = z
   .optional();
 
 export const QuizMetaSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   title: QuizTitleSchema,
   description: QuizDescriptionSchema,
   creatorId: z.string(),
@@ -85,8 +90,28 @@ export type Quiz = z.infer<typeof QuizSchema>;
 // 2. Real-time Gameplay State Schemas
 // ============================================================================
 
-export const GamePhaseEnum = z.enum(['LOBBY', 'TURN_BASED', 'SPEED_ROUND', 'COMPLETED']);
+export const GamePhase = {
+  LOBBY: 'LOBBY',
+  TURN_BASED: 'TURN_BASED',
+  SPEED_ROUND: 'SPEED_ROUND',
+  COMPLETED: 'COMPLETED',
+} as const;
+export const GamePhaseEnum = z.enum(GamePhase);
 export type GamePhase = z.infer<typeof GamePhaseEnum>;
+
+export const GameMode = {
+  TURN_BASED: 'TURN_BASED',
+  SPEED_MODE: 'SPEED_MODE',
+} as const;
+export const GameModeEnum = z.enum(GameMode);
+export type GameMode = z.infer<typeof GameModeEnum>;
+
+export const RoundState = {
+  GUESSING: 'GUESSING',
+  REVEALED: 'REVEALED',
+} as const;
+export const RoundStateEnum = z.enum(RoundState);
+export type RoundState = z.infer<typeof RoundStateEnum>;
 
 export const PlayerSchema = z.object({
   id: z.string(),
@@ -105,9 +130,8 @@ export const ActiveSongInfoSchema = z.object({
   start_offset_ms: z.number(),
   end_offset_ms: z.number(),
   lyricsGap: z.string().nullable().optional(),
-  // Obfuscated details based on question type
-  title: z.string().nullable(), // Null if questionType is TRACK_NAME
-  artist: z.string().nullable(), // Null if questionType is ARTIST_NAME
+  title: z.string().nullable(),
+  artist: z.string().nullable(),
   album: z.string().nullable(),
   coverArtUrl: z.string().nullable(),
   previewUrl: z.string().nullable().optional(),
@@ -124,13 +148,12 @@ export const GameSessionStateSchema = z.object({
   totalSongs: z.number().int().nonnegative(),
   activePlayerId: z.string().nullable(),
   turnOrder: z.array(z.string()),
-  // Track players who already guessed or passed the current song
   playersGuessed: z.array(z.string()),
   playersPassed: z.array(z.string()),
   activeSong: ActiveSongInfoSchema.nullable(),
-  roundState: z.enum(['GUESSING', 'REVEALED']).optional(),
+  roundState: RoundStateEnum.optional(),
   lastRoundWinnerId: z.string().nullable().optional(),
-  gameMode: z.enum(['SPEED_MODE', 'TURN_BASED']),
+  gameMode: GameModeEnum,
   guessingTimeLimit: z.number().int().positive(),
   roundEndTime: z.number().nullable().optional(),
 });

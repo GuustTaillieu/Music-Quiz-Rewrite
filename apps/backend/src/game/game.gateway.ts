@@ -9,6 +9,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { Logger } from '@nestjs/common';
+import { GAME_EVENTS } from '@spotify-music-quiz/shared/constants/game-events';
+import { GameMode } from '@spotify-music-quiz/shared/schema/game';
 
 @WebSocketGateway({
   cors: {
@@ -27,7 +29,7 @@ export class GameGateway implements OnGatewayDisconnect {
   @WebSocketServer()
   private readonly server!: Server;
 
-  constructor(private readonly gameService: GameService) {}
+  constructor(private readonly gameService: GameService) { }
 
   public handleDisconnect(client: Socket): void {
     const clientData = this.clientMap.get(client.id);
@@ -46,7 +48,7 @@ export class GameGateway implements OnGatewayDisconnect {
         if (updatedState) {
           this.server
             .to(clientData.lobbyId)
-            .emit('game_state_update', updatedState);
+            .emit(GAME_EVENTS.GAME_STATE_UPDATE, updatedState);
         }
       })
       .catch((err: Error) => {
@@ -54,7 +56,7 @@ export class GameGateway implements OnGatewayDisconnect {
       });
   }
 
-  @SubscribeMessage('join_lobby')
+  @SubscribeMessage(GAME_EVENTS.JOIN_LOBBY)
   public async handleJoinLobby(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { lobbyId: string; username: string; userId?: string },
@@ -83,24 +85,24 @@ export class GameGateway implements OnGatewayDisconnect {
       this.clientMap.set(client.id, { lobbyId, username });
 
       // Broadcast new state to room
-      this.server.to(lobbyId).emit('game_state_update', state);
+      this.server.to(lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
       // Respond to joining client
-      client.emit('join_success', { lobbyId, state });
+      client.emit(GAME_EVENTS.JOIN_SUCCESS, { lobbyId, state });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to join lobby';
       this.logger.warn(`Join lobby error: ${message}`);
-      client.emit('join_error', { message });
+      client.emit(GAME_EVENTS.JOIN_ERROR, { message });
     }
   }
 
-  @SubscribeMessage('configure_lobby')
+  @SubscribeMessage(GAME_EVENTS.CONFIGURE_LOBBY)
   public async handleConfigureLobby(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { gameMode: 'SPEED_MODE' | 'TURN_BASED'; guessingTimeLimit: number },
+    @MessageBody() data: { gameMode: GameMode; guessingTimeLimit: number },
   ): Promise<void> {
     const clientData = this.clientMap.get(client.id);
     if (!clientData) {
-      client.emit('error', { message: 'Not connected to a lobby' });
+      client.emit(GAME_EVENTS.ERROR, { message: 'Not connected to a lobby' });
       return;
     }
 
@@ -111,20 +113,20 @@ export class GameGateway implements OnGatewayDisconnect {
         data.gameMode,
         data.guessingTimeLimit,
       );
-      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+      this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to configure lobby';
-      client.emit('error', { message });
+      client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
 
-  @SubscribeMessage('game_start')
+  @SubscribeMessage(GAME_EVENTS.GAME_START)
   public async handleGameStart(
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     const clientData = this.clientMap.get(client.id);
     if (!clientData) {
-      client.emit('error', { message: 'Not connected to a lobby' });
+      client.emit(GAME_EVENTS.ERROR, { message: 'Not connected to a lobby' });
       return;
     }
 
@@ -134,14 +136,14 @@ export class GameGateway implements OnGatewayDisconnect {
         client.id, // The host socket ID must match the creatorId/hostId
       );
 
-      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+      this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to start game';
-      client.emit('error', { message });
+      client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
 
-  @SubscribeMessage('host_audio_started')
+  @SubscribeMessage(GAME_EVENTS.HOST_AUDIO_STARTED)
   public async handleHostAudioStarted(
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
@@ -155,21 +157,21 @@ export class GameGateway implements OnGatewayDisconnect {
         clientData.lobbyId,
         client.id,
       );
-      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+      this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to start audio timer';
-      client.emit('error', { message });
+      client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
 
-  @SubscribeMessage('submit_guess')
+  @SubscribeMessage(GAME_EVENTS.SUBMIT_GUESS)
   public async handleGuess(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { guess: string },
   ): Promise<void> {
     const clientData = this.clientMap.get(client.id);
     if (!clientData) {
-      client.emit('error', { message: 'Not connected to a lobby' });
+      client.emit(GAME_EVENTS.ERROR, { message: 'Not connected to a lobby' });
       return;
     }
 
@@ -180,19 +182,19 @@ export class GameGateway implements OnGatewayDisconnect {
         data.guess,
       );
 
-      client.emit('guess_result', { correct });
-      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+      client.emit(GAME_EVENTS.GUESS_RESULT, { correct });
+      this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to submit guess';
-      client.emit('error', { message });
+      client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
 
-  @SubscribeMessage('pass_turn')
+  @SubscribeMessage(GAME_EVENTS.PASS_TURN)
   public async handlePass(@ConnectedSocket() client: Socket): Promise<void> {
     const clientData = this.clientMap.get(client.id);
     if (!clientData) {
-      client.emit('error', { message: 'Not connected to a lobby' });
+      client.emit(GAME_EVENTS.ERROR, { message: 'Not connected to a lobby' });
       return;
     }
 
@@ -202,18 +204,18 @@ export class GameGateway implements OnGatewayDisconnect {
         client.id,
       );
 
-      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+      this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to pass turn';
-      client.emit('error', { message });
+      client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
 
-  @SubscribeMessage('next_song')
+  @SubscribeMessage(GAME_EVENTS.NEXT_SONG)
   public async handleNextSong(@ConnectedSocket() client: Socket): Promise<void> {
     const clientData = this.clientMap.get(client.id);
     if (!clientData) {
-      client.emit('error', { message: 'Not connected to a lobby' });
+      client.emit(GAME_EVENTS.ERROR, { message: 'Not connected to a lobby' });
       return;
     }
 
@@ -223,18 +225,18 @@ export class GameGateway implements OnGatewayDisconnect {
         client.id,
       );
 
-      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+      this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to advance round';
-      client.emit('error', { message });
+      client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
 
-  @SubscribeMessage('force_reveal')
+  @SubscribeMessage(GAME_EVENTS.FORCE_REVEAL)
   public async handleForceReveal(@ConnectedSocket() client: Socket): Promise<void> {
     const clientData = this.clientMap.get(client.id);
     if (!clientData) {
-      client.emit('error', { message: 'Not connected to a lobby' });
+      client.emit(GAME_EVENTS.ERROR, { message: 'Not connected to a lobby' });
       return;
     }
 
@@ -243,18 +245,18 @@ export class GameGateway implements OnGatewayDisconnect {
         clientData.lobbyId,
         client.id,
       );
-      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+      this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to force reveal';
-      client.emit('error', { message });
+      client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
 
-  @SubscribeMessage('end_game')
+  @SubscribeMessage(GAME_EVENTS.END_GAME)
   public async handleEndGame(@ConnectedSocket() client: Socket): Promise<void> {
     const clientData = this.clientMap.get(client.id);
     if (!clientData) {
-      client.emit('error', { message: 'Not connected to a lobby' });
+      client.emit(GAME_EVENTS.ERROR, { message: 'Not connected to a lobby' });
       return;
     }
 
@@ -263,10 +265,10 @@ export class GameGateway implements OnGatewayDisconnect {
         clientData.lobbyId,
         client.id,
       );
-      this.server.to(clientData.lobbyId).emit('game_state_update', state);
+      this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to end game';
-      client.emit('error', { message });
+      client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
 }

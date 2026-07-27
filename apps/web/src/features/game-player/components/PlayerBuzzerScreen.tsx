@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type SubmitEventHandler } from 'react';
 import { Clock, XCircle } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
@@ -9,7 +9,7 @@ import { PlayerHeaderBar } from './PlayerHeaderBar';
 import { PlayerLeaveButton } from './PlayerLeaveButton';
 import { RoundSummaryOverlay } from './RoundSummaryOverlay';
 import { useCountdownVFX } from '../hooks/useCountdownVFX';
-import type { GameSessionState, Player } from '@spotify-music-quiz/shared/schema/game';
+import { GameMode, GamePhase, RoundState, type GameSessionState, type Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface PlayerBuzzerScreenProps {
   username: string;
@@ -22,8 +22,8 @@ interface PlayerBuzzerScreenProps {
   localTimeLeft?: number | null;
   maxTimeLimit?: number;
   onBuzzerClick: () => void;
-  onGuessSubmit: (e?: React.FormEvent) => void;
-  onGapSubmit: (e?: React.FormEvent) => void;
+  onGuessSubmit: SubmitEventHandler;
+  onGapSubmit: SubmitEventHandler;
   onLeave: () => void;
 }
 
@@ -42,9 +42,9 @@ export function PlayerBuzzerScreen({
   onLeave,
 }: PlayerBuzzerScreenProps) {
   const activeSong = gameState.activeSong;
-  const isPlaying = gameState.phase === 'SPEED_ROUND' || gameState.phase === 'TURN_BASED';
-  const isRevealed = gameState.roundState === 'REVEALED';
-  const isSpeedMode = gameState.gameMode === 'SPEED_MODE';
+  const isPlaying = gameState.phase === GamePhase.SPEED_ROUND || gameState.phase === GamePhase.TURN_BASED;
+  const isRevealed = gameState.roundState === RoundState.REVEALED;
+  const isSpeedMode = gameState.gameMode === GameMode.SPEED_MODE;
 
   const currentPlayer = gameState.players.find(
     (p) => p.name.toLowerCase() === username.trim().toLowerCase(),
@@ -58,8 +58,8 @@ export function PlayerBuzzerScreen({
   const isMyTurn = isSpeedMode
     ? true
     : currentPlayerId
-    ? gameState.activePlayerId === currentPlayerId
-    : false;
+      ? gameState.activePlayerId === currentPlayerId
+      : false;
 
   const activeTurnPlayer = gameState.players.find((p) => p.id === gameState.activePlayerId);
 
@@ -74,9 +74,8 @@ export function PlayerBuzzerScreen({
 
   return (
     <div
-      className={`relative w-full h-[100dvh] flex flex-col justify-between overflow-hidden px-6 py-6 bg-[#05070f] text-white transition-all duration-300 ${
-        isCritical ? 'shadow-[inset_0_0_100px_rgba(244,63,94,0.7)] border-4 border-rose-500/80' : ''
-      }`}
+      className={`relative w-full h-dvh flex flex-col justify-between overflow-hidden px-6 py-6 bg-[#05070f] text-white transition-all duration-300 ${isCritical ? 'shadow-[inset_0_0_100px_rgba(244,63,94,0.7)] border-4 border-rose-500/80' : ''
+        }`}
     >
       <div className="synth-grid absolute inset-0 pointer-events-none opacity-30" />
 
@@ -146,13 +145,12 @@ export function PlayerBuzzerScreen({
         {hasTimer && (
           <div className="h-2.5 w-full bg-cyan-500/10 rounded-full overflow-hidden border border-cyan-500/20 shadow-inner">
             <div
-              className={`h-full transition-all duration-300 ease-linear ${
-                isTimeUp
-                  ? 'bg-rose-600 shadow-[0_0_12px_#f43f5e]'
-                  : isCritical
+              className={`h-full transition-all duration-300 ease-linear ${isTimeUp
+                ? 'bg-rose-600 shadow-[0_0_12px_#f43f5e]'
+                : isCritical
                   ? 'bg-rose-500 shadow-[0_0_15px_#f43f5e] animate-pulse'
                   : 'bg-[#00f0ff] shadow-[0_0_10px_#00f0ff]'
-              }`}
+                }`}
               style={{ width: `${progressPercent}%` }}
             />
           </div>

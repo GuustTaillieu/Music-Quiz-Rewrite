@@ -1,12 +1,13 @@
 import { Dialog } from '#/features/shared/components/ui/dialog';
 import { Button } from '#/features/shared/components/ui/button';
 import { GameModeToggleSwitch } from './GameModeToggleSwitch';
+import type { GameMode } from '@spotify-music-quiz/shared/schema/game';
 
 interface SpeedRoundModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedMode: 'SPEED_MODE' | 'TURN_BASED';
-  onSelectMode: (mode: 'SPEED_MODE' | 'TURN_BASED') => void;
+  selectedMode: GameMode;
+  onSelectMode: (mode: GameMode) => void;
 }
 
 export function SpeedRoundModal({

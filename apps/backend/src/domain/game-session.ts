@@ -5,20 +5,22 @@ import {
   Quiz,
   GamePhase,
   QuestionType,
+  RoundState,
+  GameMode,
 } from '@spotify-music-quiz/shared/schema/game';
 
 export class GameSession {
   private _players: Player[] = [];
-  private _phase: GamePhase = 'LOBBY';
+  private _phase: GamePhase = GamePhase.LOBBY;
   private _currentSongIndex = 0;
   private _activePlayerId: string | null = null;
   private _songStarterPlayerId: string | null = null;
   private _turnOrder: string[] = [];
   private _playersGuessed: string[] = [];
   private _playersPassed: string[] = [];
-  private _roundState: 'GUESSING' | 'REVEALED' = 'GUESSING';
+  private _roundState: RoundState = RoundState.GUESSING;
   private _lastRoundWinnerId: string | null = null;
-  private _gameMode: 'SPEED_MODE' | 'TURN_BASED' = 'TURN_BASED';
+  private _gameMode: GameMode = GameMode.SPEED_MODE;
   private _guessingTimeLimit = 30;
   private _roundEndTime: number | null = null;
 
@@ -26,7 +28,7 @@ export class GameSession {
     private readonly _lobbyId: string,
     private readonly _hostId: string,
     private readonly _quiz: Quiz,
-  ) {}
+  ) { }
 
   // ============================================================================
   // Getters
@@ -52,7 +54,7 @@ export class GameSession {
     return this._phase;
   }
 
-  public get gameMode(): 'SPEED_MODE' | 'TURN_BASED' {
+  public get gameMode(): GameMode {
     return this._gameMode;
   }
 
@@ -60,17 +62,17 @@ export class GameSession {
     return this._guessingTimeLimit;
   }
 
-  public configure(mode: 'SPEED_MODE' | 'TURN_BASED', timeLimit: number): void {
+  public configure(mode: GameMode, timeLimit: number): void {
     this._gameMode = mode;
     this._guessingTimeLimit = timeLimit;
 
     // Immediately adjust phase and turn state if game is currently in active gameplay
-    if (this._phase === 'SPEED_ROUND' || this._phase === 'TURN_BASED') {
-      if (mode === 'SPEED_MODE') {
-        this._phase = 'SPEED_ROUND';
+    if (this._phase === GamePhase.SPEED_ROUND || this._phase === GamePhase.TURN_BASED) {
+      if (mode === GameMode.SPEED_MODE) {
+        this._phase = GamePhase.SPEED_ROUND;
         this._activePlayerId = null;
       } else {
-        this._phase = 'TURN_BASED';
+        this._phase = GamePhase.TURN_BASED;
         if (!this._activePlayerId) {
           this._activePlayerId = this.findNextTurnPlayer(null);
         }
@@ -98,7 +100,7 @@ export class GameSession {
     return [...this._playersPassed];
   }
 
-  public get roundState(): 'GUESSING' | 'REVEALED' {
+  public get roundState(): RoundState {
     return this._roundState;
   }
 
@@ -129,7 +131,7 @@ export class GameSession {
       return;
     }
 
-    if (this._phase !== 'LOBBY') {
+    if (this._phase !== GamePhase.LOBBY) {
       throw new Error('Cannot join a game that has already started');
     }
 
@@ -144,7 +146,7 @@ export class GameSession {
   }
 
   public removePlayer(id: string): void {
-    if (this._phase === 'LOBBY') {
+    if (this._phase === GamePhase.LOBBY) {
       // Mark as disconnected in lobby phase so host refresh reconnects cleanly
       const player = this._players.find((p) => p.id === id);
       if (player) {
@@ -157,7 +159,7 @@ export class GameSession {
         player.isDisconnected = true;
       }
 
-      if (this._phase === 'TURN_BASED' && this._activePlayerId === id) {
+      if (this._phase === GamePhase.TURN_BASED && this._activePlayerId === id) {
         // If the active player disconnected, we pass the turn
         this.passTurn(id);
       }
@@ -170,7 +172,7 @@ export class GameSession {
       throw new Error('Only the host can start the quiz');
     }
 
-    if (this._phase !== 'LOBBY') {
+    if (this._phase !== GamePhase.LOBBY) {
       throw new Error('Quiz has already started');
     }
 
@@ -191,19 +193,19 @@ export class GameSession {
     this._roundEndTime = null;
 
     // Check if SPEED_MODE was selected
-    if (this._gameMode === 'SPEED_MODE') {
-      this._phase = 'SPEED_ROUND';
+    if (this._gameMode === GameMode.SPEED_MODE) {
+      this._phase = GamePhase.SPEED_ROUND;
       this._activePlayerId = null;
       this._songStarterPlayerId = null;
     } else {
       // Check if we immediately start in Speed Round (e.g. quiz with very few songs)
       const activeCount = this.getActivePlayersCount();
       if (this._quiz.songs.length < activeCount) {
-        this._phase = 'SPEED_ROUND';
+        this._phase = GamePhase.SPEED_ROUND;
         this._activePlayerId = null;
         this._songStarterPlayerId = null;
       } else {
-        this._phase = 'TURN_BASED';
+        this._phase = GamePhase.TURN_BASED;
         // Pick first non-disconnected player
         this._activePlayerId = this.findNextTurnPlayer(null);
         this._songStarterPlayerId = this._activePlayerId;
@@ -216,7 +218,7 @@ export class GameSession {
     if (!caller || !caller.isHost) {
       throw new Error('Only the host can start the audio timer');
     }
-    if (this._roundState !== 'GUESSING') return;
+    if (this._roundState !== RoundState.GUESSING) return;
 
     this.startRoundTimerInternal();
   }
@@ -231,7 +233,7 @@ export class GameSession {
   }
 
   public submitGuess(playerId: string, guess: string): boolean {
-    if (this._roundState === 'REVEALED') {
+    if (this._roundState === RoundState.REVEALED) {
       throw new Error('Round is already over. Waiting for next song.');
     }
 
@@ -253,7 +255,7 @@ export class GameSession {
       throw new Error('Hosts cannot submit guesses');
     }
 
-    if (this._phase === 'TURN_BASED') {
+    if (this._phase === GamePhase.TURN_BASED) {
       if (playerId !== this._activePlayerId) {
         throw new Error('It is not your turn to guess');
       }
@@ -261,7 +263,7 @@ export class GameSession {
       const isCorrect = this.checkAnswer(activeSong, guess);
       if (isCorrect) {
         player.score += 1;
-        this._roundState = 'REVEALED';
+        this._roundState = RoundState.REVEALED;
         this._lastRoundWinnerId = playerId;
         return true;
       } else {
@@ -270,7 +272,7 @@ export class GameSession {
         this.rotateTurn();
         return false;
       }
-    } else if (this._phase === 'SPEED_ROUND') {
+    } else if (this._phase === GamePhase.SPEED_ROUND) {
       if (this._playersGuessed.includes(playerId)) {
         throw new Error('You have already guessed for this song');
       }
@@ -278,7 +280,7 @@ export class GameSession {
       const isCorrect = this.checkAnswer(activeSong, guess);
       if (isCorrect) {
         player.score += 1;
-        this._roundState = 'REVEALED';
+        this._roundState = RoundState.REVEALED;
         this._lastRoundWinnerId = playerId;
         return true;
       } else {
@@ -286,7 +288,7 @@ export class GameSession {
         // If everyone has guessed wrong or passed, transition to reveal immediately
         const activeCount = this.getActivePlayersCount();
         if (this._playersGuessed.length + this._playersPassed.length >= activeCount) {
-          this._roundState = 'REVEALED';
+          this._roundState = RoundState.REVEALED;
           this._lastRoundWinnerId = null;
         }
         return false;
@@ -302,7 +304,7 @@ export class GameSession {
       throw new Error('Hosts cannot pass turns');
     }
 
-    if (this._phase !== 'TURN_BASED') {
+    if (this._phase !== GamePhase.TURN_BASED) {
       throw new Error('Turns can only be passed in turn-based mode');
     }
 
@@ -319,11 +321,11 @@ export class GameSession {
     if (!caller || !caller.isHost) {
       throw new Error('Only the host can advance the round');
     }
-    if (this._roundState !== 'REVEALED') {
+    if (this._roundState !== RoundState.REVEALED) {
       throw new Error('Cannot advance round while guessing is active');
     }
 
-    this._roundState = 'GUESSING';
+    this._roundState = RoundState.GUESSING;
     this._lastRoundWinnerId = null;
     this._roundEndTime = null;
     this.moveToNextSong();
@@ -334,9 +336,9 @@ export class GameSession {
     if (!caller || !caller.isHost) {
       throw new Error('Only the host can force reveal');
     }
-    if (this._roundState === 'REVEALED') return;
+    if (this._roundState === RoundState.REVEALED) return;
 
-    this._roundState = 'REVEALED';
+    this._roundState = RoundState.REVEALED;
     this._lastRoundWinnerId = null;
     this._roundEndTime = null;
   }
@@ -346,10 +348,10 @@ export class GameSession {
     if (!caller || !caller.isHost) {
       throw new Error('Only the host can end the game');
     }
-    this._phase = 'COMPLETED';
+    this._phase = GamePhase.COMPLETED;
     this._activePlayerId = null;
     this._songStarterPlayerId = null;
-    this._roundState = 'REVEALED';
+    this._roundState = RoundState.REVEALED;
     this._roundEndTime = null;
   }
 
@@ -370,14 +372,21 @@ export class GameSession {
 
   private checkAnswer(song: typeof this._quiz.songs[0], guess: string): boolean {
     let answer = '';
-    if (song.questionType === 'TRACK_NAME') {
-      answer = song.track.title;
-    } else if (song.questionType === 'ARTIST_NAME') {
-      answer = song.track.artist;
-    } else if (song.questionType === 'FILL_IN_THE_GAP') {
-      const rawLyrics = song.lyricsGap || '';
-      const matches = [...rawLyrics.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]);
-      answer = matches.length > 0 ? matches.join(' ') : rawLyrics;
+    switch (song.questionType) {
+      case QuestionType.TRACK_NAME: {
+        answer = song.track.title;
+        break;
+      }
+      case QuestionType.ARTIST_NAME: {
+        answer = song.track.artist;
+        break;
+      }
+      case QuestionType.FILL_IN_THE_GAP: {
+        const rawLyrics = song.lyricsGap || '';
+        const matches = [...rawLyrics.matchAll(/\{([^\}]+)\}/g)].map((m) => m[1]);
+        answer = matches.length > 0 ? matches.join(' ') : rawLyrics;
+        break;
+      }
     }
 
     const normalize = (str: string) =>
@@ -397,7 +406,7 @@ export class GameSession {
       this._activePlayerId = nextPlayer;
     } else {
       // Everyone has either passed or guessed wrong for this song -> transition to reveal
-      this._roundState = 'REVEALED';
+      this._roundState = RoundState.REVEALED;
       this._lastRoundWinnerId = null;
     }
   }
@@ -458,7 +467,7 @@ export class GameSession {
 
     const total = this._quiz.songs.length;
     if (this._currentSongIndex >= total) {
-      this._phase = 'COMPLETED';
+      this._phase = GamePhase.COMPLETED;
       this._activePlayerId = null;
       return;
     }
@@ -468,12 +477,12 @@ export class GameSession {
 
     // SPEED ROUND Transition Check (Unfairness Prevention)
     if (remainingSongs < activeCount) {
-      this._phase = 'SPEED_ROUND';
+      this._phase = GamePhase.SPEED_ROUND;
       this._activePlayerId = null;
       this._songStarterPlayerId = null;
     } else {
       // In Turn-Based Mode, select the next active player from the list
-      this._phase = 'TURN_BASED';
+      this._phase = GamePhase.TURN_BASED;
       this._songStarterPlayerId = this.findNextTurnPlayer(this._songStarterPlayerId);
       this._activePlayerId = this._songStarterPlayerId;
     }
@@ -488,7 +497,7 @@ export class GameSession {
     let sanitizedSong: ActiveSongInfo | null = null;
 
     const isHost = playerId === this._hostId;
-    const isRevealed = this._roundState === 'REVEALED';
+    const isRevealed = this._roundState === RoundState.REVEALED;
 
     if (currentSong) {
       const { track, questionType, start_offset_ms, end_offset_ms, lyricsGap } = currentSong;
@@ -506,11 +515,11 @@ export class GameSession {
         songCover = track.coverArtUrl;
         songLyrics = lyricsGap ?? null;
       } else {
-        songTitle = questionType === 'TRACK_NAME' ? null : track.title;
-        songArtist = questionType === 'ARTIST_NAME' ? null : track.artist;
+        songTitle = questionType === QuestionType.TRACK_NAME ? null : track.title;
+        songArtist = questionType === QuestionType.ARTIST_NAME ? null : track.artist;
         songAlbum = null;
         songCover = null;
-        songLyrics = questionType === 'FILL_IN_THE_GAP' ? this.maskLyrics(lyricsGap) : null;
+        songLyrics = questionType === QuestionType.FILL_IN_THE_GAP ? this.maskLyrics(lyricsGap) : null;
       }
 
       sanitizedSong = {
@@ -545,7 +554,7 @@ export class GameSession {
       guessingTimeLimit: currentSong
         ? Math.max(30, Math.ceil((currentSong.end_offset_ms - currentSong.start_offset_ms) / 1000))
         : 30,
-      roundEndTime: this._roundState === 'GUESSING' ? this._roundEndTime : null,
+      roundEndTime: this._roundState === RoundState.GUESSING ? this._roundEndTime : null,
     };
   }
 

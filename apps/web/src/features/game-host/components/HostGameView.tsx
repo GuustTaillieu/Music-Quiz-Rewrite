@@ -5,16 +5,16 @@ import { HostDiscVisualizer } from './HostDiscVisualizer';
 import { HostLyricsDisplay } from './HostLyricsDisplay';
 import { HostTimerProgressBar } from './HostTimerProgressBar';
 import { HostAudioControls } from './HostAudioControls';
-import type { GameSessionState, Player } from '@spotify-music-quiz/shared/schema/game';
+import { RoundState, type GameMode, type GameSessionState, type Player } from '@spotify-music-quiz/shared/schema/game';
 
 interface HostGameViewProps {
   lobbyId: string;
   gameState: GameSessionState;
   buzzerWinner?: Player | null;
-  selectedGameMode: 'SPEED_MODE' | 'TURN_BASED';
+  selectedGameMode: GameMode;
   isSpeedRoundModalOpen: boolean;
   setIsSpeedRoundModalOpen: (open: boolean) => void;
-  onSelectGameMode: (mode: 'SPEED_MODE' | 'TURN_BASED') => void;
+  onSelectGameMode: (mode: GameMode) => void;
   isPlaying: boolean;
   onTogglePlayPause: () => void;
   onRestartTimer: () => void;
@@ -53,7 +53,7 @@ export function HostGameView({
   maxTimeLimit,
 }: HostGameViewProps) {
   const activeSong = gameState.activeSong;
-  const isRevealed = gameState.roundState === 'REVEALED';
+  const isRevealed = gameState.roundState === RoundState.REVEALED;
   const isLastSong = (gameState.currentSongIndex ?? 0) >= gameState.totalSongs - 1;
 
   return (

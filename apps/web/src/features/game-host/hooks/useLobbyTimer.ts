@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
+import { RoundState, type GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 
 export function useLobbyTimer(
   gameState: GameSessionState | null,
@@ -11,7 +11,7 @@ export function useLobbyTimer(
   const hasExpiredTriggeredRef = useRef<boolean>(false);
 
   const roundEndTime = gameState?.roundEndTime ?? null;
-  const isGuessing = gameState?.roundState === 'GUESSING';
+  const isGuessing = gameState?.roundState === RoundState.GUESSING;
 
   useEffect(() => {
     if (!isGuessing || !roundEndTime) {
