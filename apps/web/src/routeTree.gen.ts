@@ -9,15 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as JoinRouteImport } from './routes/join'
-import { Route as LobbyLobbyIdRouteImport } from './routes/lobby.$lobbyId'
-import { Route as StudioQuizIdRouteImport } from './routes/studio.$quizId'
-import { Route as QuizShareQuizIdRouteImport } from './routes/quiz.share.$quizId'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedLobbyLobbyIdRouteImport } from './routes/_authenticated/lobby.$lobbyId'
+import { Route as AuthenticatedStudioQuizIdRouteImport } from './routes/_authenticated/studio.$quizId'
+import { Route as AuthenticatedQuizShareQuizIdRouteImport } from './routes/_authenticated/quiz.share.$quizId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JoinRoute = JoinRouteImport.update({
@@ -25,43 +25,52 @@ const JoinRoute = JoinRouteImport.update({
   path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LobbyLobbyIdRoute = LobbyLobbyIdRouteImport.update({
-  id: '/lobby/$lobbyId',
-  path: '/lobby/$lobbyId',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const StudioQuizIdRoute = StudioQuizIdRouteImport.update({
-  id: '/studio/$quizId',
-  path: '/studio/$quizId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuizShareQuizIdRoute = QuizShareQuizIdRouteImport.update({
-  id: '/quiz/share/$quizId',
-  path: '/quiz/share/$quizId',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedLobbyLobbyIdRoute =
+  AuthenticatedLobbyLobbyIdRouteImport.update({
+    id: '/lobby/$lobbyId',
+    path: '/lobby/$lobbyId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedStudioQuizIdRoute =
+  AuthenticatedStudioQuizIdRouteImport.update({
+    id: '/studio/$quizId',
+    path: '/studio/$quizId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedQuizShareQuizIdRoute =
+  AuthenticatedQuizShareQuizIdRouteImport.update({
+    id: '/quiz/share/$quizId',
+    path: '/quiz/share/$quizId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedIndexRoute
   '/join': typeof JoinRoute
-  '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
-  '/studio/$quizId': typeof StudioQuizIdRoute
-  '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
+  '/lobby/$lobbyId': typeof AuthenticatedLobbyLobbyIdRoute
+  '/studio/$quizId': typeof AuthenticatedStudioQuizIdRoute
+  '/quiz/share/$quizId': typeof AuthenticatedQuizShareQuizIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/join': typeof JoinRoute
-  '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
-  '/studio/$quizId': typeof StudioQuizIdRoute
-  '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/lobby/$lobbyId': typeof AuthenticatedLobbyLobbyIdRoute
+  '/studio/$quizId': typeof AuthenticatedStudioQuizIdRoute
+  '/quiz/share/$quizId': typeof AuthenticatedQuizShareQuizIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/join': typeof JoinRoute
-  '/lobby/$lobbyId': typeof LobbyLobbyIdRoute
-  '/studio/$quizId': typeof StudioQuizIdRoute
-  '/quiz/share/$quizId': typeof QuizShareQuizIdRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/lobby/$lobbyId': typeof AuthenticatedLobbyLobbyIdRoute
+  '/_authenticated/studio/$quizId': typeof AuthenticatedStudioQuizIdRoute
+  '/_authenticated/quiz/share/$quizId': typeof AuthenticatedQuizShareQuizIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -73,35 +82,33 @@ export interface FileRouteTypes {
     | '/quiz/share/$quizId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/join'
+    | '/'
     | '/lobby/$lobbyId'
     | '/studio/$quizId'
     | '/quiz/share/$quizId'
   id:
     | '__root__'
-    | '/'
+    | '/_authenticated'
     | '/join'
-    | '/lobby/$lobbyId'
-    | '/studio/$quizId'
-    | '/quiz/share/$quizId'
+    | '/_authenticated/'
+    | '/_authenticated/lobby/$lobbyId'
+    | '/_authenticated/studio/$quizId'
+    | '/_authenticated/quiz/share/$quizId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   JoinRoute: typeof JoinRoute
-  LobbyLobbyIdRoute: typeof LobbyLobbyIdRoute
-  StudioQuizIdRoute: typeof StudioQuizIdRoute
-  QuizShareQuizIdRoute: typeof QuizShareQuizIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/join': {
@@ -111,36 +118,58 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lobby/$lobbyId': {
-      id: '/lobby/$lobbyId'
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/lobby/$lobbyId': {
+      id: '/_authenticated/lobby/$lobbyId'
       path: '/lobby/$lobbyId'
       fullPath: '/lobby/$lobbyId'
-      preLoaderRoute: typeof LobbyLobbyIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedLobbyLobbyIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/studio/$quizId': {
-      id: '/studio/$quizId'
+    '/_authenticated/studio/$quizId': {
+      id: '/_authenticated/studio/$quizId'
       path: '/studio/$quizId'
       fullPath: '/studio/$quizId'
-      preLoaderRoute: typeof StudioQuizIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedStudioQuizIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/quiz/share/$quizId': {
-      id: '/quiz/share/$quizId'
+    '/_authenticated/quiz/share/$quizId': {
+      id: '/_authenticated/quiz/share/$quizId'
       path: '/quiz/share/$quizId'
       fullPath: '/quiz/share/$quizId'
-      preLoaderRoute: typeof QuizShareQuizIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedQuizShareQuizIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedLobbyLobbyIdRoute: typeof AuthenticatedLobbyLobbyIdRoute
+  AuthenticatedStudioQuizIdRoute: typeof AuthenticatedStudioQuizIdRoute
+  AuthenticatedQuizShareQuizIdRoute: typeof AuthenticatedQuizShareQuizIdRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedLobbyLobbyIdRoute: AuthenticatedLobbyLobbyIdRoute,
+  AuthenticatedStudioQuizIdRoute: AuthenticatedStudioQuizIdRoute,
+  AuthenticatedQuizShareQuizIdRoute: AuthenticatedQuizShareQuizIdRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   JoinRoute: JoinRoute,
-  LobbyLobbyIdRoute: LobbyLobbyIdRoute,
-  StudioQuizIdRoute: StudioQuizIdRoute,
-  QuizShareQuizIdRoute: QuizShareQuizIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

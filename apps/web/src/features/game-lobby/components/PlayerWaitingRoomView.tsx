@@ -1,36 +1,26 @@
-import { useState } from 'react';
 import { Users, Copy, Check, Crown } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Card } from '#/features/shared/components/ui/card';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '#/features/shared/components/ui/tooltip';
-import type { Player } from '@spotify-music-quiz/shared/schema/game';
+import { useQuizGame } from '#/features/game-player';
+import { useCopyLobbyCode } from '#/features/lobby-core/hooks/useCopyLobyCode';
+import { useNavigate } from '@tanstack/react-router';
 
 interface PlayerWaitingRoomViewProps {
-  lobbyId: string;
   username: string;
-  quizTitle?: string;
-  players: Player[];
-  onLeave: () => void;
 }
 
 export function PlayerWaitingRoomView({
-  lobbyId,
   username,
-  quizTitle,
-  players,
-  onLeave,
 }: PlayerWaitingRoomViewProps) {
-  const [isCopied, setIsCopied] = useState(false);
-  const hostPlayer = players.find((p) => p.isHost);
+  const navigate = useNavigate();
+  const { gameState, leaveLobby } = useQuizGame()
+  const { formattedLobbyId, handleCopyCode, isCopied } = useCopyLobbyCode()
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(lobbyId);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
-  };
+  if (!gameState) return null;
 
-  const formattedLobbyId = lobbyId.length === 6 ? `${lobbyId.slice(0, 3)}-${lobbyId.slice(3)}` : lobbyId;
+  const hostPlayer = gameState.players.find((p) => p.isHost);
 
   return (
     <TooltipProvider>
@@ -44,7 +34,7 @@ export function PlayerWaitingRoomView({
                 Player Lobby &bull; {username}
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-white">
-                {quizTitle || 'Waiting Room'}
+                Waiting Room
               </h1>
             </div>
 
@@ -71,16 +61,15 @@ export function PlayerWaitingRoomView({
 
           {/* Players List Grid */}
           <div className="mb-6 sm:mb-8">
-            <h3 className="font-bold text-foreground text-xs uppercase tracking-wider mb-4 flex items-center gap-2 text-pink-400">
-              <Users size={16} /> Players Joined ({players.length})
+            <h3 className="font-bold text-xs uppercase tracking-wider mb-4 flex items-center gap-2 text-pink-400">
+              <Users size={16} /> Players Joined ({gameState.players.length})
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 sm:max-h-72 overflow-y-auto pr-1">
-              {players.map((p) => (
+              {gameState.players.map((p) => (
                 <div
                   key={p.id}
-                  className={`flex items-center justify-between p-3 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${
-                    p.isDisconnected ? 'opacity-50' : ''
-                  }`}
+                  className={`flex items-center justify-between p-3 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${p.isDisconnected ? 'opacity-50' : ''
+                    }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 pr-2">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${p.isDisconnected ? 'bg-amber-400 animate-pulse' : 'bg-[#00f0ff] shadow-[0_0_8px_#00f0ff]'}`} />
@@ -106,7 +95,7 @@ export function PlayerWaitingRoomView({
               </span>
             </div>
 
-            <Button variant="outline" size="sm" onClick={onLeave} className="w-full sm:w-auto border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/10 text-rose-300">
+            <Button variant="outline" size="sm" onClick={() => leaveLobby(() => navigate({ to: '/', replace: true }))} className="w-full sm:w-auto border-rose-500/30 hover:border-rose-500/60 hover:bg-rose-500/10 text-rose-300">
               Exit Lobby
             </Button>
           </div>

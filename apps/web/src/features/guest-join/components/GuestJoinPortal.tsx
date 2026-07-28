@@ -7,7 +7,7 @@ import { Input } from '#/features/shared/components/ui/input';
 import { Card } from '#/features/shared/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '#/features/shared/components/ui/input-otp';
 import { useAuth } from '#/features/auth';
-import { useLobbyCode } from '#/features/lobby-core';
+import { useValidateLobbyCode } from '#/features/lobby-core';
 
 export function GuestJoinPortal() {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export function GuestJoinPortal() {
     isInvalid: isCodeInvalid,
     errorMessage: joinError,
     handleCodeChange,
-  } = useLobbyCode(() => {
+  } = useValidateLobbyCode(() => {
     setStep('name');
   });
 
@@ -37,7 +37,7 @@ export function GuestJoinPortal() {
   };
 
   return (
-    <div className="relative w-full h-[100dvh] flex flex-col items-center justify-center overflow-hidden px-6 bg-[#05070f]">
+    <div className="relative w-full h-dvh flex flex-col items-center justify-center overflow-hidden px-6 bg-[#05070f]">
       <div className="synth-grid absolute inset-0 pointer-events-none" />
 
       <Card className="w-full max-w-md p-8 z-10 text-center shadow-[0_8px_32px_rgba(0,0,0,0.5)]">

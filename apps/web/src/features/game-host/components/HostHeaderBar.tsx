@@ -3,32 +3,26 @@ import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '#/features/shared/components/ui/tooltip';
 import { GameModeToggleSwitch } from '#/features/game-lobby';
-import type { GameMode } from '@spotify-music-quiz/shared/schema/game';
+import { useCopyLobbyCode } from '#/features/lobby-core/hooks/useCopyLobyCode';
+import { useQuizGame } from '#/features/game-player';
 
 interface HostHeaderBarProps {
   quizTitle?: string;
-  lobbyId: string;
   currentSongIndex: number;
   totalSongs: number;
-  selectedMode: GameMode;
-  onSelectMode: (mode: GameMode) => void;
-  isCopied?: boolean;
-  handleCopyCode: () => void;
   onLeave: () => void;
 }
 
 export function HostHeaderBar({
   quizTitle,
-  lobbyId,
   currentSongIndex,
   totalSongs,
-  selectedMode,
-  onSelectMode,
-  isCopied,
-  handleCopyCode,
   onLeave,
 }: HostHeaderBarProps) {
-  const formattedLobbyId = lobbyId.length === 6 ? `${lobbyId.slice(0, 3)}-${lobbyId.slice(3)}` : lobbyId;
+  const { gameState, selectGameMode } = useQuizGame()
+  const { formattedLobbyId, handleCopyCode, isCopied } = useCopyLobbyCode();
+
+  if (!gameState) return null;
 
   return (
     <TooltipProvider>
@@ -70,8 +64,8 @@ export function HostHeaderBar({
         </div>
 
         <GameModeToggleSwitch
-          selectedMode={selectedMode}
-          onSelectMode={onSelectMode}
+          selectedMode={gameState.gameMode}
+          onSelectMode={selectGameMode}
         />
 
         <div className="flex items-center gap-3">

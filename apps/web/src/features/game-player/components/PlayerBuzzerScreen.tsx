@@ -1,47 +1,35 @@
-import React, { type SubmitEventHandler } from 'react';
 import { Clock, XCircle } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Badge } from '#/features/shared/components/ui/badge';
-import { CavaVisualizer } from '#/features/game-host';
+import { CavaVisualizer, useGameTimer } from '#/features/game-host';
 import { parseGapBlocks } from '#/features/shared/utils/lobbyUtils';
 import { PlayerHeaderBar } from './PlayerHeaderBar';
 import { PlayerLeaveButton } from './PlayerLeaveButton';
 import { RoundSummaryOverlay } from './RoundSummaryOverlay';
 import { useCountdownVFX } from '../hooks/useCountdownVFX';
-import { GameMode, GamePhase, RoundState, type GameSessionState, type Player } from '@spotify-music-quiz/shared/schema/game';
+import { GameMode, GamePhase, QuestionType, RoundState, type Player } from '@spotify-music-quiz/shared/schema/game';
+import { useQuizGame } from '../../game-session/hooks/useQuizGame';
+import { usePlayerActions } from '../hooks/usePlayerActions';
+import { useNavigate } from '@tanstack/react-router';
+import { getQuestionTypeLabel } from '../utils/question-type-text';
 
 interface PlayerBuzzerScreenProps {
   username: string;
-  gameState: GameSessionState;
   buzzerWinner?: Player | null;
-  guessInput: string;
-  setGuessInput: (val: string) => void;
-  gapInputs: Record<number, string>;
-  setGapInputs: (inputs: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => void;
-  localTimeLeft?: number | null;
-  maxTimeLimit?: number;
-  onBuzzerClick: () => void;
-  onGuessSubmit: SubmitEventHandler;
-  onGapSubmit: SubmitEventHandler;
-  onLeave: () => void;
 }
 
 export function PlayerBuzzerScreen({
   username,
-  gameState,
   buzzerWinner,
-  guessInput,
-  setGuessInput,
-  gapInputs,
-  setGapInputs,
-  localTimeLeft,
-  maxTimeLimit = 30,
-  onGuessSubmit,
-  onGapSubmit,
-  onLeave,
 }: PlayerBuzzerScreenProps) {
-  const activeSong = gameState.activeSong;
+  const navigate = useNavigate();
+  const { gameState, forceReveal, leaveLobby } = useQuizGame()
+  const { localTimeLeft, maxTimeLimit } = useGameTimer(forceReveal);
+  const { guessInput, gapInputs, handleGuessSubmit, handleGapSubmit, setGuessInput, setGapInputs } = usePlayerActions()
+
+  if (!gameState) return null;
+
   const isPlaying = gameState.phase === GamePhase.SPEED_ROUND || gameState.phase === GamePhase.TURN_BASED;
   const isRevealed = gameState.roundState === RoundState.REVEALED;
   const isSpeedMode = gameState.gameMode === GameMode.SPEED_MODE;
@@ -67,10 +55,11 @@ export function PlayerBuzzerScreen({
   const { hasTimer, isTimeUp, isCritical, secondsLeft } = useCountdownVFX(localTimeLeft);
   const isDisabled = !isPlaying || isRevealed || isTimeUp;
 
-  const gapBlocks = parseGapBlocks(activeSong?.lyricsGap);
+  const gapBlocks = parseGapBlocks(gameState.activeSong?.lyricsGap);
   const progressPercent = hasTimer && maxTimeLimit > 0
     ? Math.max(0, Math.min(100, ((secondsLeft ?? 0) / maxTimeLimit) * 100))
     : 100;
+
 
   return (
     <div
@@ -84,7 +73,7 @@ export function PlayerBuzzerScreen({
         <div className="flex-1 max-w-sm">
           <PlayerHeaderBar username={username} players={gameState.players} />
         </div>
-        <PlayerLeaveButton onLeave={onLeave} />
+        <PlayerLeaveButton onLeave={() => leaveLobby(() => navigate({ to: '/', replace: true }))} />
       </div>
 
       {/* High-Stakes Videogame Countdown Overlay (Last 5 Seconds) */}
@@ -98,7 +87,7 @@ export function PlayerBuzzerScreen({
 
       {/* End of Round Summary Overlay */}
       {isRevealed && (
-        <RoundSummaryOverlay gameState={gameState} username={username} />
+        <RoundSummaryOverlay username={username} />
       )}
 
       {/* Main Visualizer Area */}
@@ -106,9 +95,7 @@ export function PlayerBuzzerScreen({
         {isPlaying ? (
           <div className="space-y-4">
             <Badge variant={isCritical ? 'destructive' : 'magenta'} className="px-4 py-1.5 text-xs font-black uppercase tracking-widest shadow-md">
-              {activeSong?.questionType === 'FILL_IN_THE_GAP'
-                ? 'Fill in the Gap Lyrics'
-                : 'Guess the Track Title'}
+              {getQuestionTypeLabel(gameState.activeSong?.questionType ?? QuestionType.TRACK_NAME)}
             </Badge>
 
             <CavaVisualizer isPlaying={true} />
@@ -177,8 +164,8 @@ export function PlayerBuzzerScreen({
               It is currently <strong className="text-white">{activeTurnPlayer?.name || 'another player'}</strong>'s turn to guess!
             </p>
           </div>
-        ) : activeSong?.questionType === 'FILL_IN_THE_GAP' ? (
-          <form onSubmit={onGapSubmit} className="space-y-3">
+        ) : gameState.activeSong?.questionType === QuestionType.FILL_IN_THE_GAP ? (
+          <form onSubmit={handleGapSubmit} className="space-y-3">
             <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
               {gapBlocks.map((block) => (
                 <div key={block.id} className="flex items-center gap-2">
@@ -203,7 +190,7 @@ export function PlayerBuzzerScreen({
             </Button>
           </form>
         ) : (
-          <form onSubmit={onGuessSubmit} className="flex gap-2">
+          <form onSubmit={handleGuessSubmit} className="flex gap-2">
             <Input
               type="text"
               placeholder={isTimeUp ? "Time's up!" : "Type your guess here..."}

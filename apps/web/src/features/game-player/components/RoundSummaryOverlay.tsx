@@ -2,15 +2,18 @@ import { Trophy, Music, Clock, Sparkles, CheckCircle2, XCircle } from 'lucide-re
 import { Card } from '#/features/shared/components/ui/card';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Avatar, AvatarFallback } from '#/features/shared/components/ui/avatar';
-import type { GameSessionState, Player } from '@spotify-music-quiz/shared/schema/game';
+import type { Player } from '@spotify-music-quiz/shared/schema/game';
+import { useQuizGame } from '..';
 
 interface RoundSummaryOverlayProps {
-  gameState: GameSessionState;
   username: string;
 }
 
-export function RoundSummaryOverlay({ gameState, username }: RoundSummaryOverlayProps) {
-  const activeSong = gameState.activeSong;
+export function RoundSummaryOverlay({ username }: RoundSummaryOverlayProps) {
+  const { gameState } = useQuizGame();
+
+  if (!gameState) return null;
+
   const winner = gameState.players.find((p: Player) => p.id === gameState.lastRoundWinnerId);
   const isUserWinner = winner?.name === username;
 
@@ -32,12 +35,12 @@ export function RoundSummaryOverlay({ gameState, username }: RoundSummaryOverlay
         </div>
 
         {/* Song Info Card */}
-        {activeSong && (
+        {gameState.activeSong && (
           <div className="flex items-center gap-4 p-3.5 bg-black/50 border border-cyan-500/20 rounded-2xl text-left">
-            {activeSong.coverArtUrl ? (
+            {gameState.activeSong.coverArtUrl ? (
               <img
-                src={activeSong.coverArtUrl}
-                alt={activeSong.title || 'Track'}
+                src={gameState.activeSong.coverArtUrl}
+                alt={gameState.activeSong.title || 'Track'}
                 className="h-16 w-16 rounded-xl object-cover border border-cyan-500/20 shadow-md shrink-0"
               />
             ) : (
@@ -50,10 +53,10 @@ export function RoundSummaryOverlay({ gameState, username }: RoundSummaryOverlay
                 The song was:
               </span>
               <h4 className="font-extrabold text-white text-sm truncate leading-tight">
-                {activeSong.title || 'Unknown Track'}
+                {gameState.activeSong.title || 'Unknown Track'}
               </h4>
               <p className="text-xs font-medium text-muted-foreground truncate leading-tight mt-0.5">
-                {activeSong.artist || 'Unknown Artist'}
+                {gameState.activeSong.artist || 'Unknown Artist'}
               </p>
             </div>
           </div>
@@ -61,11 +64,10 @@ export function RoundSummaryOverlay({ gameState, username }: RoundSummaryOverlay
 
         {/* Winner Highlight Banner */}
         {winner ? (
-          <div className={`p-4 rounded-2xl border text-center space-y-1 ${
-            isUserWinner
-              ? 'bg-emerald-500/15 border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
-              : 'bg-cyan-500/10 border-cyan-500/30'
-          }`}>
+          <div className={`p-4 rounded-2xl border text-center space-y-1 ${isUserWinner
+            ? 'bg-emerald-500/15 border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+            : 'bg-cyan-500/10 border-cyan-500/30'
+            }`}>
             <div className="flex items-center justify-center gap-2">
               <CheckCircle2 size={18} className={isUserWinner ? 'text-emerald-400' : 'text-cyan-400'} />
               <span className="font-black text-sm text-white">
@@ -92,11 +94,10 @@ export function RoundSummaryOverlay({ gameState, username }: RoundSummaryOverlay
             {sortedPlayers.slice(0, 4).map((player, idx) => (
               <div
                 key={player.id}
-                className={`flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-colors ${
-                  player.name === username
-                    ? 'bg-cyan-500/20 border border-cyan-500/40 text-white'
-                    : 'bg-black/40 border border-cyan-500/10 text-muted-foreground'
-                }`}
+                className={`flex items-center justify-between p-2 rounded-xl text-xs font-bold transition-colors ${player.name === username
+                  ? 'bg-cyan-500/20 border border-cyan-500/40 text-white'
+                  : 'bg-black/40 border border-cyan-500/10 text-muted-foreground'
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[10px] text-cyan-400 w-4 text-center">

@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useAuth } from '#/features/auth';
 import { HostDashboardView } from '#/features/host-dashboard';
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/_authenticated/')({
   component: DashboardRouteComponent,
 });
 

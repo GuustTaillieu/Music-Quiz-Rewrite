@@ -2,13 +2,13 @@ import { useNavigate } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
 import { Input } from '#/features/shared/components/ui/input';
 import { useAuth } from '#/features/auth';
-import { useLobbyCode } from '#/features/lobby-core';
+import { useValidateLobbyCode } from '#/features/lobby-core';
 
 export function JoinCodeInput() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { lobbyCode, isValidating, isInvalid, errorMessage, handleCodeChange } = useLobbyCode((code) => {
+  const { lobbyCode, isValidating, isInvalid, errorMessage, handleCodeChange } = useValidateLobbyCode((code) => {
     navigate({
       to: '/lobby/$lobbyId',
       params: { lobbyId: code },

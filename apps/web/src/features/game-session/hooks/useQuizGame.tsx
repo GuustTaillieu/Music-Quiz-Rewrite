@@ -1,10 +1,30 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useWebSocket } from './useWebSocket';
+import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useWebSocket } from '../../game-player/hooks/useWebSocket';
 import type { GameMode, GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
 import { GAME_EVENTS } from '@spotify-music-quiz/shared/constants/game-events';
 
-export function useQuizGame() {
+interface QuizGameContextType {
+  isConnected: boolean;
+  gameState: GameSessionState | null;
+  error: string | null;
+  lastGuessResult: boolean | null;
+  joinLobby: (lobbyId: string, username: string, userId?: string) => void;
+  leaveLobby: (callback?: () => void) => void;
+  startGame: () => void;
+  startAudioTimer: () => void;
+  submitGuess: (guess: string) => void;
+  passTurn: () => void;
+  nextSong: () => void;
+  forceReveal: () => void;
+  endGame: () => void;
+  isUserHost: (userId?: string) => boolean;
+  selectGameMode: (gameMode: GameMode) => void;
+}
+
+const QuizGameContext = createContext<QuizGameContextType | null>(null);
+
+export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const { isConnected, emit, registerHandler } = useWebSocket(GAME_CONFIG.WS_URL);
   const [gameState, setGameState] = useState<GameSessionState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +83,11 @@ export function useQuizGame() {
     [emit],
   );
 
+  const leaveLobby = useCallback((callback?: () => void) => {
+    endGame();
+    callback?.();
+  }, []);
+
   const startGame = useCallback(() => {
     emit(GAME_EVENTS.GAME_START);
   }, [emit]);
@@ -82,13 +107,6 @@ export function useQuizGame() {
     emit(GAME_EVENTS.NEXT_SONG);
   }, [emit]);
 
-  const configureLobby = useCallback(
-    (gameMode: GameMode, guessingTimeLimit: number) => {
-      emit(GAME_EVENTS.CONFIGURE_LOBBY, { gameMode, guessingTimeLimit });
-    },
-    [emit],
-  );
-
   const forceReveal = useCallback(() => {
     emit(GAME_EVENTS.FORCE_REVEAL);
   }, [emit]);
@@ -101,19 +119,39 @@ export function useQuizGame() {
     emit(GAME_EVENTS.HOST_AUDIO_STARTED);
   }, [emit]);
 
-  return {
-    isConnected,
-    gameState,
-    error,
-    lastGuessResult,
-    joinLobby,
-    startGame,
-    startAudioTimer,
-    submitGuess,
-    passTurn,
-    nextSong,
-    configureLobby,
-    forceReveal,
-    endGame,
-  };
+  const isUserHost = useCallback((userId?: string) => gameState
+    ? Boolean(userId && userId === gameState.hostId)
+    : false, [gameState]);
+
+  const selectGameMode = useCallback((gameMode: GameMode) => {
+    emit(GAME_EVENTS.CONFIGURE_LOBBY, { gameMode, guessingTimeLimit: gameState?.guessingTimeLimit ?? 30 });
+  }, [emit, gameState])
+
+  return (
+    <QuizGameContext.Provider value={{
+      isConnected,
+      gameState,
+      error,
+      lastGuessResult,
+      joinLobby,
+      leaveLobby,
+      startGame,
+      startAudioTimer,
+      submitGuess,
+      passTurn,
+      nextSong,
+      forceReveal,
+      endGame,
+      isUserHost,
+      selectGameMode
+    }}>
+      {children}
+    </QuizGameContext.Provider>
+  )
+}
+
+export function useQuizGame() {
+  const context = useContext(QuizGameContext);
+  if (!context) throw new Error('useQuizGame must be used within a QuizGameProvider');
+  return context;
 }

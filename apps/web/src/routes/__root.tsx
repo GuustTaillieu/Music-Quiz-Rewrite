@@ -14,6 +14,7 @@ import { GlobalVolumeWidget } from '#/features/audio-player/components/GlobalVol
 import appCss from '../styles.css?url';
 
 import type { QueryClient } from '@tanstack/react-query';
+import { QuizGameProvider } from '#/features/game-session/hooks/useQuizGame';
 
 interface MyRouterContext {
   queryClient: QueryClient;
@@ -52,8 +53,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
-        <GlobalVolumeWidget />
+        <QuizGameProvider>
+          {children}
+          <GlobalVolumeWidget />
+        </QuizGameProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',
