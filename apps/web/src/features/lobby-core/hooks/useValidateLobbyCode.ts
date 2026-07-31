@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { lobbyApi } from '../api/lobbyApi';
 
-export function useLobbyCode(onValidCode?: (code: string) => void) {
+export function useValidateLobbyCode(onValidCode?: (code: string) => void) {
   const [lobbyCode, setLobbyCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [isInvalid, setIsInvalid] = useState(false);
@@ -45,6 +45,6 @@ export function useLobbyCode(onValidCode?: (code: string) => void) {
     isInvalid,
     errorMessage,
     handleCodeChange,
-    resetCode,
+    resetCode
   };
 }

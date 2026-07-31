@@ -7,7 +7,31 @@ import { SpotifyTrack } from '@spotify-music-quiz/shared/schema/game';
 export class RealSpotifyService implements SpotifyService {
   private readonly logger = new Logger(RealSpotifyService.name);
 
-  constructor(private readonly tokenService: SpotifyTokenService) {}
+  constructor(private readonly tokenService: SpotifyTokenService) { }
+  async transferPlayback(hostAccessToken: string, deviceId: string, retries: number = 3): Promise<void> {
+    try {
+      const res = await fetch('https://api.spotify.com/v1/me/player', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${hostAccessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          device_ids: [deviceId],
+          play: false,
+        }),
+      });
+      this.logger.log(`Transferred playback to device ${deviceId} successfully`);
+    } catch (tErr) {
+      if (retries > 0) {
+        await new Promise((r) => setTimeout(r, 1000));
+        return this.transferPlayback(hostAccessToken, deviceId, retries - 1);
+      } else {
+        this.logger.error('Failed to transfer playback to device:', tErr);
+        throw tErr;
+      }
+    }
+  }
 
   private mapSpotifyTrack(track: any): SpotifyTrack {
     return {
@@ -100,9 +124,9 @@ export class RealSpotifyService implements SpotifyService {
         },
         body: isPlay
           ? JSON.stringify({
-              uris: [`spotify:track:${trackId}`],
-              position_ms: offsetMs ?? 0,
-            })
+            uris: [`spotify:track:${trackId}`],
+            position_ms: offsetMs ?? 0,
+          })
           : undefined,
       });
 

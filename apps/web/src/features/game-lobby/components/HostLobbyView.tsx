@@ -1,47 +1,20 @@
-import { useState } from 'react';
 import { Users, Copy, Check, Crown, Play } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Card } from '#/features/shared/components/ui/card';
 import { GameModeToggleSwitch } from './GameModeToggleSwitch';
-import type { GameMode, Player } from '@spotify-music-quiz/shared/schema/game';
+import { useQuizGame } from '#/features/game-player';
+import { useCopyLobbyCode } from '#/features/lobby-core/hooks/useCopyLobyCode';
+import { useNavigate } from '@tanstack/react-router';
 
-interface HostLobbyViewProps {
-  lobbyId: string;
-  quizTitle?: string;
-  players: Player[];
-  songsCount: number;
-  selectedMode: GameMode;
-  onSelectMode: (mode: GameMode) => void;
-  onStartGame: () => void;
-  onLeave: () => void;
-  isCopied?: boolean;
-  handleCopyCode?: () => void;
-}
+export function HostLobbyView() {
+  const navigate = useNavigate()
+  const { gameState, selectGameMode, startGame, leaveLobby } = useQuizGame()
+  const { formattedLobbyId, handleCopyCode, isCopied } = useCopyLobbyCode()
 
-export function HostLobbyView({
-  lobbyId,
-  quizTitle,
-  players,
-  songsCount,
-  selectedMode,
-  onSelectMode,
-  onStartGame,
-  onLeave,
-  isCopied: propIsCopied,
-  handleCopyCode: propHandleCopyCode,
-}: HostLobbyViewProps) {
-  const [localIsCopied, setLocalIsCopied] = useState(false);
-  const canStart = songsCount > 0 && players.length >= 3;
 
-  const isCopied = propIsCopied ?? localIsCopied;
-  const onCopy = propHandleCopyCode ?? (() => {
-    navigator.clipboard.writeText(lobbyId);
-    setLocalIsCopied(true);
-    setTimeout(() => setLocalIsCopied(false), 2000);
-  });
-
-  const formattedLobbyId = lobbyId.length === 6 ? `${lobbyId.slice(0, 3)}-${lobbyId.slice(3)}` : lobbyId;
+  if (!gameState) return null
+  const canStart = gameState.totalSongs > 0 && gameState.players.length >= 3;
 
   return (
     <div className="relative w-full min-h-screen py-12 flex flex-col justify-center items-center overflow-hidden px-4 bg-[#05070f] text-white">
@@ -51,7 +24,7 @@ export function HostLobbyView({
         <div className="flex flex-col gap-4 mb-6 pb-6 border-b border-cyan-500/10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <h1 className="text-3xl font-black text-white">
-              {quizTitle || 'Waiting Room'}
+              Waiting Room
             </h1>
 
             <div className="flex items-center gap-2 bg-black/40 border border-cyan-500/20 px-4 py-2.5 rounded-2xl shadow-inner">
@@ -63,7 +36,7 @@ export function HostLobbyView({
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={onCopy}
+                onClick={handleCopyCode}
                 className="p-1.5 text-cyan-400 hover:text-[#00f0ff] cursor-pointer flex items-center gap-1"
               >
                 {isCopied ? (
@@ -75,18 +48,18 @@ export function HostLobbyView({
             </div>
           </div>
           <GameModeToggleSwitch
-            selectedMode={selectedMode}
-            onSelectMode={onSelectMode}
+            selectedMode={gameState.gameMode}
+            onSelectMode={selectGameMode}
           />
         </div>
 
         {/* Players List Grid */}
         <div className="mb-8">
           <h3 className="font-bold text-xs uppercase tracking-wider mb-4 flex items-center gap-2 text-pink-400">
-            <Users size={16} /> Players Joined ({players.length})
+            <Users size={16} /> Players Joined ({gameState.players.length})
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
-            {players.map((p) => (
+            {gameState.players.map((p) => (
               <div
                 key={p.id}
                 className={`flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-cyan-500/10 hover:border-cyan-400 transition-colors ${p.isDisconnected ? 'opacity-50' : ''
@@ -112,10 +85,10 @@ export function HostLobbyView({
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={onLeave}>
+            <Button variant="outline" size="sm" onClick={() => leaveLobby(() => navigate({ to: '/', replace: true }))}>
               Exit
             </Button>
-            <Button variant="default" size="sm" onClick={onStartGame} disabled={!canStart}>
+            <Button variant="default" size="sm" onClick={startGame} disabled={!canStart}>
               <Play size={14} fill="currentColor" /> Start Game
             </Button>
           </div>

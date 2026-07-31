@@ -4,7 +4,7 @@ import { SpotifyTrack } from '@spotify-music-quiz/shared/schema/game';
 
 @Injectable()
 export class SpotifyService {
-  constructor(private readonly spotifyServicePort: SpotifyServicePort) {}
+  constructor(private readonly spotifyServicePort: SpotifyServicePort) { }
 
   public async search(hostAccessToken: string, query: string): Promise<SpotifyTrack[]> {
     return this.spotifyServicePort.searchTracks(hostAccessToken, query);
@@ -31,6 +31,10 @@ export class SpotifyService {
       console.error('Lyrics fetch error in backend:', e);
     }
     return { plainLyrics: null };
+  }
+
+  public async transferPlayback(token: string, deviceId: string): Promise<void> {
+    await this.spotifyServicePort.transferPlayback(token, deviceId);
   }
 
   public async playTrack(
@@ -67,28 +71,7 @@ export class SpotifyService {
           errMsg.includes('Device not found') ||
           errMsg.includes('NO_ACTIVE_DEVICE')
         ) {
-          try {
-            await fetch('https://api.spotify.com/v1/me/player', {
-              method: 'PUT',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                device_ids: [deviceId],
-                play: false,
-              }),
-            });
-          } catch (tErr) {
-            console.warn('Failed to transfer playback to device:', tErr);
-          }
-        }
-
-        if (retries > 0) {
-          await new Promise((r) => setTimeout(r, 1000));
-          return this.playTrack(token, deviceId, trackId, positionMs, retries - 1);
-        } else {
-          throw new Error(errMsg || `Spotify play failed with status ${res.status}`);
+          await this.transferPlayback(token, deviceId);
         }
       }
     } catch (e) {

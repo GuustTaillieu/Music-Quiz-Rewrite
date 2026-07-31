@@ -1,11 +1,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "#/features/shared/components/ui/avatar"
-import { useAuth } from ".."
+import { useAuthActions } from ".."
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/features/shared/components/ui/tooltip"
 import { Button } from "#/features/shared/components/ui/button"
 import { LogOut } from "lucide-react"
+import { useAuth } from "../hooks/useAuth"
 
 export function AuthBadge() {
-    const { user, signOut } = useAuth()
+    const { user } = useAuth()
+    const { signOut } = useAuthActions()
     return user && (
         <div className="flex items-center gap-3 bg-black/50 border border-cyan-500/10 p-1.5 pl-3 rounded-2xl">
             <div className="flex items-center gap-2">

@@ -1,22 +1,23 @@
-import { Trophy } from 'lucide-react';
+import { Loader2, Trophy } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Card } from '#/features/shared/components/ui/card';
-import type { Player } from '@spotify-music-quiz/shared/schema/game';
+import { useNavigate } from '@tanstack/react-router';
+import { useQuizGame } from '../../game-session/hooks/useQuizGame';
 
-interface GameOverSummaryProps {
-  players: Player[];
-  isHost: boolean;
-  onRestart: () => void;
-  onLeave: () => void;
-}
+export function GameOverSummary() {
+  const navigate = useNavigate();
+  const { gameState, leaveLobby } = useQuizGame();
 
-export function GameOverSummary({
-  players,
-  isHost,
-  onRestart,
-  onLeave,
-}: GameOverSummaryProps) {
-  const contestants = players.filter((p) => !p.isHost);
+  if (!gameState) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#05070f] text-cyan-400 font-bold gap-2">
+        <Loader2 className="animate-spin" size={24} />
+        Loading...
+      </div>
+    );
+  }
+
+  const contestants = gameState.players.filter((p) => !p.isHost);
   const sortedPlayers = [...contestants].sort((a, b) => b.score - a.score);
 
   return (
@@ -37,11 +38,10 @@ export function GameOverSummary({
           {sortedPlayers.map((p, idx) => (
             <div
               key={p.id}
-              className={`flex items-center justify-between p-4 rounded-xl border ${
-                idx === 0
-                  ? 'border-amber-500/40 bg-amber-500/10 font-black text-amber-300'
-                  : 'border-cyan-500/10 bg-black/30 text-white'
-              }`}
+              className={`flex items-center justify-between p-4 rounded-xl border ${idx === 0
+                ? 'border-amber-500/40 bg-amber-500/10 font-black text-amber-300'
+                : 'border-cyan-500/10 bg-black/30 text-white'
+                }`}
             >
               <div className="flex items-center gap-3">
                 <span className="font-mono text-sm font-black w-6 text-cyan-400">#{idx + 1}</span>
@@ -59,12 +59,7 @@ export function GameOverSummary({
         </div>
 
         <div className="flex gap-3">
-          {isHost && (
-            <Button variant="spotify" size="lg" className="flex-1" onClick={onRestart}>
-              Play Again
-            </Button>
-          )}
-          <Button variant="default" size="lg" className="flex-1" onClick={onLeave}>
+          <Button variant="default" size="lg" className="flex-1" onClick={() => leaveLobby(() => navigate({ to: '/', replace: true }))}>
             Return to Home
           </Button>
         </div>

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { QuizEditorPage } from '#/features/quiz-studio';
 
-export const Route = createFileRoute('/studio/$quizId')({
+export const Route = createFileRoute('/_authenticated/studio/$quizId')({
   component: QuizEditorRouteComponent,
 });
 

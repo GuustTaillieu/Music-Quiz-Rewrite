@@ -9,11 +9,11 @@ import { TanStackDevtools } from '@tanstack/react-devtools';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 import { RouteErrorComponent } from '#/features/shared/components/RouteErrorComponent';
 import { RouteNotFoundComponent } from '#/features/shared/components/RouteNotFoundComponent';
-import { GlobalVolumeWidget } from '#/features/audio-player/components/GlobalVolumeWidget';
 
 import appCss from '../styles.css?url';
 
 import type { QueryClient } from '@tanstack/react-query';
+import { QuizGameProvider } from '#/features/game-session/hooks/useQuizGame';
 
 interface MyRouterContext {
   queryClient: QueryClient;
@@ -52,8 +52,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
-        <GlobalVolumeWidget />
+        <QuizGameProvider>
+          {children}
+        </QuizGameProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',

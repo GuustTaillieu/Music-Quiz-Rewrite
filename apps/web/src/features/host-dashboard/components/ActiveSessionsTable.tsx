@@ -3,7 +3,7 @@ import { Play, LogOut, Radio } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Card } from '#/features/shared/components/ui/card';
 import { Badge } from '#/features/shared/components/ui/badge';
-import { useAuth } from '#/features/auth';
+import { useAuth } from '#/features/auth/hooks/useAuth';
 import { useActiveLobbiesQuery, useTerminateLobbyMutation } from '#/features/lobby-core';
 
 export function ActiveSessionsTable() {
@@ -48,7 +48,7 @@ export function ActiveSessionsTable() {
                   navigate({
                     to: '/lobby/$lobbyId',
                     params: { lobbyId: session.lobbyId },
-                    search: { username: user?.name ?? 'Host' },
+                    search: { username: user.name },
                   })
                 }
               >

@@ -1,57 +1,31 @@
-import { SpeedRoundModal } from '#/features/game-lobby';
 import { HostHeaderBar } from './HostHeaderBar';
 import { HostLeaderboardSidebar } from './HostLeaderboardSidebar';
 import { HostDiscVisualizer } from './HostDiscVisualizer';
 import { HostLyricsDisplay } from './HostLyricsDisplay';
 import { HostTimerProgressBar } from './HostTimerProgressBar';
 import { HostAudioControls } from './HostAudioControls';
-import { RoundState, type GameMode, type GameSessionState, type Player } from '@spotify-music-quiz/shared/schema/game';
+import { QuestionType, RoundState, type Player } from '@spotify-music-quiz/shared/schema/game';
+import { useQuizGame } from '#/features/game-player';
+import { useGameTimer } from '../hooks/useGameTimer';
+import { useSpotifyPlayer } from '#/features/audio-player';
+import { useNavigate } from '@tanstack/react-router';
+import { useGameAudio } from '..';
 
 interface HostGameViewProps {
-  lobbyId: string;
-  gameState: GameSessionState;
   buzzerWinner?: Player | null;
-  selectedGameMode: GameMode;
-  isSpeedRoundModalOpen: boolean;
-  setIsSpeedRoundModalOpen: (open: boolean) => void;
-  onSelectGameMode: (mode: GameMode) => void;
-  isPlaying: boolean;
-  onTogglePlayPause: () => void;
-  onRestartTimer: () => void;
-  onForceReveal: () => void;
-  onNextSong: () => void;
-  onSeek?: (positionMs: number) => void;
-  currentPositionMs?: number;
-  durationMs?: number;
-  isCopied?: boolean;
-  handleCopyCode: () => void;
-  onLeave: () => void;
-  localTimeLeft: number | null;
-  maxTimeLimit: number;
 }
 
 export function HostGameView({
-  lobbyId,
-  gameState,
   buzzerWinner,
-  selectedGameMode,
-  isSpeedRoundModalOpen,
-  setIsSpeedRoundModalOpen,
-  onSelectGameMode,
-  isPlaying,
-  onTogglePlayPause,
-  onRestartTimer,
-  onForceReveal,
-  onNextSong,
-  onSeek,
-  currentPositionMs,
-  durationMs,
-  isCopied,
-  handleCopyCode,
-  onLeave,
-  localTimeLeft,
-  maxTimeLimit,
 }: HostGameViewProps) {
+  const navigate = useNavigate();
+  const { forceReveal, gameState, nextSong, leaveLobby } = useQuizGame()
+  const { isPlaying } = useSpotifyPlayer()
+  const { localTimeLeft, maxTimeLimit } = useGameTimer(forceReveal);
+  const { restartSongAndTimer } = useGameAudio()
+
+  if (!gameState) return null
+
   const activeSong = gameState.activeSong;
   const isRevealed = gameState.roundState === RoundState.REVEALED;
   const isLastSong = (gameState.currentSongIndex ?? 0) >= gameState.totalSongs - 1;
@@ -61,14 +35,9 @@ export function HostGameView({
       <div className="synth-grid absolute inset-0 pointer-events-none opacity-40" />
 
       <HostHeaderBar
-        lobbyId={lobbyId}
         currentSongIndex={gameState.currentSongIndex ?? 0}
         totalSongs={gameState.totalSongs}
-        selectedMode={selectedGameMode}
-        onSelectMode={onSelectGameMode}
-        isCopied={isCopied}
-        handleCopyCode={handleCopyCode}
-        onLeave={onLeave}
+        onLeave={() => leaveLobby(() => navigate({ to: '/', replace: true }))}
       />
 
       <main className="w-full max-w-6xl mx-auto px-6 py-8 z-10 flex-1 flex flex-col lg:flex-row gap-6">
@@ -86,33 +55,21 @@ export function HostGameView({
             revealed={isRevealed}
           />
 
-          {activeSong?.questionType === 'FILL_IN_THE_GAP' && (
+          {activeSong?.questionType === QuestionType.FILL_IN_THE_GAP && (
             <HostLyricsDisplay lyrics={activeSong.lyricsGap ?? undefined} revealed={isRevealed} />
           )}
 
           <HostTimerProgressBar localTimeLeft={localTimeLeft} maxTimeLimit={maxTimeLimit} />
 
           <HostAudioControls
-            isPlaying={isPlaying}
-            onTogglePlayPause={onTogglePlayPause}
-            onRestartTimer={onRestartTimer}
-            onForceReveal={onForceReveal}
-            onNextSong={onNextSong}
-            onSeek={onSeek}
-            currentPositionMs={currentPositionMs}
-            durationMs={durationMs}
+            onForceReveal={forceReveal}
+            onNextSong={nextSong}
             revealed={isRevealed}
             isLastSong={isLastSong}
+            onRestartSong={restartSongAndTimer}
           />
         </div>
       </main>
-
-      <SpeedRoundModal
-        isOpen={isSpeedRoundModalOpen}
-        onClose={() => setIsSpeedRoundModalOpen(false)}
-        selectedMode={selectedGameMode}
-        onSelectMode={onSelectGameMode}
-      />
     </div>
   );
 }

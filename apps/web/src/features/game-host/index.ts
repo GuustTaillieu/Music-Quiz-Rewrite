@@ -6,5 +6,5 @@ export { HostLeaderboardSidebar } from './components/HostLeaderboardSidebar';
 export { HostLyricsDisplay } from './components/HostLyricsDisplay';
 export { HostTimerProgressBar } from './components/HostTimerProgressBar';
 export { CavaVisualizer } from './components/CavaVisualizer';
-export { useLobbyAudio } from './hooks/useLobbyAudio';
-export { useLobbyTimer } from './hooks/useLobbyTimer';
+export { useGameAudio } from './hooks/useGameAudio';
+export { useGameTimer } from './hooks/useGameTimer';

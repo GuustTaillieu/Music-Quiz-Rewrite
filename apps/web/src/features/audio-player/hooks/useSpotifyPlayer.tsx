@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, createContext, useContext } from 'react';
 import { apiFetch } from '#/features/shared/api/client';
+import { useGlobalVolume } from './useGlobalVolume';
 
 declare global {
   interface Window {
@@ -21,12 +22,32 @@ interface SpotifyPlaybackState {
   };
 }
 
-export function useSpotifyPlayer(enabled: boolean) {
+interface SpotifyPlayerContextType {
+  isReady: boolean;
+  deviceId: string | null;
+  isPlaying: boolean;
+  currentPositionMs: number;
+  durationMs: number;
+  isPremium: boolean;
+  errorMsg: string | null;
+  playTrack: (trackId: string, offsetMs?: number) => Promise<void>;
+  pauseTrack: () => Promise<void>;
+  seekTrack: (positionMs: number) => Promise<void>;
+  resumeTrack: () => Promise<void>;
+  togglePlayPause: () => Promise<void>;
+}
+
+export const SpotifyPlayerContext = createContext<SpotifyPlayerContextType | undefined>(undefined)
+
+
+export function SpotifyPlayerProvider({ children }: { children: React.ReactNode }) {
+  const [globalVolume, setGlobalVolume] = useGlobalVolume();
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [playbackState, setPlaybackState] = useState<SpotifyPlaybackState | null>(null);
   const [isPremium, setIsPremium] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [player, setPlayer] = useState<any>(null);
+  const [ready, setReady] = useState<boolean>(false);
 
   // Smooth position tracking variables
   const [currentPlaybackMs, setCurrentPlaybackMs] = useState(0);
@@ -61,8 +82,6 @@ export function useSpotifyPlayer(enabled: boolean) {
   }, [playbackState]);
 
   useEffect(() => {
-    if (!enabled) return;
-
     const initializeSDK = () => {
       window.onSpotifyWebPlaybackSDKReady = async () => {
         try {
@@ -80,11 +99,35 @@ export function useSpotifyPlayer(enabled: boolean) {
             volume: 0.5,
           });
 
-          newPlayer.addListener('ready', ({ device_id }: { device_id: string }) => {
+          newPlayer.addListener('ready', async ({ device_id }: { device_id: string }) => {
             setDeviceId(device_id);
             setPlayer(newPlayer);
             setErrorMsg(null);
             console.log('Spotify Player ready with Device ID:', device_id);
+            const { error: transferError } = await apiFetch('/spotify/transfer-playback', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                deviceId: device_id,
+              }),
+            });
+
+            if (transferError) {
+              console.warn(`Spotify transfer playback request returned error: ${transferError}`);
+            }
+
+            const volume = await newPlayer.getVolume();
+            setGlobalVolume(volume);
+
+            try {
+              await newPlayer.activateElement();
+            } catch (e) {
+              console.warn('Spotify SDK activateElement error:', e);
+            }
+
+            setReady(true);
           });
 
           newPlayer.addListener('not_ready', ({ device_id }: { device_id: string }) => {
@@ -133,47 +176,32 @@ export function useSpotifyPlayer(enabled: boolean) {
         player.disconnect();
       }
     };
-  }, [enabled]);
+  }, []);
 
-  const activateElement = async () => {
-    if (player && typeof player.activateElement === 'function') {
-      try {
-        await player.activateElement();
-      } catch (e) {
-        console.warn('Spotify SDK activateElement error:', e);
-      }
+  useEffect(() => {
+    if (!player) return;
+    player.setVolume(globalVolume);
+  }, [globalVolume, player])
+
+  const playTrack = async (trackId: string, offsetMs = 0): Promise<void> => {
+    if (!deviceId) {
+      throw new Error('No device available');
     }
-  };
 
-  const playTrack = async (trackId: string, offsetMs = 0, retries = 2): Promise<void> => {
-    if (!deviceId) return;
-    await activateElement();
-    try {
-      const { error } = await apiFetch('/spotify/play', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          deviceId,
-          trackId,
-          offsetMs,
-        }),
-      });
+    const { error } = await apiFetch('/spotify/play', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        deviceId,
+        trackId,
+        offsetMs,
+      }),
+    });
 
-      if (error) {
-        console.warn(`Spotify play request returned error: ${error}. Retries left: ${retries}`);
-        if (retries > 0) {
-          await new Promise((r) => setTimeout(r, 800));
-          return playTrack(trackId, offsetMs, retries - 1);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to control play command:', e);
-      if (retries > 0) {
-        await new Promise((r) => setTimeout(r, 800));
-        return playTrack(trackId, offsetMs, retries - 1);
-      }
+    if (error) {
+      console.warn(`Spotify play request returned error: ${error}.`);
     }
   };
 
@@ -191,6 +219,15 @@ export function useSpotifyPlayer(enabled: boolean) {
     }
   };
 
+  const togglePlayPause = async () => {
+    if (!player) return;
+    try {
+      await player.togglePlay();
+    } catch (e) {
+      console.warn('Native SDK togglePlay failed:', e);
+    }
+  }
+
   const seekTrack = async (positionMs: number, retries = 2): Promise<void> => {
     if (!player) return;
     try {
@@ -207,7 +244,6 @@ export function useSpotifyPlayer(enabled: boolean) {
 
   const resumeTrack = async (retries = 2): Promise<void> => {
     if (!player) return;
-    await activateElement();
     try {
       await player.resume();
     } catch (e) {
@@ -220,47 +256,34 @@ export function useSpotifyPlayer(enabled: boolean) {
     }
   };
 
-  const togglePlay = async (retries = 2): Promise<void> => {
-    if (!player) return;
-    await activateElement();
-    try {
-      await player.togglePlay();
-    } catch (e) {
-      if (retries > 0) {
-        await new Promise((r) => setTimeout(r, 800));
-        return togglePlay(retries - 1);
-      } else {
-        console.warn('Native SDK togglePlay failed:', e);
+  return (
+    <SpotifyPlayerContext.Provider
+      value={
+        {
+          isReady: ready,
+          deviceId,
+          isPlaying: playbackState ? !playbackState.paused : false,
+          currentPositionMs: currentPlaybackMs,
+          durationMs: playbackState ? playbackState.duration : 0,
+          isPremium,
+          errorMsg,
+          playTrack,
+          pauseTrack,
+          togglePlayPause,
+          seekTrack,
+          resumeTrack,
+        }
       }
-    }
-  };
+    >
+      {children}
+    </SpotifyPlayerContext.Provider>
+  )
+}
 
-  const lastVolumeRef = useRef<number | null>(null);
-
-  const setVolume = async (volumeFraction: number) => {
-    if (!player || !deviceId) return;
-    if (lastVolumeRef.current === volumeFraction) return;
-    lastVolumeRef.current = volumeFraction;
-    try {
-      await player.setVolume(volumeFraction);
-    } catch (e) {
-      console.warn('Failed to set player volume:', e);
-    }
-  };
-
-  return {
-    deviceId,
-    isPlaying: playbackState ? !playbackState.paused : false,
-    currentPositionMs: currentPlaybackMs,
-    durationMs: playbackState ? playbackState.duration : 0,
-    isPremium,
-    errorMsg,
-    playTrack,
-    pauseTrack,
-    seekTrack,
-    resumeTrack,
-    togglePlay,
-    setVolume,
-    activateElement,
-  };
+export function useSpotifyPlayer() {
+  const context = useContext(SpotifyPlayerContext);
+  if (!context) {
+    throw new Error('useSpotifyPlayer must be used within a SpotifyPlayerProvider');
+  }
+  return context;
 }

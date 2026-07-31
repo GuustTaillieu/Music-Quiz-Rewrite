@@ -10,7 +10,7 @@ export class SpotifyController {
   constructor(
     private readonly spotifyService: SpotifyService,
     private readonly tokenService: SpotifyTokenService,
-  ) {}
+  ) { }
 
   @Get('search')
   public async search(
@@ -49,6 +49,16 @@ export class SpotifyController {
       body.trackId,
       body.offsetMs ?? 0,
     );
+    return { success: true };
+  }
+
+  @Post("transfer-playback")
+  public async transferPlayback(
+    @Body() body: { deviceId: string; },
+    @Session() session: UserSession,
+  ): Promise<{ success: boolean }> {
+    const token = await this.tokenService.getHostAccessToken(session.user.id);
+    await this.spotifyService.transferPlayback(token, body.deviceId);
     return { success: true };
   }
 }

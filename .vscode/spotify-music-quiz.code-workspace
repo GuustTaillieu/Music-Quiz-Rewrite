@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "✨ spotify-music-quiz",
+			"path": ".."
+		},
+		{
+			"name": "🚀 @spotify-music-quiz/backend",
+			"path": "../apps/backend"
+		},
+		{
+			"name": "🚀 @spotify-music-quiz/web",
+			"path": "../apps/web"
+		},
+		{
+			"name": "@spotify-music-quiz/shared",
+			"path": "../shared"
+		}
+	],
+	"settings": {}
+}

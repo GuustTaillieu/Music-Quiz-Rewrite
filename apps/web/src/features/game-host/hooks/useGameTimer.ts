@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { RoundState, type GameSessionState } from '@spotify-music-quiz/shared/schema/game';
+import { RoundState } from '@spotify-music-quiz/shared/schema/game';
+import { useQuizGame } from '#/features/game-player';
 
-export function useLobbyTimer(
-  gameState: GameSessionState | null,
+export function useGameTimer(
   onTimeExpired?: () => void,
-  isHost?: boolean,
 ) {
+  const { gameState } = useQuizGame()
   const [localTimeLeft, setLocalTimeLeft] = useState<number | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasExpiredTriggeredRef = useRef<boolean>(false);
@@ -30,7 +30,7 @@ export function useLobbyTimer(
 
       if (remainingMs <= 0) {
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-        if (isHost && onTimeExpired && !hasExpiredTriggeredRef.current) {
+        if (onTimeExpired && !hasExpiredTriggeredRef.current) {
           hasExpiredTriggeredRef.current = true;
           onTimeExpired();
         }
@@ -43,7 +43,7 @@ export function useLobbyTimer(
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [roundEndTime, isGuessing, isHost, onTimeExpired]);
+  }, [roundEndTime, isGuessing, onTimeExpired]);
 
   return {
     localTimeLeft,

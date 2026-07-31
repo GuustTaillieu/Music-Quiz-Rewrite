@@ -16,4 +16,8 @@ export abstract class SpotifyService {
     action: 'play' | 'pause',
     offsetMs?: number,
   ): Promise<void>;
+  abstract transferPlayback(
+    hostAccessToken: string,
+    deviceId: string
+  ): Promise<void>;
 }

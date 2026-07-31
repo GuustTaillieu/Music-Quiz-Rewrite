@@ -97,4 +97,9 @@ export class MockSpotifyService implements SpotifyService {
       `Mock Spotify Playback control: ${action} track ${trackId} at offset ${offsetMs} (token: ${hostAccessToken})`,
     );
   }
+  public async transferPlayback(hostAccessToken: string, deviceId: string): Promise<void> {
+    console.log(
+      `Mock Spotify Playback control: transfer playback to device ${deviceId} (token: ${hostAccessToken})`,
+    );
+  }
 }

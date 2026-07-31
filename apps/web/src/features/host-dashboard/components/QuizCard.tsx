@@ -26,7 +26,7 @@ export function QuizCard({ quiz }: QuizCardProps) {
       navigate({
         to: '/lobby/$lobbyId',
         params: { lobbyId: res.lobbyId },
-        search: { username: user?.name ?? 'Host' },
+        search: { username: user.name },
       });
     } catch (err: any) {
       alert(err.message || 'Failed to create lobby');
