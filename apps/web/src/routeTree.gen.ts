@@ -14,6 +14,7 @@ import { Route as JoinRouteImport } from './routes/join'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedLobbyLobbyIdRouteImport } from './routes/_authenticated/lobby.$lobbyId'
 import { Route as AuthenticatedStudioQuizIdRouteImport } from './routes/_authenticated/studio.$quizId'
+import { Route as GuestLobbyLobbyIdRouteImport } from './routes/guest/lobby.$lobbyId'
 import { Route as AuthenticatedQuizShareQuizIdRouteImport } from './routes/_authenticated/quiz.share.$quizId'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -42,6 +43,11 @@ const AuthenticatedStudioQuizIdRoute =
     path: '/studio/$quizId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const GuestLobbyLobbyIdRoute = GuestLobbyLobbyIdRouteImport.update({
+  id: '/guest/lobby/$lobbyId',
+  path: '/guest/lobby/$lobbyId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedQuizShareQuizIdRoute =
   AuthenticatedQuizShareQuizIdRouteImport.update({
     id: '/quiz/share/$quizId',
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRoute
   '/lobby/$lobbyId': typeof AuthenticatedLobbyLobbyIdRoute
   '/studio/$quizId': typeof AuthenticatedStudioQuizIdRoute
+  '/guest/lobby/$lobbyId': typeof GuestLobbyLobbyIdRoute
   '/quiz/share/$quizId': typeof AuthenticatedQuizShareQuizIdRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/lobby/$lobbyId': typeof AuthenticatedLobbyLobbyIdRoute
   '/studio/$quizId': typeof AuthenticatedStudioQuizIdRoute
+  '/guest/lobby/$lobbyId': typeof GuestLobbyLobbyIdRoute
   '/quiz/share/$quizId': typeof AuthenticatedQuizShareQuizIdRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/lobby/$lobbyId': typeof AuthenticatedLobbyLobbyIdRoute
   '/_authenticated/studio/$quizId': typeof AuthenticatedStudioQuizIdRoute
+  '/guest/lobby/$lobbyId': typeof GuestLobbyLobbyIdRoute
   '/_authenticated/quiz/share/$quizId': typeof AuthenticatedQuizShareQuizIdRoute
 }
 export interface FileRouteTypes {
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/lobby/$lobbyId'
     | '/studio/$quizId'
+    | '/guest/lobby/$lobbyId'
     | '/quiz/share/$quizId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/lobby/$lobbyId'
     | '/studio/$quizId'
+    | '/guest/lobby/$lobbyId'
     | '/quiz/share/$quizId'
   id:
     | '__root__'
@@ -94,12 +105,14 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/lobby/$lobbyId'
     | '/_authenticated/studio/$quizId'
+    | '/guest/lobby/$lobbyId'
     | '/_authenticated/quiz/share/$quizId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   JoinRoute: typeof JoinRoute
+  GuestLobbyLobbyIdRoute: typeof GuestLobbyLobbyIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -139,6 +152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStudioQuizIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/guest/lobby/$lobbyId': {
+      id: '/guest/lobby/$lobbyId'
+      path: '/guest/lobby/$lobbyId'
+      fullPath: '/guest/lobby/$lobbyId'
+      preLoaderRoute: typeof GuestLobbyLobbyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/quiz/share/$quizId': {
       id: '/_authenticated/quiz/share/$quizId'
       path: '/quiz/share/$quizId'
@@ -170,6 +190,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   JoinRoute: JoinRoute,
+  GuestLobbyLobbyIdRoute: GuestLobbyLobbyIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

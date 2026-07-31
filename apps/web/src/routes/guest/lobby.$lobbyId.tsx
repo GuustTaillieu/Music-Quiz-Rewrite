@@ -1,9 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
-import { HostLobbyView, PlayerWaitingRoomView } from '#/features/game-lobby';
-import { HostGameView } from '#/features/game-host';
+import { PlayerWaitingRoomView } from '#/features/game-lobby';
 import { PlayerBuzzerScreen, GameOverSummary, useQuizGame } from '#/features/game-player';
-import { useAuth } from '#/features/auth';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { GamePhase } from '@spotify-music-quiz/shared/schema/game';
@@ -12,7 +10,7 @@ const lobbySearchSchema = z.object({
   username: z.string(),
 });
 
-export const Route = createFileRoute('/_authenticated/lobby/$lobbyId')({
+export const Route = createFileRoute('/guest/lobby/$lobbyId')({
   validateSearch: lobbySearchSchema,
   component: LobbyRoom,
 });
@@ -20,20 +18,17 @@ export const Route = createFileRoute('/_authenticated/lobby/$lobbyId')({
 function LobbyRoom() {
   const { lobbyId } = Route.useParams();
   const { username } = Route.useSearch();
-  const { user } = useAuth();
   const {
     isConnected,
     gameState,
-    joinLobby,
-    isUserHost
+    joinLobby
   } = useQuizGame();
-  const isHost = isUserHost(user.id);
 
   useEffect(() => {
     if (isConnected) {
-      joinLobby(lobbyId, username, user.id);
+      joinLobby(lobbyId, username);
     }
-  }, [isConnected, lobbyId, username, joinLobby, user]);
+  }, [isConnected, lobbyId, username, joinLobby]);
 
 
   if (!gameState) {
@@ -45,12 +40,12 @@ function LobbyRoom() {
     );
   }
   if (gameState.phase === GamePhase.LOBBY) {
-    return isHost ? <HostLobbyView /> : <PlayerWaitingRoomView username={username} />
+    return <PlayerWaitingRoomView username={username} />
   }
 
   if (gameState.phase === GamePhase.COMPLETED) {
     return <GameOverSummary />
   }
 
-  return isHost ? <HostGameView /> : <PlayerBuzzerScreen username={username} />;
+  return <PlayerBuzzerScreen username={username} />;
 }

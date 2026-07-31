@@ -1,15 +1,12 @@
 import { Loader2, Trophy } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Card } from '#/features/shared/components/ui/card';
-import { useAuth } from '#/features/auth';
-import { useQuizGame } from '../../game-session/hooks/useQuizGame';
 import { useNavigate } from '@tanstack/react-router';
+import { useQuizGame } from '../../game-session/hooks/useQuizGame';
 
 export function GameOverSummary() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { gameState, isUserHost, startGame, leaveLobby } = useQuizGame();
-  const isHost = isUserHost(user?.id);
+  const { gameState, leaveLobby } = useQuizGame();
 
   if (!gameState) {
     return (

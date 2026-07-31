@@ -55,7 +55,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <QuizGameProvider>
           {children}
-          <GlobalVolumeWidget />
         </QuizGameProvider>
         <TanStackDevtools
           config={{

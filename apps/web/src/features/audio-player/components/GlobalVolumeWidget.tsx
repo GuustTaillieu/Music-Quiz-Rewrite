@@ -1,20 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX, Volume1 } from 'lucide-react';
-import { useLocation } from '@tanstack/react-router';
 import { useGlobalVolume } from '../hooks/useGlobalVolume';
 import { Slider } from '#/features/shared/components/ui/slider';
 import { AUDIO_CONFIG } from '#/features/shared/constants/gameConfig';
 import { Button } from '#/features/shared/components/ui/button';
-import { authClient } from '#/features/auth/api/auth-client';
 
 export function GlobalVolumeWidget() {
   const [vol, setVol] = useGlobalVolume();
   const [isExpanded, setIsExpanded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const widgetRef = useRef<HTMLDivElement | null>(null);
-
-  const location = useLocation();
-  const { data: session } = authClient.useSession();
 
   useEffect(() => {
     setMounted(true);
@@ -29,27 +24,12 @@ export function GlobalVolumeWidget() {
 
   if (!mounted) return null;
 
-  // The volume button is visible ONLY for the host:
-  // - When creating/editing a quiz (/studio)
-  // - In Host Dashboard (logged-in user at /)
-  // - In Lobby when logged-in as Host
-  const isLoggedInHost = Boolean(session?.user);
-  const isStudioRoute = location.pathname.startsWith('/studio');
-  const isHostDashboard = location.pathname === '/' && isLoggedInHost;
-  const isLobbyRoute = location.pathname.startsWith('/lobby');
-
-  const shouldShowVolume = isStudioRoute || isHostDashboard || (isLobbyRoute && isLoggedInHost);
-
-  if (!shouldShowVolume) {
-    return null;
-  }
-
   const VolumeIcon =
     vol === AUDIO_CONFIG.MIN_VOLUME
       ? VolumeX
       : vol < AUDIO_CONFIG.DEFAULT_VOLUME
-      ? Volume1
-      : Volume2;
+        ? Volume1
+        : Volume2;
 
   const handleMuteToggle = () => {
     if (vol > AUDIO_CONFIG.MIN_VOLUME) {

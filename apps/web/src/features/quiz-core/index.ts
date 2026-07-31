@@ -7,4 +7,5 @@ export { useDeleteQuizMutation } from './hooks/useDeleteQuizMutation';
 export { useForkQuizMutation } from '../quiz-forking/hooks/useForkQuizMutation';
 export { useSyncQuizMutation } from '../quiz-forking/hooks/useSyncQuizMutation';
 
-export { quizQueryOptions } from './options/quiz-query-options';
+export { quizQueryOptions } from './options/quiz-options';
+export { quizzesQueryOptions } from './options/quizzes-options';

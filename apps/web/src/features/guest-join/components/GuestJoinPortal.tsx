@@ -6,14 +6,14 @@ import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
 import { Card } from '#/features/shared/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '#/features/shared/components/ui/input-otp';
-import { useAuth } from '#/features/auth';
+import { useAuthActions } from '#/features/auth';
 import { useValidateLobbyCode } from '#/features/lobby-core';
 
 export function GuestJoinPortal() {
   const navigate = useNavigate();
   const [step, setStep] = useState<'code' | 'name'>('code');
   const [guestName, setGuestName] = useState('');
-  const { signInWithSpotify, loginError } = useAuth();
+  const { signInWithSpotify, loginError } = useAuthActions();
 
   const {
     lobbyCode,
@@ -30,7 +30,7 @@ export function GuestJoinPortal() {
     if (!lobbyCode || !guestName.trim()) return;
 
     navigate({
-      to: '/lobby/$lobbyId',
+      to: '/guest/lobby/$lobbyId',
       params: { lobbyId: lobbyCode },
       search: { username: guestName.trim() },
     });

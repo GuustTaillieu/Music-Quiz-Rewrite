@@ -1,11 +1,12 @@
 import { useNavigate } from '@tanstack/react-router';
 import { GitFork, Music, ArrowLeft, Loader2 } from 'lucide-react';
 import { BsSpotify } from 'react-icons/bs';
-import { useAuth } from '#/features/auth';
+import { useAuthActions } from '#/features/auth';
 import { useQuizQuery, useForkQuizMutation } from '#/features/quiz-core';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { Card } from '#/features/shared/components/ui/card';
+import { useAuth } from '#/features/auth';
 
 interface SharedQuizPreviewProps {
   quizId: string;
@@ -13,7 +14,8 @@ interface SharedQuizPreviewProps {
 
 export function SharedQuizPreview({ quizId }: SharedQuizPreviewProps) {
   const navigate = useNavigate();
-  const { isLoggedIn, isSessionLoading: isSessionLoading, signInWithSpotify } = useAuth();
+  const { isLoggedIn } = useAuth()
+  const { isSessionLoading, signInWithSpotify } = useAuthActions();
   const { data: quiz, isLoading, error } = useQuizQuery(quizId);
   const forkQuizMutation = useForkQuizMutation();
 

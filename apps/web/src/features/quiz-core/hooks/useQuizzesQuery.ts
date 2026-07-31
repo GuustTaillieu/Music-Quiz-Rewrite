@@ -1,9 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { quizApi } from '../api/quizApi';
+import { quizzesQueryOptions } from '../options/quizzes-options';
 
 export function useQuizzesQuery() {
-  return useQuery({
-    queryKey: ['quizzes'],
-    queryFn: quizApi.fetchQuizzes,
-  });
+  return useQuery(quizzesQueryOptions());
 }

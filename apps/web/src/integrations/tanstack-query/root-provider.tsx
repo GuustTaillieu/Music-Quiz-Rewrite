@@ -1,10 +1,16 @@
 import { QueryClient } from '@tanstack/react-query'
 
 export function getContext() {
-  const queryClient = new QueryClient()
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        experimental_prefetchInRender: true,
+      },
+    },
+  })
 
   return {
     queryClient,
   }
 }
-export default function TanstackQueryProvider() {}
+export default function TanstackQueryProvider() { }
