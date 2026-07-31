@@ -1,7 +1,6 @@
 import { quizzesQueryOptions, type QuizMeta } from "#/features/quiz-core";
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { createContext, Suspense, use, useContext } from "react";
-import { ErrorBoundary } from "react-error-boundary";
+import { useQuery } from "@tanstack/react-query";
+import { createContext, useContext } from "react";
 import { QuizCard } from "..";
 
 const QuizListContext = createContext<{ quizzes: QuizMeta[] } | null>(null);
@@ -14,29 +13,12 @@ type QuizListRootProps = {
 }
 
 function QuizListRoot({ children, loadingComponent, errorComponent, emptyComponent }: QuizListRootProps) {
-    const quizzesQuery = useQuery(quizzesQueryOptions())
+    const { isLoading, isError, data: quizzes } = useQuery(quizzesQueryOptions())
 
-    return (
-        <Suspense fallback={loadingComponent}>
-            <ErrorBoundary fallback={errorComponent}>
-                <QuizListDataProvider query={quizzesQuery} emptyComponent={emptyComponent}>
-                    {children}
-                </QuizListDataProvider>
-            </ErrorBoundary>
-        </Suspense>
-    );
-}
-QuizList.Root = QuizListRoot;
-
-type QuizListDataProviderProps = {
-    children: React.ReactNode;
-    query: UseQueryResult<NoInfer<QuizMeta[]>, Error>
-    emptyComponent?: React.ReactNode;
-}
-
-function QuizListDataProvider({ children, query, emptyComponent }: QuizListDataProviderProps) {
-    const quizzes = use(query.promise)
-    if (quizzes.length === 0) return emptyComponent;
+    if (isLoading) return loadingComponent
+    if (isError) return errorComponent
+    if (!quizzes) return emptyComponent
+    if (quizzes.length === 0) return emptyComponent
 
     return (
         <QuizListContext.Provider value={{ quizzes }}>
@@ -44,6 +26,7 @@ function QuizListDataProvider({ children, query, emptyComponent }: QuizListDataP
         </QuizListContext.Provider>
     );
 }
+QuizList.Root = QuizListRoot;
 
 function QuizList({ loadingComponent, errorComponent, emptyComponent }: Omit<QuizListRootProps, 'children'>) {
     return (

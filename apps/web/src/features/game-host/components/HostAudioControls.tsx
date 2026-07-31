@@ -24,7 +24,7 @@ export function HostAudioControls({
       {/* Full Song Scrubber Bar at Round End */}
       {revealed && durationMs > 0 && (
         <div className="flex items-center gap-3 bg-black/40 border border-cyan-500/20 px-4 py-2 rounded-2xl">
-          <Timeline />
+          <Timeline className='w-full' />
         </div>
       )}
 

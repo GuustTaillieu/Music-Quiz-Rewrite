@@ -68,7 +68,7 @@ function HostDashboard() {
           }
         />
 
-        <FloatingAudioControls className='fixed left-1/2 -translate-x-1/2 w-1/2 max-sm:hidden opacity-60 hover:opacity-100 bg-cyan-500/5 border border-cyan-500/20 backdrop-blur-xl rounded-full p-2 py-3 shadow-[0_0_15px_rgba(29,185,84,0.15)] shadow-cyan-500/10 transition-all duration-300' />
+        <FloatingAudioControls />
       </main>
 
       <CreateQuizModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />

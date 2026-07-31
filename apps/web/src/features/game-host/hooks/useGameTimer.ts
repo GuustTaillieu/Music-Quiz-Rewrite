@@ -14,8 +14,6 @@ export function useGameTimer(
   const isGuessing = gameState?.roundState === RoundState.GUESSING;
 
   useEffect(() => {
-    console.log('ISGUESSING', isGuessing, roundEndTime);
-
     if (!isGuessing || !roundEndTime) {
       setLocalTimeLeft(null);
       hasExpiredTriggeredRef.current = false;
