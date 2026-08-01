@@ -11,6 +11,7 @@ import { GameService } from './game.service';
 import { Logger } from '@nestjs/common';
 import { GAME_EVENTS } from '@spotify-music-quiz/shared/constants/game-events';
 import { GameMode } from '@spotify-music-quiz/shared/schema/game';
+import { randomUUID } from 'node:crypto';
 
 @WebSocketGateway({
   cors: {
@@ -20,10 +21,10 @@ import { GameMode } from '@spotify-music-quiz/shared/schema/game';
 export class GameGateway implements OnGatewayDisconnect {
   private readonly logger = new Logger(GameGateway.name);
 
-  // Map socket.id -> { lobbyId, username } to track active connections
+  // Map socket.id -> { lobbyId, username, playerId } to track active connections
   private readonly clientMap = new Map<
     string,
-    { lobbyId: string; username: string }
+    { lobbyId: string; username: string; playerId: string }
   >();
 
   @WebSocketServer()
@@ -38,11 +39,11 @@ export class GameGateway implements OnGatewayDisconnect {
     }
 
     this.logger.log(
-      `Client ${client.id} (${clientData.username}) disconnected from lobby ${clientData.lobbyId}`,
+      `Client ${client.id} (${clientData.username}, player: ${clientData.playerId}) disconnected from lobby ${clientData.lobbyId}`,
     );
 
     this.gameService
-      .removePlayer(clientData.lobbyId, client.id)
+      .removePlayer(clientData.lobbyId, clientData.playerId)
       .then((updatedState) => {
         this.clientMap.delete(client.id);
         if (updatedState) {
@@ -59,35 +60,36 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage(GAME_EVENTS.JOIN_LOBBY)
   public async handleJoinLobby(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { lobbyId: string; username: string; userId?: string },
+    @MessageBody() data: { lobbyId: string; username: string; userId?: string; playerSessionToken?: string },
   ): Promise<void> {
     const lobbyId = data.lobbyId.toUpperCase();
     const username = data.username.trim();
     const userId = data.userId;
+    const sessionToken = data.playerSessionToken || randomUUID();
 
     try {
       this.logger.log(
-        `Player ${username} (socket: ${client.id}, user: ${userId ?? 'none'}) joining lobby ${lobbyId}`,
+        `Player ${username} (token: ${sessionToken}, socket: ${client.id}, user: ${userId ?? 'none'}) joining lobby ${lobbyId}`,
       );
 
       // Join the socket.io room
       await client.join(lobbyId);
 
       // Add player to domain session state
-      const state = await this.gameService.addPlayer(
+      const { state, token } = await this.gameService.addPlayer(
         lobbyId,
-        client.id,
+        sessionToken,
         username,
         userId,
       );
 
       // Save connection context
-      this.clientMap.set(client.id, { lobbyId, username });
+      this.clientMap.set(client.id, { lobbyId, username, playerId: token });
 
       // Broadcast new state to room
       this.server.to(lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
-      // Respond to joining client
-      client.emit(GAME_EVENTS.JOIN_SUCCESS, { lobbyId, state });
+      // Respond to joining client with playerSessionToken
+      client.emit(GAME_EVENTS.JOIN_SUCCESS, { lobbyId, state, playerSessionToken: token });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to join lobby';
       this.logger.warn(`Join lobby error: ${message}`);
@@ -109,7 +111,7 @@ export class GameGateway implements OnGatewayDisconnect {
     try {
       const state = await this.gameService.configureLobby(
         clientData.lobbyId,
-        client.id,
+        clientData.playerId,
         data.gameMode,
         data.guessingTimeLimit,
       );
@@ -133,7 +135,7 @@ export class GameGateway implements OnGatewayDisconnect {
     try {
       const state = await this.gameService.startGame(
         clientData.lobbyId,
-        client.id, // The host socket ID must match the creatorId/hostId
+        clientData.playerId,
       );
 
       this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
@@ -155,7 +157,7 @@ export class GameGateway implements OnGatewayDisconnect {
     try {
       const state = await this.gameService.startAudioTimer(
         clientData.lobbyId,
-        client.id,
+        clientData.playerId,
       );
       this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
@@ -178,7 +180,7 @@ export class GameGateway implements OnGatewayDisconnect {
     try {
       const { correct, state } = await this.gameService.submitGuess(
         clientData.lobbyId,
-        client.id,
+        clientData.playerId,
         data.guess,
       );
 
@@ -201,7 +203,7 @@ export class GameGateway implements OnGatewayDisconnect {
     try {
       const state = await this.gameService.passTurn(
         clientData.lobbyId,
-        client.id,
+        clientData.playerId,
       );
 
       this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
@@ -222,7 +224,7 @@ export class GameGateway implements OnGatewayDisconnect {
     try {
       const state = await this.gameService.advanceRound(
         clientData.lobbyId,
-        client.id,
+        clientData.playerId,
       );
 
       this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
@@ -243,7 +245,7 @@ export class GameGateway implements OnGatewayDisconnect {
     try {
       const state = await this.gameService.forceReveal(
         clientData.lobbyId,
-        client.id,
+        clientData.playerId,
       );
       this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {
@@ -263,7 +265,7 @@ export class GameGateway implements OnGatewayDisconnect {
     try {
       const state = await this.gameService.endGame(
         clientData.lobbyId,
-        client.id,
+        clientData.playerId,
       );
       this.server.to(clientData.lobbyId).emit(GAME_EVENTS.GAME_STATE_UPDATE, state);
     } catch (err: unknown) {

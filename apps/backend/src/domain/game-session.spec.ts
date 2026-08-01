@@ -89,6 +89,20 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       expect(session.players).toHaveLength(1);
       expect(session.players[0].id).toBe('host-id');
     });
+
+    it('should reconnect existing player with matching playerSessionToken without duplicate entry', () => {
+      const session = new GameSession('ABCD', 'host-id', mockQuiz);
+      session.addPlayer('host-id', 'Alice');
+      session.addPlayer('token-guest-1', 'Bob');
+
+      expect(session.players).toHaveLength(2);
+
+      // Reconnect with same token
+      session.addPlayer('token-guest-1', 'Bob Updated');
+      expect(session.players).toHaveLength(2);
+      expect(session.players[1].name).toBe('Bob Updated');
+      expect(session.players[1].isDisconnected).toBe(false);
+    });
   });
 
   describe('Gameplay Starts', () => {
@@ -165,6 +179,37 @@ describe('GameSession State Machine & Gameplay Rules', () => {
       expect(() => session.submitGuess('guest-2', 'Incorrect')).toThrow(
         'It is not your turn to guess',
       );
+    });
+
+    it('should award point if guess matches any custom accepted title variation', () => {
+      const quizWithAccepted: Quiz = {
+        ...mockQuiz,
+        songs: [
+          {
+            spotifyTrackId: 'track-accepted',
+            track: {
+              id: 'track-accepted',
+              title: 'Blue (Da Ba Dee)',
+              artist: 'Eiffel 65',
+              album: 'Europop',
+              coverArtUrl: 'https://example.com/cover.jpg',
+            },
+            questionType: 'TRACK_NAME',
+            start_offset_ms: 0,
+            end_offset_ms: 30000,
+            acceptedTitles: ['blue', 'daba dee', 'blue dabadee'],
+          },
+        ],
+      };
+      const customSession = new GameSession('EFGH', 'host-id', quizWithAccepted);
+      customSession.addPlayer('host-id', 'Alice');
+      customSession.addPlayer('guest-1', 'Bob');
+      customSession.addPlayer('guest-2', 'Charlie');
+      customSession.start('host-id');
+
+      const isCorrect = customSession.submitGuess('guest-1', 'daba dee');
+      expect(isCorrect).toBe(true);
+      expect(customSession.players.find((p) => p.id === 'guest-1')?.score).toBe(1);
     });
 
     it('should award points on correct guess and proceed to next song/turn', () => {

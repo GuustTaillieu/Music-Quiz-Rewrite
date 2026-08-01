@@ -3,11 +3,15 @@ import { GameController } from './game.controller';
 import { GameService } from './game.service';
 
 // Mock the NestJS better auth library to avoid ESM parsing issues in Jest
-jest.mock('@thallesp/nestjs-better-auth', () => ({
-  AuthGuard: jest.fn().mockImplementation(() => ({ canActivate: () => true })),
-  Session: () => jest.fn(),
-  AllowAnonymous: () => () => {},
-}));
+jest.mock(
+  '@thallesp/nestjs-better-auth',
+  () => ({
+    AuthGuard: jest.fn().mockImplementation(() => ({ canActivate: () => true })),
+    Session: () => jest.fn(),
+    AllowAnonymous: () => () => {},
+  }),
+  { virtual: true },
+);
 
 describe('GameController', () => {
   let controller: GameController;

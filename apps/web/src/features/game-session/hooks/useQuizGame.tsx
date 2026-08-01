@@ -42,15 +42,24 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
     const unsubJoinSuccess = registerHandler<{
       lobbyId: string;
       state: GameSessionState;
-    }>(GAME_EVENTS.JOIN_SUCCESS, ({ state }) => {
+      playerSessionToken?: string;
+    }>(GAME_EVENTS.JOIN_SUCCESS, ({ lobbyId, state, playerSessionToken }) => {
       setGameState(state);
       setError(null);
+      if (playerSessionToken) {
+        try {
+          localStorage.setItem(`smq_session_${lobbyId.toUpperCase()}`, playerSessionToken);
+        } catch {
+          // ignore storage errors
+        }
+      }
     });
 
     const unsubJoinError = registerHandler<{ message: string }>(
       GAME_EVENTS.JOIN_ERROR,
       ({ message }) => {
         setError(message);
+        setGameState(null);
       },
     );
 
@@ -78,15 +87,49 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const joinLobby = useCallback(
     (lobbyId: string, username: string, userId?: string) => {
       setError(null);
-      emit(GAME_EVENTS.JOIN_LOBBY, { lobbyId, username, userId });
+      const cleanLobbyId = lobbyId.toUpperCase();
+      const storageKey = `smq_session_${cleanLobbyId}`;
+      let playerSessionToken: string | undefined;
+
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          playerSessionToken = stored;
+        } else {
+          playerSessionToken =
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random()}`;
+          localStorage.setItem(storageKey, playerSessionToken);
+        }
+      } catch {
+        // ignore storage errors
+      }
+
+      emit(GAME_EVENTS.JOIN_LOBBY, {
+        lobbyId: cleanLobbyId,
+        username: username.trim(),
+        userId,
+        playerSessionToken,
+      });
     },
     [emit],
   );
 
+  const endGame = useCallback(() => {
+    emit(GAME_EVENTS.END_GAME);
+  }, [emit]);
+
   const leaveLobby = useCallback((callback?: () => void) => {
+    try {
+      const keys = Object.keys(localStorage).filter((k) => k.startsWith('smq_session_'));
+      keys.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // ignore
+    }
     endGame();
     callback?.();
-  }, []);
+  }, [endGame]);
 
   const startGame = useCallback(() => {
     emit(GAME_EVENTS.GAME_START);
@@ -109,10 +152,6 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
 
   const forceReveal = useCallback(() => {
     emit(GAME_EVENTS.FORCE_REVEAL);
-  }, [emit]);
-
-  const endGame = useCallback(() => {
-    emit(GAME_EVENTS.END_GAME);
   }, [emit]);
 
   const startAudioTimer = useCallback(() => {

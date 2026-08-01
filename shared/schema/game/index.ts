@@ -42,6 +42,9 @@ export const QuizSongSchema = z.object({
   start_offset_ms: z.number().int().nonnegative(),
   end_offset_ms: z.number().int().positive(),
   lyricsGap: z.string().nullable().optional(),
+  acceptedTitles: z.array(z.string()).optional(),
+  acceptedArtists: z.array(z.string()).optional(),
+  acceptedLyricsGaps: z.array(z.string()).optional(),
 });
 
 export type QuizSong = z.infer<typeof QuizSongSchema>;
@@ -167,9 +170,19 @@ export type GameSessionState = z.infer<typeof GameSessionStateSchema>;
 export const JoinLobbyPayloadSchema = z.object({
   lobbyId: z.string().min(1, 'Lobby ID is required'),
   username: z.string().min(1, 'Username is required'),
+  playerSessionToken: z.string().optional(),
 });
 
 export type JoinLobbyPayload = z.infer<typeof JoinLobbyPayloadSchema>;
+
+export const JoinSuccessPayloadSchema = z.object({
+  lobbyId: z.string(),
+  state: GameSessionStateSchema,
+  playerSessionToken: z.string(),
+});
+
+export type JoinSuccessPayload = z.infer<typeof JoinSuccessPayloadSchema>;
+
 
 export const CreateLobbyPayloadSchema = z.object({
   quizId: z.string().uuid('Invalid Quiz ID'),

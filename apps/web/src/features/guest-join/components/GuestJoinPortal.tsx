@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Headphones, Loader2, ArrowLeft, Play } from 'lucide-react';
+import { Headphones, Loader2, ArrowLeft, Play, QrCode } from 'lucide-react';
 import { BsSpotify } from 'react-icons/bs';
 import { Button } from '#/features/shared/components/ui/button';
 import { Input } from '#/features/shared/components/ui/input';
@@ -8,12 +8,20 @@ import { Card } from '#/features/shared/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '#/features/shared/components/ui/input-otp';
 import { useAuthActions } from '#/features/auth';
 import { useValidateLobbyCode } from '#/features/lobby-core';
+import { useDeviceCapability } from '#/features/shared/hooks/useDeviceCapability';
+import { InAppQRScannerModal } from './InAppQRScannerModal';
 
-export function GuestJoinPortal() {
+interface GuestJoinPortalProps {
+  initialLobbyCode?: string;
+}
+
+export function GuestJoinPortal({ initialLobbyCode }: GuestJoinPortalProps) {
   const navigate = useNavigate();
   const [step, setStep] = useState<'code' | 'name'>('code');
   const [guestName, setGuestName] = useState('');
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const { signInWithSpotify, loginError } = useAuthActions();
+  const { canScanQR } = useDeviceCapability();
 
   const {
     lobbyCode,
@@ -23,7 +31,7 @@ export function GuestJoinPortal() {
     handleCodeChange,
   } = useValidateLobbyCode(() => {
     setStep('name');
-  });
+  }, initialLobbyCode);
 
   const handleJoinLobby = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -78,10 +86,23 @@ export function GuestJoinPortal() {
               </Button>
             </div>
 
+            {/* Mobile with camera support: Scan QR Code Button */}
+            {canScanQR && (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => setIsQRScannerOpen(true)}
+                className="w-full mb-6 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 cursor-pointer gap-2 font-bold shadow-[0_0_15px_rgba(0,240,255,0.1)]"
+              >
+                <QrCode size={18} /> Scan Lobby QR Code
+              </Button>
+            )}
+
             <div className="w-full flex items-center gap-3 mb-6">
               <div className="h-px bg-cyan-500/10 flex-1" />
               <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
-                enter join code
+                {canScanQR ? 'or enter code manually' : 'enter join code'}
               </span>
               <div className="h-px bg-cyan-500/10 flex-1" />
             </div>
@@ -165,6 +186,12 @@ export function GuestJoinPortal() {
           </div>
         )}
       </Card>
+
+      <InAppQRScannerModal
+        isOpen={isQRScannerOpen}
+        onClose={() => setIsQRScannerOpen(false)}
+        onScanSuccess={(scannedCode) => handleCodeChange(scannedCode)}
+      />
     </div>
   );
 }
