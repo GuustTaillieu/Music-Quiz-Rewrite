@@ -9,7 +9,7 @@ export interface FlashBannerInfo {
 }
 
 export function useModeSwitchFlash() {
-  const { gameState } = useQuizGame()
+  const { gameState } = useQuizGame();
   const [flashBanner, setFlashBanner] = useState<FlashBannerInfo | null>(null);
   const prevIsSpeedRef = useRef<boolean | null>(null);
 
@@ -28,24 +28,23 @@ export function useModeSwitchFlash() {
 
     const prevIsSpeed = prevIsSpeedRef.current;
 
-    if (prevIsSpeed !== null && prevIsSpeed !== isSpeedMode) {
+    // Trigger flash when game starts OR when mode/phase switches
+    if (prevIsSpeed === null || prevIsSpeed !== isSpeedMode) {
       if (isSpeedMode) {
         setFlashBanner({
           message: '⚡ SPEED ROUND',
           subtext: 'Everyone can guess now!',
           isSpeed: true,
         });
-        const timer = setTimeout(() => setFlashBanner(null), 3000);
-        return () => clearTimeout(timer);
       } else {
         setFlashBanner({
           message: '🎯 TURN-BASED MODE',
           subtext: "Take turns to guess when it's your turn!",
           isSpeed: false,
         });
-        const timer = setTimeout(() => setFlashBanner(null), 3000);
-        return () => clearTimeout(timer);
       }
+      const timer = setTimeout(() => setFlashBanner(null), 3000);
+      return () => clearTimeout(timer);
     }
 
     prevIsSpeedRef.current = isSpeedMode;
