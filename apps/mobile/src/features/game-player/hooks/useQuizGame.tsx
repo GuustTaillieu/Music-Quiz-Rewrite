@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GAME_EVENTS } from '@spotify-music-quiz/shared/constants/game-events';
 import type { GameSessionState } from '@spotify-music-quiz/shared/schema/game';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { usePlayerSession } from './usePlayerSession';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://127.0.0.1:3001';
 
@@ -11,7 +11,7 @@ interface QuizGameContextType {
   gameState: GameSessionState | null;
   error: string | null;
   lastGuessResult: boolean | null;
-  joinLobby: (lobbyId: string, username: string) => void;
+  joinLobby: (lobbyId: string) => void;
   leaveLobby: (callback?: () => void) => void;
   passTurn: () => void;
   submitGuess: (guess: string) => void;
@@ -20,6 +20,7 @@ interface QuizGameContextType {
 const QuizGameContext = createContext<QuizGameContextType | undefined>(undefined);
 
 export function QuizGameProvider({ children }: { children: ReactNode }) {
+  const { username, setToken, clearSession } = usePlayerSession()
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [gameState, setGameState] = useState<GameSessionState | null>(null);
@@ -45,13 +46,10 @@ export function QuizGameProvider({ children }: { children: ReactNode }) {
       setGameState(state);
     });
 
-    socketInstance.on(GAME_EVENTS.JOIN_SUCCESS, async ({ lobbyId, state, playerSessionToken }) => {
+    socketInstance.on(GAME_EVENTS.JOIN_SUCCESS, ({ lobbyId, state, playerSessionToken }) => {
       setGameState(state);
       setError(null);
-      const storageKey = `smq_session_${lobbyId}`;
-      if (playerSessionToken) {
-        await AsyncStorage.setItem(storageKey, playerSessionToken);
-      }
+      if (playerSessionToken) setToken(lobbyId, playerSessionToken)
     });
 
     socketInstance.on(GAME_EVENTS.JOIN_ERROR, ({ message }: { message: string }) => {
@@ -76,29 +74,24 @@ export function QuizGameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const joinLobby = useCallback(
-    async (lobbyId: string, username: string) => {
+    async (lobbyId: string) => {
       if (!socket) return;
       socket.emit(GAME_EVENTS.JOIN_LOBBY, {
         lobbyId,
         username: username.trim(),
       });
     },
-    [socket],
+    [socket, username],
   );
 
   const leaveLobby = useCallback(
     async (callback?: () => void) => {
-      try {
-        const keys = await AsyncStorage.getAllKeys();
-        const sessionKeys = keys.filter((k) => k.startsWith('smq_session_'));
-        await AsyncStorage.multiRemove(sessionKeys);
-      } catch {
-        // ignore
-      }
+      if (!gameState) return;
+      await clearSession(gameState.lobbyId);
       setGameState(null);
       callback?.();
     },
-    [],
+    [gameState, clearSession],
   );
 
   const passTurn = useCallback(() => {

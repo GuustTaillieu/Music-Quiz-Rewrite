@@ -1,23 +1,25 @@
+import { usePlayerSession } from '@/features/game-player/hooks/usePlayerSession';
 import { useQuizGame } from '@/features/game-player/hooks/useQuizGame';
+import { cn, colors } from '@/features/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { LogIn, Music, QrCode } from 'lucide-react-native';
+import { Headphones, LogIn, QrCode } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function JoinScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ lobbyId?: string }>();
   const [code, setCode] = useState(params.lobbyId || '');
-  const [username, setUsername] = useState('');
+  const { username, setUsername } = usePlayerSession()
   const { joinLobby, gameState, error } = useQuizGame();
 
   useEffect(() => {
@@ -35,232 +37,104 @@ export default function JoinScreen() {
   const handleJoin = () => {
     const cleanCode = code.trim().toUpperCase();
     const cleanName = username.trim();
-    if (cleanCode.length === 6 && cleanName) {
-      joinLobby(cleanCode, cleanName);
+    if (cleanCode.length === 6 && cleanName.length > 2) {
+      joinLobby(cleanCode);
     }
   };
 
+  const isButtonDisabled = !code || !username || code.length !== 6 || username.length <= 2;
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header Badge */}
-        <View style={styles.badgeContainer}>
-          <Music size={24} color="#00f0ff" />
-          <Text style={styles.badgeText}>SPOTIFY MUSIC QUIZ</Text>
-        </View>
+    <SafeAreaView className="flex-1 bg-bg-dark">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+      >
+        <ScrollView contentContainerClassName="p-6 items-center">
+          {/* LOGO */}
+          <View className='items-center mb-8'>
+            <View className="inline-flex items-center justify-center p-4 bg-spotify/10 rounded-2xl border border-spotify/30 text-spotify mb-3 shadow-[0_0_15px_rgba(29,185,84,0.15)]">
+              <Headphones size={36} color={colors.spotify} />
+            </View>
+            <Text className="text-2xl font-bold tracking-tight text-white mb-0.5">SoundQuiz</Text>
+            <Text className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-8">
+              Powered by Spotify
+            </Text>
 
-        <Text style={styles.title}>Join Lobby</Text>
-        <Text style={styles.subtitle}>Enter the 6-digit lobby code or scan host QR code</Text>
-
-        {/* Scan QR Button */}
-        <TouchableOpacity
-          style={styles.qrButton}
-          onPress={() => router.push('/scanner')}
-          activeOpacity={0.8}
-        >
-          <QrCode size={20} color="#00f0ff" />
-          <Text style={styles.qrButtonText}>Scan Host QR Code</Text>
-        </TouchableOpacity>
-
-        <View style={styles.dividerContainer}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>OR ENTER MANUALLY</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Error Alert */}
-        {error && (
-          <View style={styles.errorCard}>
-            <Text style={styles.errorText}>{error}</Text>
           </View>
-        )}
 
-        {/* 6-Digit Code Input */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>LOBBY CODE</Text>
-          <TextInput
-            style={styles.textInput}
-            value={code}
-            onChangeText={(text) => setCode(text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
-            placeholder="XXXXXX"
-            placeholderTextColor="#4a5568"
-            maxLength={6}
-            autoCapitalize="characters"
-            keyboardType="default"
-          />
-        </View>
+          <Text className="text-4xl font-extrabold text-white leading-tight tracking-tight mb-3">
+            Music trivia, done right.
+          </Text>
 
-        {/* Player Username Input */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>YOUR NICKNAME</Text>
-          <TextInput
-            style={styles.textInput}
-            value={username}
-            onChangeText={setUsername}
-            placeholder="Enter your name"
-            placeholderTextColor="#4a5568"
-            maxLength={20}
-            autoCapitalize="words"
-          />
-        </View>
+          <Text className="text-sm text-slate-400 text-center mb-6">Enter the 6-digit lobby code or scan host QR code</Text>
 
-        {/* Submit Join Button */}
-        <TouchableOpacity
-          style={[
-            styles.joinButton,
-            (!code || !username || code.length !== 6) && styles.joinButtonDisabled,
-          ]}
-          onPress={handleJoin}
-          disabled={!code || !username || code.length !== 6}
-          activeOpacity={0.8}
-        >
-          <LogIn size={20} color="#ffffff" />
-          <Text style={styles.joinButtonText}>Join Game</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Scan QR Button */}
+          <TouchableOpacity
+            className="w-full flex-row items-center justify-center gap-2.5 bg-neon-cyan/8 border border-neon-cyan/40 py-3.5 rounded-2xl mb-5"
+            onPress={() => router.push('/scanner')}
+            activeOpacity={0.8}
+          >
+            <QrCode size={20} color="#00f0ff" />
+            <Text className="text-neon-cyan font-bold text-base">Scan Host QR Code</Text>
+          </TouchableOpacity>
+
+          <View className="flex-row items-center w-full mb-5">
+            <View className="flex-1 h-px bg-neon-cyan/15" />
+            <Text className="text-slate-500 text-[10px] font-extrabold tracking-widest px-3">OR ENTER MANUALLY</Text>
+            <View className="flex-1 h-px bg-neon-cyan/15" />
+          </View>
+
+          {/* Error Alert */}
+          {error && (
+            <View className="w-full bg-red-500/15 border border-red-500/40 p-3 rounded-xl mb-4">
+              <Text className="text-red-400 text-xs text-center font-semibold">{error}</Text>
+            </View>
+          )}
+
+          {/* Player Username Input */}
+          <View className="w-full mb-4">
+            <Text className="text-slate-400 text-[11px] font-extrabold tracking-wider mb-1.5">YOUR NICKNAME</Text>
+            <TextInput
+              className="w-full bg-card-dark border border-neon-cyan/25 rounded-xl px-4 py-3.5 text-white text-base font-semibold placeholder:text-slate-600"
+              value={username}
+              onChangeText={setUsername}
+              placeholder="Enter your name"
+              maxLength={20}
+              autoCapitalize="words"
+            />
+          </View>
+
+          {/* 6-Digit Code Input */}
+          <View className="w-full mb-4">
+            <Text className="text-slate-400 text-[11px] font-extrabold tracking-wider mb-1.5">LOBBY CODE</Text>
+            <TextInput
+              className="w-full bg-card-dark border border-neon-cyan/25 rounded-xl px-4 py-3.5 text-white text-base font-semibold placeholder:text-slate-600"
+              value={code}
+              onChangeText={(text) => setCode(text.slice(0, 6))}
+              inputMode='decimal'
+              returnKeyType='done'
+              placeholder="XXXXXX"
+              maxLength={6}
+              autoCapitalize="characters"
+            />
+          </View>
+
+          {/* Submit Join Button */}
+          <TouchableOpacity
+            className={cn(
+              'w-full flex-row items-center justify-center gap-2 bg-neon-pink py-4 rounded-2xl mt-3',
+              isButtonDisabled ? 'opacity-50' : 'opacity-100'
+            )}
+            onPress={handleJoin}
+            disabled={isButtonDisabled}
+            activeOpacity={0.8}
+          >
+            <LogIn size={20} color="#ffffff" />
+            <Text className="text-white text-base font-extrabold">Join Game</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#05070f',
-  },
-  scrollContent: {
-    padding: 24,
-    paddingTop: 60,
-    alignItems: 'center',
-  },
-  badgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(0, 240, 255, 0.1)',
-    borderColor: 'rgba(0, 240, 255, 0.3)',
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 24,
-  },
-  badgeText: {
-    color: '#00f0ff',
-    fontWeight: '900',
-    fontSize: 12,
-    letterSpacing: 1.5,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#ffffff',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  qrButton: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
-    borderColor: 'rgba(0, 240, 255, 0.4)',
-    borderWidth: 1.5,
-    paddingVertical: 14,
-    borderRadius: 16,
-    marginBottom: 20,
-  },
-  qrButtonText: {
-    color: '#00f0ff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(0, 240, 255, 0.15)',
-  },
-  dividerText: {
-    color: '#64748b',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    paddingHorizontal: 12,
-  },
-  errorCard: {
-    width: '100%',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    borderWidth: 1,
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: '#f87171',
-    fontSize: 13,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  inputGroup: {
-    width: '100%',
-    marginBottom: 16,
-  },
-  inputLabel: {
-    color: '#94a3b8',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  textInput: {
-    width: '100%',
-    backgroundColor: '#0d1322',
-    borderColor: 'rgba(0, 240, 255, 0.25)',
-    borderWidth: 1.5,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  joinButton: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#ff007f',
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginTop: 12,
-    shadowColor: '#ff007f',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  joinButtonDisabled: {
-    opacity: 0.5,
-  },
-  joinButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-});

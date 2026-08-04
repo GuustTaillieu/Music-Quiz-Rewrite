@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { X, Camera } from 'lucide-react-native';
+import { Camera, X } from 'lucide-react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ScannerScreen() {
   const router = useRouter();
@@ -10,22 +10,22 @@ export default function ScannerScreen() {
   const [scanned, setScanned] = useState(false);
 
   if (!permission) {
-    return <View style={styles.container} />;
+    return <View className="flex-1 bg-black" />;
   }
 
   if (!permission.granted) {
     return (
-      <View style={styles.permissionContainer}>
+      <View className="flex-1 bg-bg-dark items-center justify-center p-6">
         <Camera size={48} color="#00f0ff" />
-        <Text style={styles.permissionTitle}>Camera Access Required</Text>
-        <Text style={styles.permissionSubtitle}>
+        <Text className="text-2xl font-extrabold text-white mt-4 mb-2">Camera Access Required</Text>
+        <Text className="text-sm text-slate-400 text-center mb-6">
           We need your permission to use the camera to scan host lobby QR codes.
         </Text>
-        <TouchableOpacity style={styles.grantButton} onPress={requestPermission}>
-          <Text style={styles.grantButtonText}>Grant Permission</Text>
+        <TouchableOpacity className="w-full bg-neon-cyan py-3.5 rounded-2xl items-center mb-3" onPress={requestPermission}>
+          <Text className="text-bg-dark font-extrabold text-base">Grant Permission</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+        <TouchableOpacity className="py-2.5" onPress={() => router.back()}>
+          <Text className="text-slate-400 text-sm font-semibold">Cancel</Text>
         </TouchableOpacity>
       </View>
     );
@@ -57,7 +57,7 @@ export default function ScannerScreen() {
   const CameraComponent = CameraView as unknown as React.FC<any>;
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-black">
       <CameraComponent
         style={StyleSheet.absoluteFill}
         facing="back"
@@ -66,122 +66,26 @@ export default function ScannerScreen() {
           barcodeTypes: ['qr'],
         }}
       >
-        <View style={styles.overlay}>
+        <View className="flex-1 bg-bg-dark/60 justify-between pt-12 pb-10 px-6">
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Scan Host QR Code</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-white text-lg font-extrabold">Scan Host QR Code</Text>
+            <TouchableOpacity className="p-2 bg-white/15 rounded-full" onPress={() => router.back()}>
               <X size={24} color="#ffffff" />
             </TouchableOpacity>
           </View>
 
           {/* Scanner Box Frame */}
-          <View style={styles.scanFrameContainer}>
-            <View style={styles.scanFrame} />
-            <Text style={styles.scanInstructions}>
+          <View className="items-center justify-center">
+            <View className="w-60 h-60 border-3 border-neon-cyan rounded-3xl bg-transparent shadow-lg shadow-neon-cyan" />
+            <Text className="text-slate-200 text-xs font-semibold mt-5 text-center">
               Position the host screen QR code inside the frame
             </Text>
           </View>
 
-          <View style={styles.footer} />
+          <View className="h-10" />
         </View>
       </CameraComponent>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  permissionContainer: {
-    flex: 1,
-    backgroundColor: '#05070f',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  permissionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  permissionSubtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  grantButton: {
-    width: '100%',
-    backgroundColor: '#00f0ff',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  grantButtonText: {
-    color: '#05070f',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  cancelButton: {
-    paddingVertical: 10,
-  },
-  cancelButtonText: {
-    color: '#94a3b8',
-    fontSize: 14,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(5, 7, 15, 0.6)',
-    justifyContent: 'space-between',
-    paddingTop: 50,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  closeButton: {
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
-  },
-  scanFrameContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scanFrame: {
-    width: 240,
-    height: 240,
-    borderWidth: 3,
-    borderColor: '#00f0ff',
-    borderRadius: 24,
-    backgroundColor: 'transparent',
-    shadowColor: '#00f0ff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 16,
-  },
-  scanInstructions: {
-    color: '#e2e8f0',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 20,
-    textAlign: 'center',
-  },
-  footer: {
-    height: 40,
-  },
-});
