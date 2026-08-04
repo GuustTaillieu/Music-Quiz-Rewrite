@@ -33,6 +33,8 @@ export function GuestJoinPortal({ initialLobbyCode }: GuestJoinPortalProps) {
     setStep('name');
   }, initialLobbyCode);
 
+  const isMobileBrowser = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
   const handleJoinLobby = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!lobbyCode || !guestName.trim()) return;
@@ -43,6 +45,15 @@ export function GuestJoinPortal({ initialLobbyCode }: GuestJoinPortalProps) {
       search: { username: guestName.trim() },
     });
   };
+
+  React.useEffect(() => {
+    if (initialLobbyCode && isMobileBrowser) {
+      const timer = setTimeout(() => {
+        window.location.href = `mobile://join?lobbyId=${initialLobbyCode}`;
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [initialLobbyCode, isMobileBrowser]);
 
   return (
     <div className="relative w-full h-dvh flex flex-col items-center justify-center overflow-hidden px-6 bg-[#05070f]">
@@ -85,6 +96,16 @@ export function GuestJoinPortal({ initialLobbyCode }: GuestJoinPortalProps) {
                 <BsSpotify size={16} /> Sign In with Spotify
               </Button>
             </div>
+
+            {/* Mobile Browser App Launcher */}
+            {isMobileBrowser && (
+              <a
+                href={lobbyCode ? `mobile://join?lobbyId=${lobbyCode}` : `mobile://join`}
+                className="w-full mb-4 py-3.5 px-4 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:bg-cyan-500/30 transition-all shadow-[0_0_15px_rgba(0,240,255,0.15)]"
+              >
+                📱 Open in Mobile App
+              </a>
+            )}
 
             {/* Mobile with camera support: Scan QR Code Button */}
             {canScanQR && (

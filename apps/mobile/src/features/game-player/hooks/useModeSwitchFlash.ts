@@ -11,25 +11,28 @@ export interface FlashBannerInfo {
 export function useModeSwitchFlash() {
   const { gameState } = useQuizGame();
   const [flashBanner, setFlashBanner] = useState<FlashBannerInfo | null>(null);
-  const prevIsSpeedRef = useRef<boolean | null>(null);
+  const prevPhaseRef = useRef<GamePhase | null>(null);
+
+  const phase = gameState?.phase;
+  const gameMode = gameState?.gameMode;
 
   const isSpeedMode = gameState
-    ? gameState.gameMode === GameMode.SPEED_MODE || gameState.phase === GamePhase.SPEED_ROUND
+    ? gameMode === GameMode.SPEED_MODE || phase === GamePhase.SPEED_ROUND
     : false;
 
   useEffect(() => {
-    if (!gameState) return;
+    if (!phase) return;
 
     // Ignore transitions in Lobby or Completed phase
-    if (gameState.phase === GamePhase.LOBBY || gameState.phase === GamePhase.COMPLETED) {
-      prevIsSpeedRef.current = isSpeedMode;
+    if (phase === GamePhase.LOBBY || phase === GamePhase.COMPLETED) {
+      prevPhaseRef.current = phase;
       return;
     }
 
-    const prevIsSpeed = prevIsSpeedRef.current;
+    const prevPhase = prevPhaseRef.current;
 
-    // Trigger flash when game starts OR when mode/phase switches
-    if (prevIsSpeed === null || prevIsSpeed !== isSpeedMode) {
+    // Trigger flash when game first starts or when phase/mode changes between speed & turn-based
+    if (prevPhase !== phase) {
       if (isSpeedMode) {
         setFlashBanner({
           message: '⚡ SPEED ROUND',
@@ -39,16 +42,17 @@ export function useModeSwitchFlash() {
       } else {
         setFlashBanner({
           message: '🎯 TURN-BASED MODE',
-          subtext: "Answer one at a time",
+          subtext: 'Answer one at a time',
           isSpeed: false,
         });
       }
       const timer = setTimeout(() => setFlashBanner(null), 3000);
+      prevPhaseRef.current = phase;
       return () => clearTimeout(timer);
     }
 
-    prevIsSpeedRef.current = isSpeedMode;
-  }, [gameState, isSpeedMode]);
+    prevPhaseRef.current = phase;
+  }, [phase, isSpeedMode]);
 
   return {
     flashBanner,

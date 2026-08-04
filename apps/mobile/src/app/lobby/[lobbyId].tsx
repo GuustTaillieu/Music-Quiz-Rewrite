@@ -82,7 +82,8 @@ export default function LobbyScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg-dark">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 20}
         className="flex-1 px-5 pt-3"
       >
         {/* Top Header Bar */}

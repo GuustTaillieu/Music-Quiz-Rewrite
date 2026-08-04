@@ -1,13 +1,34 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { Camera, X } from 'lucide-react-native';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 export default function ScannerScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+
+  const scanLinePos = useSharedValue(0);
+
+  useEffect(() => {
+    scanLinePos.value = withRepeat(
+      withTiming(230, { duration: 2000, easing: Easing.linear }),
+      -1,
+      true
+    );
+  }, [scanLinePos]);
+
+  const scanLineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: scanLinePos.value }],
+  }));
 
   if (!permission) {
     return <View className="flex-1 bg-black" />;
@@ -66,24 +87,48 @@ export default function ScannerScreen() {
           barcodeTypes: ['qr'],
         }}
       >
-        <View className="flex-1 bg-bg-dark/60 justify-between pt-12 pb-10 px-6">
-          {/* Header */}
-          <View className="flex-row items-center justify-between">
-            <Text className="text-white text-lg font-extrabold">Scan Host QR Code</Text>
-            <TouchableOpacity className="p-2 bg-white/15 rounded-full" onPress={() => router.back()}>
-              <X size={24} color="#ffffff" />
-            </TouchableOpacity>
+        {/* 4-Panel Dark Viewport Mask (Center Viewport is 100% Clear) */}
+        <View className="flex-1">
+          {/* Top Dimmed Overlay with Header */}
+          <View className="flex-1 bg-black/75 pt-12 px-6 justify-between pb-6">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-white text-lg font-extrabold tracking-wide">Scan Host QR Code</Text>
+              <TouchableOpacity className="p-2 bg-white/15 rounded-full" onPress={() => router.back()}>
+                <X size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Scanner Box Frame */}
-          <View className="items-center justify-center">
-            <View className="w-60 h-60 border-3 border-neon-cyan rounded-3xl bg-transparent shadow-lg shadow-neon-cyan" />
-            <Text className="text-slate-200 text-xs font-semibold mt-5 text-center">
+          {/* Middle Row with Center Cutout */}
+          <View className="flex-row h-64">
+            {/* Left Dimmed Overlay */}
+            <View className="flex-1 bg-black/75" />
+
+            {/* Clear Viewport Square Box (64x64 / 256px) */}
+            <View className="w-64 h-64 relative items-center justify-center">
+              {/* L-Shaped Glowing Neon Corner Brackets */}
+              <View className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-neon-cyan rounded-tl-xl" />
+              <View className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-neon-cyan rounded-tr-xl" />
+              <View className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-neon-cyan rounded-bl-xl" />
+              <View className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-neon-cyan rounded-br-xl" />
+
+              {/* Animated Glowing Scan Line */}
+              <Animated.View
+                style={[scanLineStyle]}
+                className="absolute top-2 left-3 right-3 h-0.5 bg-neon-cyan shadow-md shadow-neon-cyan"
+              />
+            </View>
+
+            {/* Right Dimmed Overlay */}
+            <View className="flex-1 bg-black/75" />
+          </View>
+
+          {/* Bottom Dimmed Overlay with Instruction */}
+          <View className="flex-1 bg-black/75 items-center justify-center p-6">
+            <Text className="text-slate-200 text-sm font-bold text-center tracking-wide">
               Position the host screen QR code inside the frame
             </Text>
           </View>
-
-          <View className="h-10" />
         </View>
       </CameraComponent>
     </View>
