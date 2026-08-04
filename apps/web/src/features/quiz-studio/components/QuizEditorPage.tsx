@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Save, Check, Music, Play, Pause, Share2, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, Save, Check, Music, Play, Pause, Share2, RefreshCcw, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
 import { Badge } from '#/features/shared/components/ui/badge';
 import { ButtonGroup, ButtonGroupSeparator } from '#/features/shared/components/ui/button-group';
 import { useAudioPreview } from '#/features/audio-player';
 import { useQuizQuery, useSaveQuizMutation, useSyncQuizMutation } from '#/features/quiz-core';
 import { QuizTitleInput, QuizDescriptionInput } from '#/features/quiz-metadata-editor';
-import { QuizSongList, QuestionTypeConfig } from '#/features/question-authoring';
+import { QuizSongList, QuestionTypeConfig, AcceptedAnswersModal, generateAnswerSuggestions } from '#/features/question-authoring';
 import { TimelineSlider } from '#/features/timeline-trimmer';
 import { LyricsGapEditor } from '#/features/lyrics-gap-builder';
 import { TrackCatalogSearch } from '#/features/track-search';
@@ -34,6 +34,7 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isAcceptedModalOpen, setIsAcceptedModalOpen] = useState(false);
   const [syncResult, setSyncResult] = useState<any | null>(null);
 
   useEffect(() => {
@@ -69,6 +70,9 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
   };
 
   const handleAddTrack = (track: SpotifyTrack) => {
+    const autoTitles = generateAnswerSuggestions(track.title);
+    const autoArtists = generateAnswerSuggestions(track.artist);
+
     const newSong: QuizSong = {
       id: `temp-${Date.now()}-${Math.random()}`,
       spotifyTrackId: track.id,
@@ -76,6 +80,8 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
       questionType: 'TRACK_NAME',
       start_offset_ms: 0,
       end_offset_ms: Math.min(GAME_CONFIG.DEFAULT_SNIPPET_WINDOW_MS, track.durationMs || GAME_CONFIG.FALLBACK_SONG_DURATION_MS),
+      acceptedTitles: autoTitles,
+      acceptedArtists: autoArtists,
     };
     const nextSongs = [...songs, newSong];
     setSongs(nextSongs);
@@ -107,7 +113,27 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
     setSongs(nextSongs);
   };
 
-  const selectedSong = selectedSongIndex !== null && songs[selectedSongIndex] ? songs[selectedSongIndex] : null;
+  const selectedSong =
+    selectedSongIndex !== null && songs[selectedSongIndex]
+      ? songs[selectedSongIndex]
+      : null;
+
+  let acceptedFieldLabel = 'Track Title';
+  let defaultAnswerText = selectedSong?.track.title || '';
+  let currentAcceptedList: string[] = selectedSong?.acceptedTitles || [];
+  let savePropKey: 'acceptedTitles' | 'acceptedArtists' | 'acceptedLyricsGaps' = 'acceptedTitles';
+
+  if (selectedSong?.questionType === 'ARTIST_NAME') {
+    acceptedFieldLabel = 'Artist Name';
+    defaultAnswerText = selectedSong.track.artist;
+    currentAcceptedList = selectedSong.acceptedArtists || [];
+    savePropKey = 'acceptedArtists';
+  } else if (selectedSong?.questionType === 'FILL_IN_THE_GAP') {
+    acceptedFieldLabel = 'Lyrics Gap';
+    defaultAnswerText = selectedSong.lyricsGap || '';
+    currentAcceptedList = selectedSong.acceptedLyricsGaps || [];
+    savePropKey = 'acceptedLyricsGaps';
+  }
 
   const {
     currentPlaybackMs,
@@ -234,6 +260,40 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
                   questionType={selectedSong.questionType}
                   onChangeType={(type) =>
                     handleSongChange(selectedSongIndex!, 'questionType', type)
+                  }
+                />
+
+                <div className="bg-black/40 border border-cyan-500/10 rounded-2xl p-4 flex items-center justify-between gap-4 text-left">
+                  <div>
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <CheckCircle2 size={15} className="text-[#00f0ff]" />
+                      Accepted Variations ({currentAcceptedList.length})
+                    </span>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                      {currentAcceptedList.length > 0
+                        ? `${currentAcceptedList.length} custom answer variations accepted.`
+                        : `Target: "${defaultAnswerText || 'N/A'}". Add alternative accepted answers.`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAcceptedModalOpen(true)}
+                    className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 cursor-pointer text-xs font-bold gap-1.5 shrink-0"
+                  >
+                    <SlidersHorizontal size={13} /> Manage Answers
+                  </Button>
+                </div>
+
+                <AcceptedAnswersModal
+                  isOpen={isAcceptedModalOpen}
+                  onClose={() => setIsAcceptedModalOpen(false)}
+                  fieldLabel={acceptedFieldLabel}
+                  defaultAnswer={defaultAnswerText}
+                  acceptedAnswers={currentAcceptedList}
+                  onSave={(updated) =>
+                    handleSongChange(selectedSongIndex!, savePropKey, updated)
                   }
                 />
 

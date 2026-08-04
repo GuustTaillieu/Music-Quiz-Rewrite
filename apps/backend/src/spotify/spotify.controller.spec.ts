@@ -4,10 +4,14 @@ import { SpotifyService } from './spotify.service';
 import { SpotifyTokenService } from '../infrastructure/spotify/spotify-token.service';
 
 // Mock the NestJS better auth library to avoid ESM parsing issues in Jest
-jest.mock('@thallesp/nestjs-better-auth', () => ({
-  AuthGuard: jest.fn().mockImplementation(() => ({ canActivate: () => true })),
-  Session: () => jest.fn(),
-}));
+jest.mock(
+  '@thallesp/nestjs-better-auth',
+  () => ({
+    AuthGuard: jest.fn().mockImplementation(() => ({ canActivate: () => true })),
+    Session: () => jest.fn(),
+  }),
+  { virtual: true },
+);
 
 describe('SpotifyController', () => {
   let controller: SpotifyController;

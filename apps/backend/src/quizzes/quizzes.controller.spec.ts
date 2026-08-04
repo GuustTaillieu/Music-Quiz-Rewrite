@@ -3,10 +3,14 @@ import { QuizzesController } from './quizzes.controller';
 import { QuizzesService } from './quizzes.service';
 
 // Mock the NestJS better auth library to avoid ESM parsing issues in Jest
-jest.mock('@thallesp/nestjs-better-auth', () => ({
-  AuthGuard: jest.fn().mockImplementation(() => ({ canActivate: () => true })),
-  Session: () => jest.fn(),
-}));
+jest.mock(
+  '@thallesp/nestjs-better-auth',
+  () => ({
+    AuthGuard: jest.fn().mockImplementation(() => ({ canActivate: () => true })),
+    Session: () => jest.fn(),
+  }),
+  { virtual: true },
+);
 
 describe('QuizzesController', () => {
   let controller: QuizzesController;

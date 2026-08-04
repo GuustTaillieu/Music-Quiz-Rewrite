@@ -192,18 +192,21 @@ export class GameService {
 
   public async addPlayer(
     lobbyId: string,
-    playerId: string,
+    playerToken: string,
     username: string,
     userId?: string,
-  ): Promise<GameSessionState> {
+  ): Promise<{ state: GameSessionState; token: string }> {
     const session = await this.gameSessionRepository.findById(lobbyId);
     if (!session) {
       throw new NotFoundException(`Lobby ${lobbyId} not found`);
     }
 
-    session.addPlayer(playerId, username, userId);
+    session.addPlayer(playerToken, username, userId);
     await this.gameSessionRepository.save(session);
-    return session.getSanitizedState(playerId);
+    return {
+      state: session.getSanitizedState(playerToken),
+      token: playerToken,
+    };
   }
 
   public async getActiveSessionsForHost(
