@@ -206,24 +206,19 @@ export class GameSession {
     this._playersPassed = [];
     this._roundEndTime = null;
 
-    // Check if SPEED_MODE was selected
-    if (this._gameMode === GameMode.SPEED_MODE) {
+    // Check if SPEED_MODE was selected or if remaining songs start past full turn-based rounds
+    const activeCount = this.getActivePlayersCount();
+    const maxTurnBasedIndex = activeCount > 0 ? Math.floor(this._quiz.songs.length / activeCount) * activeCount : 0;
+
+    if (this._gameMode === GameMode.SPEED_MODE || maxTurnBasedIndex === 0 || this._currentSongIndex >= maxTurnBasedIndex) {
       this._phase = GamePhase.SPEED_ROUND;
       this._activePlayerId = null;
       this._songStarterPlayerId = null;
     } else {
-      // Check if we immediately start in Speed Round (e.g. quiz with very few songs)
-      const activeCount = this.getActivePlayersCount();
-      if (this._quiz.songs.length < activeCount) {
-        this._phase = GamePhase.SPEED_ROUND;
-        this._activePlayerId = null;
-        this._songStarterPlayerId = null;
-      } else {
-        this._phase = GamePhase.TURN_BASED;
-        // Pick first non-disconnected player
-        this._activePlayerId = this.findNextTurnPlayer(null);
-        this._songStarterPlayerId = this._activePlayerId;
-      }
+      this._phase = GamePhase.TURN_BASED;
+      // Pick first non-disconnected player
+      this._activePlayerId = this.findNextTurnPlayer(null);
+      this._songStarterPlayerId = this._activePlayerId;
     }
   }
 
@@ -494,11 +489,11 @@ export class GameSession {
       return;
     }
 
-    const remainingSongs = total - this._currentSongIndex;
     const activeCount = this.getActivePlayersCount();
+    const maxTurnBasedIndex = activeCount > 0 ? Math.floor(total / activeCount) * activeCount : 0;
 
-    // SPEED ROUND Transition Check (Unfairness Prevention)
-    if (remainingSongs < activeCount) {
+    // SPEED ROUND Transition Check (Modulo / Unfairness Prevention)
+    if (this._gameMode === GameMode.SPEED_MODE || this._currentSongIndex >= maxTurnBasedIndex) {
       this._phase = GamePhase.SPEED_ROUND;
       this._activePlayerId = null;
       this._songStarterPlayerId = null;
