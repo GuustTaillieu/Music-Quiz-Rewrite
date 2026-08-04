@@ -100,10 +100,12 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   const joinLobby = useCallback(
     (lobbyId: string, username: string, userId?: string) => {
       setError(null);
+      const token = localStorage.getItem(`smq_session_${lobbyId.toUpperCase()}`);
       emit(GAME_EVENTS.JOIN_LOBBY, {
         lobbyId,
         username: username.trim(),
         userId,
+        token
       });
     },
     [emit],

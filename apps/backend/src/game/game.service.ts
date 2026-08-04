@@ -192,7 +192,7 @@ export class GameService {
 
   public async addPlayer(
     lobbyId: string,
-    playerId: string,
+    playerToken: string,
     username: string,
     userId?: string,
   ): Promise<{ state: GameSessionState; token: string }> {
@@ -201,11 +201,11 @@ export class GameService {
       throw new NotFoundException(`Lobby ${lobbyId} not found`);
     }
 
-    session.addPlayer(playerId, username, userId);
+    session.addPlayer(playerToken, username, userId);
     await this.gameSessionRepository.save(session);
     return {
-      state: session.getSanitizedState(playerId),
-      token: playerId,
+      state: session.getSanitizedState(playerToken),
+      token: playerToken,
     };
   }
 

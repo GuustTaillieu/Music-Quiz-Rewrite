@@ -60,12 +60,12 @@ export class GameGateway implements OnGatewayDisconnect {
   @SubscribeMessage(GAME_EVENTS.JOIN_LOBBY)
   public async handleJoinLobby(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { lobbyId: string; username: string; userId?: string },
+    @MessageBody() data: { lobbyId: string; username: string; userId?: string, token?: string },
   ): Promise<void> {
     const lobbyId = data.lobbyId.toUpperCase();
     const username = data.username.trim();
     const userId = data.userId;
-    const sessionToken = randomUUID();
+    const sessionToken = data.token ?? randomUUID();
 
     try {
       this.logger.log(

@@ -20,7 +20,7 @@ interface QuizGameContextType {
 const QuizGameContext = createContext<QuizGameContextType | undefined>(undefined);
 
 export function QuizGameProvider({ children }: { children: ReactNode }) {
-  const { username, setToken, clearSession } = usePlayerSession()
+  const { username, setToken, getToken, clearSession } = usePlayerSession()
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [gameState, setGameState] = useState<GameSessionState | null>(null);
@@ -76,9 +76,11 @@ export function QuizGameProvider({ children }: { children: ReactNode }) {
   const joinLobby = useCallback(
     async (lobbyId: string) => {
       if (!socket) return;
+      const token = await getToken(lobbyId)
       socket.emit(GAME_EVENTS.JOIN_LOBBY, {
         lobbyId,
         username: username.trim(),
+        token
       });
     },
     [socket, username],

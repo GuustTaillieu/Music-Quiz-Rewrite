@@ -8,10 +8,12 @@ import { PlayerHeaderBar } from './PlayerHeaderBar';
 import { PlayerLeaveButton } from './PlayerLeaveButton';
 import { RoundSummaryOverlay } from './RoundSummaryOverlay';
 import { useCountdownVFX } from '../hooks/useCountdownVFX';
-import { GameMode, GamePhase, QuestionType, RoundState, type Player } from '@spotify-music-quiz/shared/schema/game';
+import { GamePhase, QuestionType, RoundState, type Player } from '@spotify-music-quiz/shared/schema/game';
 import { useQuizGame } from '../../game-session/hooks/useQuizGame';
 import { usePlayerActions } from '../hooks/usePlayerActions';
 import { useNavigate } from '@tanstack/react-router';
+import { ModeSwitchOverlay } from './ModeSwitchOverlay';
+import { useModeSwitchFlash } from '../hooks/useModeSwitchFlash';
 import { getQuestionTypeLabel } from '../utils/question-type-text';
 
 interface PlayerBuzzerScreenProps {
@@ -28,11 +30,12 @@ export function PlayerBuzzerScreen({
   const { localTimeLeft, maxTimeLimit } = useGameTimer(forceReveal);
   const { guessInput, gapInputs, handleGuessSubmit, handleGapSubmit, setGuessInput, setGapInputs } = usePlayerActions()
 
+  const { flashBanner, isSpeedMode } = useModeSwitchFlash();
+
   if (!gameState) return null;
 
   const isPlaying = gameState.phase === GamePhase.SPEED_ROUND || gameState.phase === GamePhase.TURN_BASED;
   const isRevealed = gameState.roundState === RoundState.REVEALED;
-  const isSpeedMode = gameState.gameMode === GameMode.SPEED_MODE;
 
   const currentPlayer = gameState.players.find(
     (p) => p.name.toLowerCase() === username.trim().toLowerCase(),
@@ -75,6 +78,9 @@ export function PlayerBuzzerScreen({
         </div>
         <PlayerLeaveButton onLeave={() => leaveLobby(() => navigate({ to: '/', replace: true }))} />
       </div>
+
+      {/* Videogame Full-Screen Edge Glow Overlay */}
+      <ModeSwitchOverlay banner={flashBanner} />
 
       {/* High-Stakes Videogame Countdown Overlay (Last 5 Seconds) */}
       {isCritical && secondsLeft !== null && (

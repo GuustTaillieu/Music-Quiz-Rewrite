@@ -6,10 +6,10 @@ import { usePlayerSession } from '@/features/game-player/hooks/usePlayerSession'
 import { useQuizGame } from '@/features/game-player/hooks/useQuizGame';
 import { getQuestionTypeLabel } from '@/features/game-player/utils/question-type-text';
 import { cn } from '@/features/shared';
-import { GameMode, GamePhase, RoundState } from '@spotify-music-quiz/shared/schema/game';
+import { GamePhase, RoundState } from '@spotify-music-quiz/shared/schema/game';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Clock, Crown, Send, Sparkles, Trophy, Users, XCircle } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { Clock, Send, Sparkles, Trophy, Users, XCircle } from 'lucide-react-native';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -21,11 +21,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ModeSwitchOverlay } from '@/features/game-player/components/ModeSwitchOverlay';
+import { useModeSwitchFlash } from '@/features/game-player/hooks/useModeSwitchFlash';
+
 export default function LobbyScreen() {
   const router = useRouter();
   const { lobbyId } = useLocalSearchParams<{ lobbyId: string }>();
   const { username } = usePlayerSession();
   const { gameState, leaveLobby, submitGuess, lastGuessResult } = useQuizGame();
+  const { flashBanner, isSpeedMode } = useModeSwitchFlash();
 
   const [guessText, setGuessText] = useState('');
 
@@ -54,7 +58,6 @@ export default function LobbyScreen() {
   const isPlaying = gameState.phase === GamePhase.TURN_BASED || gameState.phase === GamePhase.SPEED_ROUND;
   const isFinished = gameState.phase === GamePhase.COMPLETED;
   const isRevealed = gameState.roundState === RoundState.REVEALED;
-  const isSpeedMode = gameState.gameMode === GameMode.SPEED_MODE || gameState.phase === GamePhase.SPEED_ROUND;
 
   const currentPlayer = gameState.players.find(
     (p) => p.name.toLowerCase() === username.trim().toLowerCase()
@@ -68,8 +71,8 @@ export default function LobbyScreen() {
   const isMyTurn = isSpeedMode
     ? true
     : currentPlayerId
-    ? gameState.activePlayerId === currentPlayerId
-    : false;
+      ? gameState.activePlayerId === currentPlayerId
+      : false;
 
   const activeTurnPlayer = gameState.players.find((p) => p.id === gameState.activePlayerId);
   const lastRoundWinner = gameState.players.find((p) => p.id === gameState.lastRoundWinnerId) || null;
@@ -84,6 +87,9 @@ export default function LobbyScreen() {
       >
         {/* Top Header Bar */}
         <PlayerHeaderBar username={username} players={gameState.players} onLeave={handleLeave} />
+
+        {/* Videogame Full-Screen Edge Glow Overlay */}
+        <ModeSwitchOverlay banner={flashBanner} />
 
         {/* Result Toast Alert */}
         {lastGuessResult !== null && (

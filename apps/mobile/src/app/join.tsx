@@ -3,7 +3,7 @@ import { useQuizGame } from '@/features/game-player/hooks/useQuizGame';
 import { cn, colors } from '@/features/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Headphones, LogIn, QrCode } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -28,11 +28,14 @@ export default function JoinScreen() {
     }
   }, [params.lobbyId]);
 
+  const hasNavigatedRef = useRef(false);
+
   useEffect(() => {
-    if (gameState && gameState.lobbyId === code.toUpperCase()) {
-      router.push(`/lobby/${code.toUpperCase()}`);
+    if (gameState?.lobbyId && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      router.replace(`/lobby/${gameState.lobbyId}`);
     }
-  }, [gameState, code, router]);
+  }, [gameState?.lobbyId, router]);
 
   const handleJoin = () => {
     const cleanCode = code.trim().toUpperCase();
