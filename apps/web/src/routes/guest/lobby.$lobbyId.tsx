@@ -1,10 +1,11 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { z } from 'zod';
 import { PlayerWaitingRoomView } from '#/features/game-lobby';
+import { lobbyApi } from '#/features/lobby-core';
 import { PlayerBuzzerScreen, GameOverSummary, useQuizGame } from '#/features/game-player';
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { GamePhase } from '@spotify-music-quiz/shared/schema/game';
 
 const lobbySearchSchema = z.object({
@@ -13,6 +14,15 @@ const lobbySearchSchema = z.object({
 
 export const Route = createFileRoute('/guest/lobby/$lobbyId')({
   validateSearch: lobbySearchSchema,
+  beforeLoad: async ({ params }) => {
+    const exists = await lobbyApi.verifyLobbyExists(params.lobbyId);
+    if (!exists) {
+      throw redirect({
+        to: '/join',
+        search: { lobbyId: params.lobbyId },
+      });
+    }
+  },
   component: LobbyRoom,
 });
 
@@ -27,8 +37,12 @@ function LobbyRoom() {
     joinLobby,
   } = useQuizGame();
 
+  const joinedRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (isConnected) {
+    const joinKey = `${lobbyId.toUpperCase()}:${username.trim()}`;
+    if (isConnected && joinedRef.current !== joinKey) {
+      joinedRef.current = joinKey;
       joinLobby(lobbyId, username);
     }
   }, [isConnected, lobbyId, username, joinLobby]);
@@ -43,10 +57,10 @@ function LobbyRoom() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate({ to: '/join' })}
+            onClick={() => navigate({ to: '/join', search: { lobbyId } })}
             className="mt-2 border-rose-500/30 text-white hover:bg-rose-500/20 gap-1.5 cursor-pointer"
           >
-            <ArrowLeft size={14} /> Back to Join Page
+            <ArrowLeft size={14} /> Try Another Username
           </Button>
         </div>
       </div>

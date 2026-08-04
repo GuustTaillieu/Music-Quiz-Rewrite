@@ -9,6 +9,10 @@
 			"path": "../apps/backend"
 		},
 		{
+			"name": "🚀 @spotify-music-quiz/mobile",
+			"path": "../apps/mobile"
+		},
+		{
 			"name": "🚀 @spotify-music-quiz/web",
 			"path": "../apps/web"
 		},
