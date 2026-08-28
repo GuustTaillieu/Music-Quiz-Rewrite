@@ -26,7 +26,7 @@ export function PlayerBuzzerScreen({
   buzzerWinner,
 }: PlayerBuzzerScreenProps) {
   const navigate = useNavigate();
-  const { gameState, forceReveal, leaveLobby } = useQuizGame()
+  const { gameState, forceReveal, leaveLobby, passTurn } = useQuizGame()
   const { localTimeLeft, maxTimeLimit } = useGameTimer(forceReveal);
   const { guessInput, gapInputs, handleGuessSubmit, handleGapSubmit, setGuessInput, setGapInputs } = usePlayerActions()
 
@@ -191,9 +191,23 @@ export function PlayerBuzzerScreen({
                 </div>
               ))}
             </div>
-            <Button type="submit" variant="spotify" size="lg" disabled={isDisabled} className="w-full">
-              Submit Lyric Answers
-            </Button>
+            <div className="flex gap-2">
+              {!isSpeedMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={isDisabled}
+                  onClick={passTurn}
+                  className="border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10"
+                >
+                  Pass
+                </Button>
+              )}
+              <Button type="submit" variant="spotify" size="lg" disabled={isDisabled} className="flex-1">
+                Submit Lyric Answers
+              </Button>
+            </div>
           </form>
         ) : (
           <form onSubmit={handleGuessSubmit} className="flex gap-2">
@@ -206,7 +220,18 @@ export function PlayerBuzzerScreen({
               autoFocus
               className="flex-1"
             />
-            <Button type="submit" variant="default" disabled={isDisabled}>
+            {!isSpeedMode && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isDisabled}
+                onClick={passTurn}
+                className="border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 shrink-0"
+              >
+                Pass
+              </Button>
+            )}
+            <Button type="submit" variant="default" disabled={isDisabled} className="shrink-0">
               Send
             </Button>
           </form>

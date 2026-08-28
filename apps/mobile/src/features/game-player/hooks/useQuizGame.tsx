@@ -57,6 +57,11 @@ export function QuizGameProvider({ children }: { children: ReactNode }) {
       setGameState(null);
     });
 
+    socketInstance.on(GAME_EVENTS.LOBBY_CLOSED, ({ message }: { message: string }) => {
+      setError(message || 'Host closed the lobby');
+      setGameState(null);
+    });
+
     socketInstance.on(GAME_EVENTS.ERROR, ({ message }: { message: string }) => {
       setError(message);
     });
@@ -88,12 +93,14 @@ export function QuizGameProvider({ children }: { children: ReactNode }) {
 
   const leaveLobby = useCallback(
     async (callback?: () => void) => {
-      if (!gameState) return;
-      await clearSession(gameState.lobbyId);
+      socket?.emit(GAME_EVENTS.LEAVE_LOBBY);
+      if (gameState) {
+        await clearSession(gameState.lobbyId);
+      }
       setGameState(null);
       callback?.();
     },
-    [gameState, clearSession],
+    [socket, gameState, clearSession],
   );
 
   const passTurn = useCallback(() => {

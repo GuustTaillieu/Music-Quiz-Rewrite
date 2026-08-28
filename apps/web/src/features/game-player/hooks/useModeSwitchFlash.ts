@@ -11,7 +11,8 @@ export interface FlashBannerInfo {
 export function useModeSwitchFlash() {
   const { gameState } = useQuizGame();
   const [flashBanner, setFlashBanner] = useState<FlashBannerInfo | null>(null);
-  const prevPhaseRef = useRef<GamePhase | null>(null);
+  const prevActivePhaseRef = useRef<GamePhase | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const phase = gameState?.phase;
   const gameMode = gameState?.gameMode;
@@ -23,40 +24,63 @@ export function useModeSwitchFlash() {
   useEffect(() => {
     if (!phase) return;
 
-    // Ignore transitions in Lobby or Completed phase
+    // Reset when in Lobby or Completed phase
     if (phase === GamePhase.LOBBY || phase === GamePhase.COMPLETED) {
-      prevPhaseRef.current = phase;
+      prevActivePhaseRef.current = null;
+      setFlashBanner(null);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
       return;
     }
 
-    const prevPhase = prevPhaseRef.current;
+    const prevActivePhase = prevActivePhaseRef.current;
 
-    // Trigger flash when game first starts or when phase/mode changes between speed & turn-based
-    if (prevPhase !== phase) {
-      if (isSpeedMode) {
-        setFlashBanner({
-          message: '⚡ SPEED ROUND',
-          subtext: 'Everyone can guess now!',
-          isSpeed: true,
-        });
-      } else {
-        setFlashBanner({
-          message: '🎯 TURN-BASED MODE',
-          subtext: 'Answer one at a time',
-          isSpeed: false,
-        });
-      }
-      const timer = setTimeout(() => setFlashBanner(null), 3000);
-      prevPhaseRef.current = phase;
-      return () => clearTimeout(timer);
+    // Initial game start: record active phase without triggering HUD banner
+    if (!prevActivePhase) {
+      prevActivePhaseRef.current = phase;
+      return;
     }
 
-    prevPhaseRef.current = phase;
+    // Mid-game switch between Speed Round and Turn-Based:
+    if (prevActivePhase !== phase) {
+      prevActivePhaseRef.current = phase;
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      setFlashBanner({
+        message: isSpeedMode ? '⚡ SPEED ROUND' : '🎯 TURN-BASED MODE',
+        subtext: isSpeedMode ? 'Everyone can guess now!' : 'Answer one at a time',
+        isSpeed: isSpeedMode,
+      });
+
+      timerRef.current = setTimeout(() => {
+        setFlashBanner(null);
+        timerRef.current = null;
+      }, 1000);
+    }
   }, [phase, isSpeedMode]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   return {
     flashBanner,
     isSpeedMode,
-    clearFlash: () => setFlashBanner(null),
+    clearFlash: () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      setFlashBanner(null);
+    },
   };
 }

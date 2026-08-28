@@ -76,6 +76,16 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       },
     );
 
+    const unsubLobbyClosed = registerHandler<{ message: string }>(
+      GAME_EVENTS.LOBBY_CLOSED,
+      ({ message }) => {
+        setError(message || 'Host closed the lobby');
+        if (activeLobbyId) {
+          queryClient.setQueryData(gameSessionQueryOptions(activeLobbyId).queryKey, null);
+        }
+      },
+    );
+
     const unsubError = registerHandler<{ message: string }>(GAME_EVENTS.ERROR, ({ message }) => {
       setError(message);
     });
@@ -92,10 +102,11 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
       unsubState();
       unsubJoinSuccess();
       unsubJoinError();
+      unsubLobbyClosed();
       unsubError();
       unsubGuessResult();
     };
-  }, [registerHandler]);
+  }, [registerHandler, activeLobbyId, queryClient]);
 
   const joinLobby = useCallback(
     (lobbyId: string, username: string, userId?: string) => {
@@ -116,15 +127,19 @@ export function QuizGameProvider({ children }: { children: React.ReactNode }) {
   }, [emit]);
 
   const leaveLobby = useCallback((callback?: () => void) => {
+    emit(GAME_EVENTS.LEAVE_LOBBY);
     try {
       const keys = Object.keys(localStorage).filter((k) => k.startsWith('smq_session_'));
       keys.forEach((k) => localStorage.removeItem(k));
     } catch {
       // ignore
     }
-    endGame();
+    if (activeLobbyId) {
+      queryClient.setQueryData(gameSessionQueryOptions(activeLobbyId).queryKey, null);
+      setActiveLobbyId('');
+    }
     callback?.();
-  }, [endGame]);
+  }, [emit, activeLobbyId, queryClient]);
 
   const startGame = useCallback(() => {
     emit(GAME_EVENTS.GAME_START);

@@ -14,7 +14,8 @@ export function HostLobbyView() {
   const { formattedLobbyId, handleCopyCode, isCopied } = useCopyLobbyCode();
 
   if (!gameState) return null;
-  const canStart = gameState.totalSongs > 0 && gameState.players.length >= 3;
+  const guestPlayers = gameState.players.filter((p) => !p.isHost);
+  const canStart = gameState.totalSongs > 0 && guestPlayers.length >= 2;
 
   const joinUrl =
     typeof window !== 'undefined'
@@ -49,7 +50,7 @@ export function HostLobbyView() {
           {/* Players List Grid */}
           <div className="mb-8">
             <h3 className="font-bold text-xs uppercase tracking-wider mb-4 flex items-center gap-2 text-pink-400">
-              <Users size={16} /> Players Joined ({gameState.players.length})
+              <Users size={16} /> Contestants Joined ({guestPlayers.length})
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-1">
               {gameState.players.map((p) => (

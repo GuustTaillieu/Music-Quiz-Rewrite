@@ -273,4 +273,37 @@ export class GameGateway implements OnGatewayDisconnect {
       client.emit(GAME_EVENTS.ERROR, { message });
     }
   }
+
+  @SubscribeMessage(GAME_EVENTS.LEAVE_LOBBY)
+  public async handleLeaveLobby(@ConnectedSocket() client: Socket): Promise<void> {
+    const clientData = this.clientMap.get(client.id);
+    if (!clientData) {
+      return;
+    }
+
+    try {
+      const result = await this.gameService.leaveLobby(
+        clientData.lobbyId,
+        clientData.playerId,
+      );
+
+      this.clientMap.delete(client.id);
+      await client.leave(clientData.lobbyId);
+
+      if (result.isHost && result.state === null) {
+        // Host left during lobby phase -> notify all clients that lobby is closed
+        this.server.to(clientData.lobbyId).emit(GAME_EVENTS.LOBBY_CLOSED, {
+          message: 'Host has closed the lobby.',
+        });
+      } else if (result.state) {
+        // Broadcast updated state with player removed to remaining contestants in lobby
+        this.server
+          .to(clientData.lobbyId)
+          .emit(GAME_EVENTS.GAME_STATE_UPDATE, result.state);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to leave lobby';
+      this.logger.error(`Error in handleLeaveLobby: ${message}`);
+    }
+  }
 }

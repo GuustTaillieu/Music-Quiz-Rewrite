@@ -106,7 +106,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
   });
 
   describe('Gameplay Starts', () => {
-    it('should only allow the host to start the game', () => {
+    it('should only allow the host to start the game and default to SPEED_ROUND', () => {
       const session = new GameSession('ABCD', 'host-id', mockQuiz);
       session.addPlayer('host-id', 'Alice');
       session.addPlayer('guest-1', 'Bob');
@@ -114,16 +114,18 @@ describe('GameSession State Machine & Gameplay Rules', () => {
 
       expect(() => session.start('guest-1')).toThrow('Only the host can start the quiz');
       expect(() => session.start('host-id')).not.toThrow();
-      expect(session.phase).toBe(GamePhase.TURN_BASED);
+      expect(session.phase).toBe(GamePhase.SPEED_ROUND);
     });
 
-    it('should initialize turn order and set the first active player', () => {
+    it('should initialize turn order and set the first active player when configured to TURN_BASED', () => {
       const session = new GameSession('ABCD', 'host-id', mockQuiz);
+      session.configure(GameMode.TURN_BASED, 30);
       session.addPlayer('host-id', 'Alice');
       session.addPlayer('guest-1', 'Bob');
       session.addPlayer('guest-2', 'Charlie');
       session.start('host-id');
 
+      expect(session.phase).toBe(GamePhase.TURN_BASED);
       expect(session.turnOrder).toEqual(['guest-1', 'guest-2']);
       expect(session.activePlayerId).toBe('guest-1');
     });
@@ -168,6 +170,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
         ],
       };
       session = new GameSession('ABCD', 'host-id', longerMockQuiz);
+      session.configure(GameMode.TURN_BASED, 30);
       session.addPlayer('host-id', 'Alice'); // host-id
       session.addPlayer('guest-1', 'Bob'); // guest-1
       session.addPlayer('guest-2', 'Charlie'); // guest-2
@@ -202,6 +205,7 @@ describe('GameSession State Machine & Gameplay Rules', () => {
         ],
       };
       const customSession = new GameSession('EFGH', 'host-id', quizWithAccepted);
+      customSession.configure(GameMode.TURN_BASED, 30);
       customSession.addPlayer('host-id', 'Alice');
       customSession.addPlayer('guest-1', 'Bob');
       customSession.addPlayer('guest-2', 'Charlie');
@@ -269,30 +273,93 @@ describe('GameSession State Machine & Gameplay Rules', () => {
     });
   });
 
-  describe('Unfairness Prevention (Speed Round)', () => {
-    it('should transition to SPEED_ROUND when song index >= max turn-based index (modulo rule)', () => {
-      // 2 active players, 3 songs total.
-      // Math.floor(3 / 2) * 2 = 2 turn-based songs (songs 0 & 1). Song 2 becomes SPEED_ROUND.
+  describe('Turn-Based Mode Rotation Across Songs', () => {
+    it('should stay in TURN_BASED mode and rotate turn starters sequentially on every song', () => {
+      // 2 active players (Bob, Charlie), 3 songs total.
       const session = new GameSession('ABCD', 'host-id', mockQuiz);
       session.addPlayer('host-id', 'Alice');
       session.addPlayer('guest-1', 'Bob');
       session.addPlayer('guest-2', 'Charlie');
+      session.configure(GameMode.TURN_BASED, 30);
       session.start('host-id');
 
       expect(session.phase).toBe(GamePhase.TURN_BASED);
+      expect(session.activePlayerId).toBe('guest-1');
 
-      // Solve song 0 (Bob's turn)
+      // Song 0: Bob starts and guesses correctly
       session.submitGuess('guest-1', 'Blinding Lights');
       session.advanceRound('host-id');
-      expect(session.phase).toBe(GamePhase.TURN_BASED);
 
-      // Solve song 1 (Charlie's turn)
-      session.submitGuess('guest-2', 'Dua Lipa');
+      // Song 1: Charlie must start now (even though Bob guessed correctly previously)
+      expect(session.phase).toBe(GamePhase.TURN_BASED);
+      expect(session.activePlayerId).toBe('guest-2');
+
+      // Song 1: Charlie passes, Bob answers correctly
+      session.passTurn('guest-2');
+      expect(session.activePlayerId).toBe('guest-1');
+      session.submitGuess('guest-1', 'Dua Lipa');
       session.advanceRound('host-id');
 
-      // Song 2 (index 2 >= 2): must transition to SPEED_ROUND!
-      expect(session.phase).toBe(GamePhase.SPEED_ROUND);
-      expect(session.activePlayerId).toBeNull(); // No active player in Speed Round
+      // Song 2: Bob must start next in rotation
+      expect(session.phase).toBe(GamePhase.TURN_BASED);
+      expect(session.activePlayerId).toBe('guest-1');
+    });
+
+    it('should strictly rotate starters for 3 players across multiple songs regardless of intra-round actions', () => {
+      // 3 active players (Bob, Charlie, Daisy), 4 songs quiz
+      const fourSongQuiz = {
+        ...mockQuiz,
+        songs: [
+          ...mockQuiz.songs,
+          {
+            spotifyTrackId: 'track-4',
+            track: {
+              id: 'track-4',
+              title: 'Levitating',
+              artist: 'Dua Lipa',
+              album: 'Future Nostalgia',
+              coverArtUrl: 'https://example.com/cover4.jpg',
+            },
+            questionType: 'TRACK_NAME',
+            start_offset_ms: 0,
+            end_offset_ms: 30000,
+          },
+        ],
+      };
+
+      const session = new GameSession('ABCD', 'host-id', fourSongQuiz);
+      session.addPlayer('host-id', 'Alice');
+      session.addPlayer('guest-1', 'Bob');
+      session.addPlayer('guest-2', 'Charlie');
+      session.addPlayer('guest-3', 'Daisy');
+      session.configure(GameMode.TURN_BASED, 30);
+      session.start('host-id');
+
+      // Song 0: Starter is Bob (guest-1)
+      expect(session.activePlayerId).toBe('guest-1');
+      session.submitGuess('guest-1', 'Blinding Lights'); // Correct
+      session.advanceRound('host-id');
+
+      // Song 1: Starter MUST be Charlie (guest-2)
+      expect(session.activePlayerId).toBe('guest-2');
+      session.submitGuess('guest-2', 'Wrong Answer'); // Wrong -> rotates to Daisy
+      expect(session.activePlayerId).toBe('guest-3');
+      session.passTurn('guest-3'); // Pass -> rotates to Bob
+      expect(session.activePlayerId).toBe('guest-1');
+      session.submitGuess('guest-1', 'Dua Lipa'); // Correct
+      session.advanceRound('host-id');
+
+      // Song 2: Starter MUST be Daisy (guest-3)
+      expect(session.activePlayerId).toBe('guest-3');
+      session.passTurn('guest-3'); // Pass -> rotates to Bob
+      expect(session.activePlayerId).toBe('guest-1');
+      session.passTurn('guest-1'); // Pass -> rotates to Charlie
+      expect(session.activePlayerId).toBe('guest-2');
+      session.submitGuess('guest-2', 'Save Your Tears'); // Correct
+      session.advanceRound('host-id');
+
+      // Song 3: Starter MUST loop back to Bob (guest-1)
+      expect(session.activePlayerId).toBe('guest-1');
     });
 
     it('should allow anyone to guess in SPEED_ROUND, awarding point to first correct player', () => {
