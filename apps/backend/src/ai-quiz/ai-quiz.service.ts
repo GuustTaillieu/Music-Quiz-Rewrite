@@ -1,27 +1,29 @@
 import {
   Injectable,
   Inject,
-  BadRequestException,
+  Logger,
   HttpException,
   HttpStatus,
-  Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { GoogleGenAI, Type } from '@google/genai';
-import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
-import { DATABASE_CONNECTION, type DrizzleDb } from '../infrastructure/database/database.constants';
-import { user } from '../infrastructure/database/schema';
+import { eq, and } from 'drizzle-orm';
+import { DATABASE_CONNECTION } from '../infrastructure/database/database.constants';
+import type { DrizzleDb } from '../infrastructure/database/database.constants';
+import { user, account } from '../infrastructure/database/schema';
 import { SpotifyTokenService } from '../infrastructure/spotify/spotify-token.service';
 import { SpotifyService } from '../spotify/spotify.service';
 import { QuizzesService } from '../quizzes/quizzes.service';
-import {
+import { GuessMatcher } from '../domain/guess-matcher';
+import type {
   GenerateQuizPayload,
   SuggestSongsPayload,
   UserAiProfile,
   Quiz,
   QuizSong,
-  QuestionType,
 } from '@spotify-music-quiz/shared/schema/game';
+import { QuestionType } from '@spotify-music-quiz/shared/schema/game';
 
 @Injectable()
 export class AiQuizService {
@@ -33,11 +35,15 @@ export class AiQuizService {
     private readonly tokenService: SpotifyTokenService,
     private readonly spotifyService: SpotifyService,
     private readonly quizzesService: QuizzesService,
-  ) { }
+  ) {}
 
   public async getUserAiProfile(userId: string): Promise<UserAiProfile> {
     const dbUser = await this.db.query.user.findFirst({
       where: eq(user.id, userId),
+    });
+
+    const googleAccount = await this.db.query.account.findFirst({
+      where: and(eq(account.userId, userId), eq(account.providerId, 'google')),
     });
 
     if (!dbUser) {
@@ -45,6 +51,8 @@ export class AiQuizService {
         aiCredits: 0,
         hasCustomKey: false,
         customKeyMasked: null,
+        isGoogleLinked: false,
+        googleEmail: null,
       };
     }
 
@@ -52,16 +60,24 @@ export class AiQuizService {
     if (dbUser.customGeminiApiKey) {
       const key = dbUser.customGeminiApiKey;
       customKeyMasked =
-        key.length > 8
-          ? `${key.slice(0, 4)}...${key.slice(-4)}`
-          : '****';
+        key.length > 8 ? `${key.slice(0, 4)}...${key.slice(-4)}` : '****';
     }
 
     return {
       aiCredits: dbUser.aiCredits ?? 0,
       hasCustomKey: Boolean(dbUser.customGeminiApiKey),
       customKeyMasked,
+      isGoogleLinked: Boolean(googleAccount),
+      googleEmail: googleAccount?.idToken ? 'Connected' : null,
     };
+  }
+
+  public async unlinkGoogleAccount(userId: string): Promise<UserAiProfile> {
+    await this.db
+      .delete(account)
+      .where(and(eq(account.userId, userId), eq(account.providerId, 'google')));
+
+    return this.getUserAiProfile(userId);
   }
 
   public async setCustomApiKey(userId: string, apiKey: string | null): Promise<UserAiProfile> {
@@ -89,16 +105,18 @@ export class AiQuizService {
       // 1. Ask Gemini to curate a list of candidate songs based on the prompt & tags
       const systemInstruction = `You are an elite music quiz producer. Create an entertaining, high-energy music quiz based on the user's prompt and restriction tags.
 Select famous, recognizable, and fun tracks that fit the theme perfectly.
+For every track, provide colloquial alternate titles/spellings (e.g. "Skater Boy" for "Sk8er Boi", numbers written as words) and individual artist names.
+For FILL_IN_THE_GAP, write 1 memorable line of famous lyrics and mask STRICTLY 1 to 2 consecutive key words in square brackets [word].
 Output a valid JSON object matching the requested schema.`;
 
       const userPrompt = `Quiz Theme: "${payload.prompt}"
 Number of Tracks: ${payload.trackCount}
 Tags & Restrictions: ${payload.tags.length > 0 ? payload.tags.join(', ') : 'None'}
 
-Please choose ${payload.trackCount} distinct songs. For each song, provide the track title, artist name, and a suggested question type:
+Please choose ${payload.trackCount} distinct songs. For each song, provide the track title, artist name, suggested alternate answer variations, and a question type:
 - TRACK_NAME: Players guess the song title
 - ARTIST_NAME: Players guess the artist
-- FILL_IN_THE_GAP: Players fill in missing words in a memorable lyric line`;
+- FILL_IN_THE_GAP: Players fill in strictly 1 or 2 missing words in a memorable lyric line enclosed in [brackets]`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3.6-flash',
@@ -119,13 +137,23 @@ Please choose ${payload.trackCount} distinct songs. For each song, provide the t
                     searchQuery: { type: Type.STRING, description: 'Clean search query "Track Title Artist"' },
                     title: { type: Type.STRING },
                     artist: { type: Type.STRING },
+                    alternateTitles: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING },
+                      description: 'Alternate colloquial titles, phonetic spellings, numbers as words',
+                    },
+                    alternateArtists: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING },
+                      description: 'Individual main or featured artists',
+                    },
                     questionType: {
                       type: Type.STRING,
                       enum: ['TRACK_NAME', 'ARTIST_NAME', 'FILL_IN_THE_GAP'],
                     },
                     lyricsSnippet: {
                       type: Type.STRING,
-                      description: 'If FILL_IN_THE_GAP, write 1-2 lines of famous lyrics with words to guess enclosed in [brackets], e.g. "I want it [that way]"',
+                      description: 'If FILL_IN_THE_GAP, 1 memorable line of lyrics with STRICTLY 1 or 2 words enclosed in square brackets [word], e.g. "I want it [that way]"',
                     },
                   },
                   required: ['searchQuery', 'title', 'artist', 'questionType'],
@@ -144,6 +172,8 @@ Please choose ${payload.trackCount} distinct songs. For each song, provide the t
           searchQuery: string;
           title: string;
           artist: string;
+          alternateTitles?: string[];
+          alternateArtists?: string[];
           questionType: string;
           lyricsSnippet?: string;
         }>;
@@ -171,41 +201,103 @@ Please choose ${payload.trackCount} distinct songs. For each song, provide the t
         const matchedTrack = searchResults[0];
         const duration = matchedTrack.durationMs ?? 180000;
 
-        // Default snippet: 30s to 60s, or 1/4 of track if short
+        // Default snippet: 30s window
         let startMs = Math.min(30000, Math.floor(duration * 0.25));
         let endMs = Math.min(duration, startMs + 30000);
 
         let qType = trackSuggestion.questionType as QuestionType;
         let lyricsGap: string | null = null;
+        const acceptedLyrics: string[] = [];
 
         // If FILL_IN_THE_GAP requested, check lyrics
         if (qType === QuestionType.FILL_IN_THE_GAP) {
-          const lyricsResult = await this.spotifyService.getLyrics(
-            matchedTrack.artist,
-            matchedTrack.title,
-          );
-
           if (trackSuggestion.lyricsSnippet && trackSuggestion.lyricsSnippet.includes('[')) {
-            lyricsGap = trackSuggestion.lyricsSnippet;
-          } else if (lyricsResult.plainLyrics) {
-            // Find a punchy line from plain lyrics and mask 1 key word
-            const lines = lyricsResult.plainLyrics.split('\n').filter((l) => l.trim().length > 10);
-            if (lines.length > 0) {
-              const selectedLine = lines[Math.floor(lines.length / 3)] || lines[0];
-              const words = selectedLine.split(' ');
-              if (words.length >= 3) {
-                const targetWordIdx = Math.floor(words.length / 2);
-                words[targetWordIdx] = `[${words[targetWordIdx].replace(/[^a-zA-Z0-9]/g, '')}]`;
-                lyricsGap = words.join(' ');
+            const extracted = GuessMatcher.extractLyricsGapTarget(trackSuggestion.lyricsSnippet);
+            // Ensure target is 1 or 2 words
+            if (extracted.wordCount >= 1 && extracted.wordCount <= 2) {
+              lyricsGap = trackSuggestion.lyricsSnippet;
+              acceptedLyrics.push(extracted.target);
+            }
+          }
+
+          if (!lyricsGap) {
+            const lyricsResult = await this.spotifyService.getLyrics(
+              matchedTrack.artist,
+              matchedTrack.title,
+            );
+
+            if (lyricsResult.syncedLyrics) {
+              const lrcLines = lyricsResult.syncedLyrics
+                .split('\n')
+                .map((line) => {
+                  const match = line.match(/\[(\d{2}):(\d{2})(?:\.(\d+))?\]\s*(.*)/);
+                  if (match) {
+                    const min = parseInt(match[1], 10);
+                    const sec = parseInt(match[2], 10);
+                    const text = match[4].trim();
+                    return { startTimeMs: (min * 60 + sec) * 1000, text };
+                  }
+                  return null;
+                })
+                .filter((l): l is { startTimeMs: number; text: string } => Boolean(l && l.text.length > 10));
+
+              if (lrcLines.length > 0) {
+                const middleIdx = Math.floor(lrcLines.length / 3);
+                const lineObj = lrcLines[middleIdx];
+                if (lineObj && lineObj.text) {
+                  const words = lineObj.text.trim().split(/\s+/);
+                  if (words.length >= 3) {
+                    const targetIdx = Math.floor(words.length / 2);
+                    const wordCountToMask = Math.min(2, words.length - targetIdx);
+                    const targetSlice = words.slice(targetIdx, targetIdx + wordCountToMask);
+                    const targetWord = targetSlice.join(' ').replace(/[^a-zA-Z0-9\s]/g, '');
+                    words.splice(targetIdx, wordCountToMask, `[${targetWord}]`);
+                    lyricsGap = words.join(' ');
+                    acceptedLyrics.push(targetWord);
+
+                    startMs = Math.max(0, Math.floor(lineObj.startTimeMs) - 2000);
+                    endMs = Math.min(duration, startMs + 30000);
+                  }
+                }
+              }
+            } else if (lyricsResult.plainLyrics) {
+              const lines = lyricsResult.plainLyrics.split('\n').filter((l) => l.trim().length > 10);
+              if (lines.length > 0) {
+                const selectedLine = lines[Math.floor(lines.length / 3)] || lines[0];
+                const words = selectedLine.trim().split(/\s+/);
+                if (words.length >= 3) {
+                  const targetIdx = Math.floor(words.length / 2);
+                  const wordCountToMask = Math.min(2, words.length - targetIdx);
+                  const targetSlice = words.slice(targetIdx, targetIdx + wordCountToMask);
+                  const targetWord = targetSlice.join(' ').replace(/[^a-zA-Z0-9\s]/g, '');
+                  words.splice(targetIdx, wordCountToMask, `[${targetWord}]`);
+                  lyricsGap = words.join(' ');
+                  acceptedLyrics.push(targetWord);
+                }
               }
             }
           }
 
           if (!lyricsGap) {
-            // Fallback to TRACK_NAME if no lyrics found
+            // Fallback to TRACK_NAME if lyrics could not be reliably masked
             qType = QuestionType.TRACK_NAME;
           }
         }
+
+        // Build combined accepted variations
+        const combinedTitles = Array.from(
+          new Set([
+            matchedTrack.title,
+            ...(trackSuggestion.alternateTitles || []),
+          ]),
+        );
+
+        const combinedArtists = Array.from(
+          new Set([
+            ...GuessMatcher.splitArtists(matchedTrack.artist),
+            ...(trackSuggestion.alternateArtists || []).flatMap((a) => GuessMatcher.splitArtists(a)),
+          ]),
+        );
 
         validQuizSongs.push({
           id: randomUUID(),
@@ -215,8 +307,9 @@ Please choose ${payload.trackCount} distinct songs. For each song, provide the t
           start_offset_ms: startMs,
           end_offset_ms: endMs,
           lyricsGap: lyricsGap ?? undefined,
-          acceptedTitles: [matchedTrack.title],
-          acceptedArtists: [matchedTrack.artist],
+          acceptedTitles: combinedTitles,
+          acceptedArtists: combinedArtists,
+          acceptedLyricsGaps: acceptedLyrics.length > 0 ? acceptedLyrics : undefined,
         });
       }
 
@@ -260,7 +353,7 @@ Please choose ${payload.trackCount} distinct songs. For each song, provide the t
     const ai = new GoogleGenAI({ apiKey });
 
     try {
-      const existingTitles = existingQuiz.songs
+      const existingTitles = (existingQuiz?.songs || [])
         .map((s) => `"${s.track.title}" by ${s.track.artist}`)
         .join(', ');
 
@@ -285,6 +378,14 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
                 searchQuery: { type: Type.STRING },
                 title: { type: Type.STRING },
                 artist: { type: Type.STRING },
+                alternateTitles: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                },
+                alternateArtists: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                },
                 questionType: {
                   type: Type.STRING,
                   enum: ['TRACK_NAME', 'ARTIST_NAME'],
@@ -300,6 +401,8 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
         searchQuery: string;
         title: string;
         artist: string;
+        alternateTitles?: string[];
+        alternateArtists?: string[];
         questionType: string;
       }>;
 
@@ -316,6 +419,17 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
           const duration = track.durationMs ?? 180000;
           const startMs = Math.min(30000, Math.floor(duration * 0.25));
 
+          const combinedTitles = Array.from(
+            new Set([track.title, ...(item.alternateTitles || [])]),
+          );
+
+          const combinedArtists = Array.from(
+            new Set([
+              ...GuessMatcher.splitArtists(track.artist),
+              ...(item.alternateArtists || []).flatMap((a) => GuessMatcher.splitArtists(a)),
+            ]),
+          );
+
           newSongs.push({
             id: randomUUID(),
             spotifyTrackId: track.id,
@@ -323,8 +437,8 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
             questionType: item.questionType as QuestionType,
             start_offset_ms: startMs,
             end_offset_ms: Math.min(duration, startMs + 30000),
-            acceptedTitles: [track.title],
-            acceptedArtists: [track.artist],
+            acceptedTitles: combinedTitles,
+            acceptedArtists: combinedArtists,
           });
         }
       }
@@ -340,6 +454,16 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
       where: eq(user.id, userId),
     });
 
+    const googleAccount = await this.db.query.account.findFirst({
+      where: and(eq(account.userId, userId), eq(account.providerId, 'google')),
+    });
+
+    // If user connected Google Account, grant unlimited generations
+    if (googleAccount) {
+      const platformKey = process.env.GEMINI_API_KEY?.trim();
+      return { apiKey: platformKey || 'google_oauth_linked', isCustomKey: true };
+    }
+
     if (dbUser?.customGeminiApiKey?.trim()) {
       return { apiKey: dbUser.customGeminiApiKey.trim(), isCustomKey: true };
     }
@@ -347,7 +471,7 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
     const platformKey = process.env.GEMINI_API_KEY?.trim();
     if (!platformKey) {
       throw new BadRequestException(
-        'Gemini API key is not configured on the server. Please provide your personal Gemini API key in settings.',
+        'Gemini API key is not configured on the server. Please connect your Google account or provide a Gemini API key in settings.',
       );
     }
 
@@ -356,7 +480,7 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
       throw new HttpException(
         {
           message:
-            'You have used all your free AI quiz generation credits. Please connect your personal Gemini API key in account settings for unlimited generations.',
+            'You have used all your free AI quiz generation credits. Please connect your Google account in account settings for unlimited generations.',
           code: 'INSUFFICIENT_CREDITS',
         },
         HttpStatus.FORBIDDEN,
@@ -391,8 +515,8 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
       throw new HttpException(
         {
           message: isCustomKey
-            ? 'Your personal Gemini API key has exceeded its quota limit. Please check your Google AI Studio account or try again in a few moments.'
-            : 'Platform AI generation quota is currently busy. Please wait a moment or connect your personal Gemini API key in settings.',
+            ? 'Your connected Gemini account has exceeded its quota limit. Please try again in a few moments.'
+            : 'Platform AI generation quota is currently busy. Please wait a moment or connect your Google account in settings.',
           code: 'QUOTA_EXCEEDED',
         },
         HttpStatus.TOO_MANY_REQUESTS,

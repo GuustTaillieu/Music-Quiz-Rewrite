@@ -9,6 +9,7 @@ function Slider({
   max = 100,
   ...props
 }: SliderPrimitive.Root.Props) {
+  const safeMax = typeof max === 'number' && max > min ? max : min + 1;
   const _values = Array.isArray(value)
     ? value
     : typeof value === 'number'
@@ -17,7 +18,7 @@ function Slider({
         ? defaultValue
         : typeof defaultValue === 'number'
           ? [defaultValue]
-          : [min, max]
+          : [min, safeMax]
 
   return (
     <SliderPrimitive.Root
@@ -26,7 +27,7 @@ function Slider({
       defaultValue={defaultValue}
       value={value}
       min={min}
-      max={max}
+      max={safeMax}
       thumbAlignment="edge"
       {...props}
     >

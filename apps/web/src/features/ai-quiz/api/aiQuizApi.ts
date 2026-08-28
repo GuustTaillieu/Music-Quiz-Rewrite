@@ -14,6 +14,14 @@ export const aiQuizApi = {
     return data;
   },
 
+  async unlinkGoogleAccount(): Promise<UserAiProfile> {
+    const { data, error } = await apiFetch<UserAiProfile>('/ai-quiz/google-account', {
+      method: 'DELETE',
+    });
+    if (error) throw error;
+    return data;
+  },
+
   async setApiKey(apiKey: string | null): Promise<UserAiProfile> {
     const { data, error } = await apiFetch<UserAiProfile>('/ai-quiz/api-key', {
       method: 'PUT',

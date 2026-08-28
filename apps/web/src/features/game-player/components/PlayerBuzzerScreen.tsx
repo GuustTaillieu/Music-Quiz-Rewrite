@@ -101,7 +101,9 @@ export function PlayerBuzzerScreen({
         {isPlaying ? (
           <div className="space-y-4">
             <Badge variant={isCritical ? 'destructive' : 'magenta'} className="px-4 py-1.5 text-xs font-black uppercase tracking-widest shadow-md">
-              {getQuestionTypeLabel(gameState.activeSong?.questionType ?? QuestionType.TRACK_NAME)}
+              {gameState.activeSong?.questionType === QuestionType.FILL_IN_THE_GAP
+                ? `Lyrics: Fill in ${gapBlocks[0]?.wordCount || 1} ${(gapBlocks[0]?.wordCount || 1) === 1 ? 'word' : 'words'}`
+                : getQuestionTypeLabel(gameState.activeSong?.questionType ?? QuestionType.TRACK_NAME)}
             </Badge>
 
             <CavaVisualizer isPlaying={true} />

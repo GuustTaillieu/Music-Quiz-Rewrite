@@ -1,6 +1,9 @@
 packages:
   - 'apps/*'
   - 'shared'
+overrides:
+  '@tanstack/router-core': '1.171.27'
+  '@tanstack/start-plugin-core': '1.171.39'
 allowBuilds:
   '@google/genai': true
   '@parcel/watcher': true

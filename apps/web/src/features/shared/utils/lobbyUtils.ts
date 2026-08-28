@@ -6,13 +6,14 @@ export interface GapBlock {
 
 export function parseGapBlocks(lyrics?: string | null): GapBlock[] {
   if (!lyrics) return [];
-  const matches = lyrics.match(/\[(.*?)\]/g) || [];
+  // Match either [word] or {word}
+  const matches = lyrics.match(/[\[\{](.*?)[\]\}]/g) || [];
   return matches.map((match, id) => {
     const content = match.slice(1, -1).trim();
     const words = content.split(/\s+/).filter(Boolean);
     return {
       id,
-      wordCount: words.length,
+      wordCount: words.length || 1,
       answers: words,
     };
   });

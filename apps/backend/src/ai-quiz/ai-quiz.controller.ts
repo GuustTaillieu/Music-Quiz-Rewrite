@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, UseGuards } from '@nestjs/common';
 import { AuthGuard, Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { AiQuizService } from './ai-quiz.service';
 import {
@@ -18,6 +18,11 @@ export class AiQuizController {
   @Get('profile')
   public async getProfile(@Session() session: UserSession): Promise<UserAiProfile> {
     return this.aiQuizService.getUserAiProfile(session.user.id);
+  }
+
+  @Delete('google-account')
+  public async unlinkGoogle(@Session() session: UserSession): Promise<UserAiProfile> {
+    return this.aiQuizService.unlinkGoogleAccount(session.user.id);
   }
 
   @Put('api-key')

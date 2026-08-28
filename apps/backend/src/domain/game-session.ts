@@ -8,6 +8,7 @@ import {
   RoundState,
   GameMode,
 } from '@spotify-music-quiz/shared/schema/game';
+import { GuessMatcher } from './guess-matcher';
 
 export class GameSession {
   private _players: Player[] = [];
@@ -377,41 +378,7 @@ export class GameSession {
   }
 
   private checkAnswer(song: typeof this._quiz.songs[0], guess: string): boolean {
-    let primaryAnswer = '';
-    let customAccepted: string[] = [];
-
-    switch (song.questionType) {
-      case QuestionType.TRACK_NAME: {
-        primaryAnswer = song.track.title;
-        customAccepted = song.acceptedTitles || [];
-        break;
-      }
-      case QuestionType.ARTIST_NAME: {
-        primaryAnswer = song.track.artist;
-        customAccepted = song.acceptedArtists || [];
-        break;
-      }
-      case QuestionType.FILL_IN_THE_GAP: {
-        const rawLyrics = song.lyricsGap || '';
-        const matches = [...rawLyrics.matchAll(/\{([^\}]+)\}/g)].map((m) => m[1]);
-        primaryAnswer = matches.length > 0 ? matches.join(' ') : rawLyrics;
-        customAccepted = song.acceptedLyricsGaps || [];
-        break;
-      }
-    }
-
-    const normalize = (str: string) =>
-      str
-        .toLowerCase()
-        .replace(/;/g, ' ')
-        .trim()
-        .replace(/[.,\/#!$%\^&\*:{}=\-_`~()?'"]/g, '')
-        .replace(/\s+/g, ' ');
-
-    const normalizedGuess = normalize(guess);
-    const candidateAnswers = [primaryAnswer, ...customAccepted];
-
-    return candidateAnswers.some((ans) => normalize(ans) === normalizedGuess);
+    return GuessMatcher.isGuessAccepted(song, guess);
   }
 
   private rotateTurn(): void {

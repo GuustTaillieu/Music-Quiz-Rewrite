@@ -14,6 +14,16 @@ export function useAiProfile() {
   });
 }
 
+export function useUnlinkGoogleAccountMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => aiQuizApi.unlinkGoogleAccount(),
+    onSuccess: (updatedProfile) => {
+      queryClient.setQueryData(AI_QUIZ_KEYS.profile, updatedProfile);
+    },
+  });
+}
+
 export function useSetApiKeyMutation() {
   const queryClient = useQueryClient();
   return useMutation({

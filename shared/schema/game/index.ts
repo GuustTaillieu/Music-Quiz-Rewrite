@@ -221,6 +221,8 @@ export const UserAiProfileSchema = z.object({
   aiCredits: z.number().int().nonnegative(),
   hasCustomKey: z.boolean(),
   customKeyMasked: z.string().nullable().optional(),
+  isGoogleLinked: z.boolean(),
+  googleEmail: z.string().nullable().optional(),
 });
 
 export type UserAiProfile = z.infer<typeof UserAiProfileSchema>;

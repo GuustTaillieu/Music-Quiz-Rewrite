@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '#/features/shared/components/ui/avatar';
 import { useAuthActions } from '..';
-import { Button } from '#/features/shared/components/ui/button';
-import { LogOut, Sparkles, KeyRound, ChevronDown } from 'lucide-react';
+import { LogOut, Sparkles, ChevronDown } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../hooks/useAuth';
-import { useAiProfile, GeminiApiKeyModal } from '#/features/ai-quiz';
+import { useAiProfile, GoogleAiAccountModal } from '#/features/ai-quiz';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -17,7 +17,7 @@ export function AuthBadge() {
   const { user } = useAuth();
   const { signOut } = useAuthActions();
   const { data: profile } = useAiProfile();
-  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   if (!user) return null;
 
@@ -42,7 +42,11 @@ export function AuthBadge() {
                   {user.name}
                 </span>
                 <span className="text-[9px] font-mono text-cyan-400 font-semibold flex items-center gap-1">
-                  {profile?.hasCustomKey ? (
+                  {profile?.isGoogleLinked ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <FcGoogle size={11} /> Google (Unlimited)
+                    </span>
+                  ) : profile?.hasCustomKey ? (
                     <span className="text-emerald-400">Gemini: Unlimited</span>
                   ) : (
                     <span>AI Credits: {profile?.aiCredits ?? 5}</span>
@@ -50,34 +54,43 @@ export function AuthBadge() {
                 </span>
               </div>
 
-              <ChevronDown size={12} className="text-slate-400 group-hover:text-cyan-400 mr-1 transition-transform group-data-[state=open]:rotate-180" />
+              <ChevronDown
+                size={12}
+                className="text-slate-400 group-hover:text-cyan-400 mr-1 transition-transform group-data-[state=open]:rotate-180"
+              />
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-56 p-2">
+          <DropdownMenuContent align="end" className="w-60 p-2">
             {/* AI Status Item */}
             <div className="px-2.5 py-2 rounded-xl bg-cyan-500/5 border border-cyan-500/15 mb-1.5">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-muted-foreground font-medium">AI Generation:</span>
                 <span className="font-mono font-bold text-[#00f0ff]">
-                  {profile?.hasCustomKey ? 'Custom Key' : `${profile?.aiCredits ?? 5} credits`}
+                  {profile?.isGoogleLinked
+                    ? 'Google Unlimited'
+                    : profile?.hasCustomKey
+                      ? 'Custom Key'
+                      : `${profile?.aiCredits ?? 5} credits`}
                 </span>
               </div>
               <p className="text-[9px] text-slate-400 mt-1 leading-tight">
-                {profile?.hasCustomKey
-                  ? 'Unlimited generations with personal key'
-                  : profile?.aiCredits === 0
-                    ? 'Credits empty. Connect your key to continue.'
-                    : 'Free platform quota'}
+                {profile?.isGoogleLinked
+                  ? 'Unlimited generations with your Google account'
+                  : profile?.hasCustomKey
+                    ? 'Unlimited generations with personal key'
+                    : profile?.aiCredits === 0
+                      ? 'Credits empty. Connect Google account for unlimited AI.'
+                      : 'Free platform quota'}
               </p>
             </div>
 
             <DropdownMenuItem
-              onClick={() => setShowKeyModal(true)}
+              onClick={() => setShowAiModal(true)}
               className="flex items-center gap-2 cursor-pointer text-xs"
             >
-              <KeyRound size={14} className="text-cyan-400" />
-              <span>Gemini API Key Settings</span>
+              <Sparkles size={14} className="text-cyan-400" />
+              <span>Google Gemini AI Settings</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -93,9 +106,9 @@ export function AuthBadge() {
         </DropdownMenu>
       </div>
 
-      <GeminiApiKeyModal
-        isOpen={showKeyModal}
-        onClose={() => setShowKeyModal(false)}
+      <GoogleAiAccountModal
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
       />
     </>
   );
