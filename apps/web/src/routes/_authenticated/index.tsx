@@ -1,8 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '#/features/shared/components/ui/button';
-import { HostDashboardHeader, ActiveSessionsTable, JoinCodeInput, CreateQuizModal, QuizList } from '#/features/host-dashboard';
+import {
+  HostDashboardHeader,
+  ActiveSessionsTable,
+  JoinCodeInput,
+  CreateQuizModal,
+  QuizList,
+} from '#/features/host-dashboard';
+import { AiQuizGenerateModal } from '#/features/ai-quiz';
 import { FloatingAudioControls } from '#/features/host-dashboard/components/FloatingAudioControls';
 
 export const Route = createFileRoute('/_authenticated/')({
@@ -11,6 +18,7 @@ export const Route = createFileRoute('/_authenticated/')({
 
 function HostDashboard() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   return (
     <div className="relative w-full min-h-screen flex flex-col bg-[#05070f] text-white">
@@ -29,41 +37,70 @@ function HostDashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <JoinCodeInput />
+
+            <Button
+              variant="spotify"
+              size="sm"
+              onClick={() => setIsAiModalOpen(true)}
+              className="shadow-[0_0_15px_rgba(29,185,84,0.3)] font-black"
+            >
+              <Sparkles size={14} className="text-emerald-200 animate-pulse" /> Generate with AI
+            </Button>
+
             <Button variant="cyan" size="sm" onClick={() => setIsCreateModalOpen(true)}>
-              <Plus size={14} /> Create Quiz
+              <Plus size={14} /> Create Manual Quiz
             </Button>
           </div>
         </div>
 
-        <QuizList loadingComponent={
-          <div className="flex items-center justify-center py-20 text-cyan-400 font-bold gap-2">
-            <Loader2 className="animate-spin" size={24} /> Loading Quiz Catalog...
-          </div>
-        }
+        <QuizList
+          loadingComponent={
+            <div className="flex items-center justify-center py-20 text-cyan-400 font-bold gap-2">
+              <Loader2 className="animate-spin" size={24} /> Loading Quiz Catalog...
+            </div>
+          }
           errorComponent={
             <div className="text-center py-20 bg-black/30 border border-cyan-500/10 rounded-2xl p-8">
               <h3 className="font-black text-xl text-white mb-2">Error Loading Quizzes</h3>
               <p className="text-xs text-muted-foreground max-w-md mx-auto mb-6 leading-relaxed">
                 Failed to load your quiz catalog. Please try again later.
               </p>
-              <Button variant="cyan" size="lg" onClick={() => setIsCreateModalOpen(true)}>
-                <Plus size={16} /> Create Your First Quiz
-              </Button>
+              <div className="flex items-center justify-center gap-3">
+                <Button variant="spotify" size="lg" onClick={() => setIsAiModalOpen(true)}>
+                  <Sparkles size={16} /> Generate with AI
+                </Button>
+                <Button variant="cyan" size="lg" onClick={() => setIsCreateModalOpen(true)}>
+                  <Plus size={16} /> Create Manual Quiz
+                </Button>
+              </div>
             </div>
           }
           emptyComponent={
             <div className="text-center py-20 bg-black/30 border border-cyan-500/10 rounded-2xl p-8">
+              <div className="h-12 w-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#00f0ff] mx-auto mb-3 shadow-[0_0_20px_rgba(0,240,255,0.2)]">
+                <Sparkles size={24} />
+              </div>
               <h3 className="font-black text-xl text-white mb-2">No Quizzes Found</h3>
               <p className="text-xs text-muted-foreground max-w-md mx-auto mb-6 leading-relaxed">
                 You haven&apos;t created any Spotify music quizzes yet.
                 <br />
-                Click the button below to create your first quiz.
+                Generate your first quiz instantly with AI or build one manually in Studio!
               </p>
-              <Button variant="cyan" size="lg" onClick={() => setIsCreateModalOpen(true)}>
-                <Plus size={16} /> Create Your First Quiz
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  variant="spotify"
+                  size="lg"
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="shadow-[0_0_20px_rgba(29,185,84,0.3)] font-bold"
+                >
+                  <Sparkles size={16} /> Generate with AI
+                </Button>
+                <Button variant="cyan" size="lg" onClick={() => setIsCreateModalOpen(true)}>
+                  <Plus size={16} /> Create Manual Quiz
+                </Button>
+              </div>
             </div>
           }
         />
@@ -72,6 +109,7 @@ function HostDashboard() {
       </main>
 
       <CreateQuizModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      <AiQuizGenerateModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} />
     </div>
   );
 }

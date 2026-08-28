@@ -10,7 +10,10 @@ export class SpotifyService {
     return this.spotifyServicePort.searchTracks(hostAccessToken, query);
   }
 
-  public async getLyrics(artist: string, title: string): Promise<{ plainLyrics: string | null }> {
+  public async getLyrics(
+    artist: string,
+    title: string,
+  ): Promise<{ plainLyrics: string | null; syncedLyrics: string | null }> {
     try {
       const url = `https://lrclib.net/api/search?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`;
       const response = await fetch(url, {
@@ -21,16 +24,19 @@ export class SpotifyService {
       if (response.ok) {
         const results = await response.json();
         if (Array.isArray(results) && results.length > 0) {
-          const matched = results.find((r) => r.plainLyrics);
-          if (matched?.plainLyrics) {
-            return { plainLyrics: matched.plainLyrics };
+          const matched = results.find((r) => r.syncedLyrics || r.plainLyrics);
+          if (matched) {
+            return {
+              plainLyrics: matched.plainLyrics ?? null,
+              syncedLyrics: matched.syncedLyrics ?? null,
+            };
           }
         }
       }
     } catch (e) {
       console.error('Lyrics fetch error in backend:', e);
     }
-    return { plainLyrics: null };
+    return { plainLyrics: null, syncedLyrics: null };
   }
 
   public async transferPlayback(token: string, deviceId: string): Promise<void> {

@@ -10,6 +10,7 @@ export interface QuizMeta {
   createdAt?: string;
   songCount?: number;
   forkedFromQuizId?: string | null;
+  isAiGenerated?: boolean;
   forkedFrom?: {
     id: string;
     title: string;
@@ -24,6 +25,7 @@ const clientQuizMetaSchema = z.object({
   createdAt: z.string().optional(),
   songCount: z.number().optional(),
   forkedFromQuizId: z.string().nullable().optional(),
+  isAiGenerated: z.boolean().optional(),
   forkedFrom: z.object({
     id: z.string(),
     title: z.string(),
