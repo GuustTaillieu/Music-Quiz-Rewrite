@@ -2,17 +2,23 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
-let envPath = path.join(process.cwd(), 'apps', 'backend', '.env.local');
+const potentialEnvPaths = [
+  path.join(process.cwd(), 'apps', 'backend', '.env.local'),
+  path.join(process.cwd(), 'apps', 'backend', '.env'),
+  path.join(process.cwd(), '.env.local'),
+  path.join(process.cwd(), '.env'),
+  path.resolve(__dirname, '../.env.local'),
+  path.resolve(__dirname, '../.env'),
+];
 
-if (!fs.existsSync(envPath)) {
-  envPath = path.join(process.cwd(), '.env.local');
-}
-if (!fs.existsSync(envPath)) {
-  envPath = path.resolve(__dirname, '../.env.local');
-}
+const foundPath = potentialEnvPaths.find((p) => fs.existsSync(p));
 
-console.log('Loading env file from:', envPath);
-const result = dotenv.config({ path: envPath });
-if (result.error) {
-  console.error('Error loading env file:', result.error);
+if (foundPath) {
+  console.log('[Env] Loading local environment file from:', foundPath);
+  dotenv.config({ path: foundPath });
+} else {
+  // In production (Render, Docker, CI), variables are injected directly into process.env
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[Env] No local .env file found; using system environment variables.');
+  }
 }
