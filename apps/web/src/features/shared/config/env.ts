@@ -38,9 +38,6 @@ export const env = validateWebEnv();
  */
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    if (env.PROD && env.VITE_API_URL) {
-      return env.VITE_API_URL;
-    }
     return window.location.origin;
   }
   return env.VITE_API_URL ?? 'http://127.0.0.1:3001';
