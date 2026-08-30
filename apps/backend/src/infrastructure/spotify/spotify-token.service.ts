@@ -3,6 +3,7 @@ import { eq, and } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database.constants';
 import type { DrizzleDb } from '../database/database.constants';
 import { account } from '../database/schema';
+import { env } from '../../env';
 
 @Injectable()
 export class SpotifyTokenService {
@@ -25,12 +26,8 @@ export class SpotifyTokenService {
       return this.clientCredentialsToken;
     }
 
-    const clientId = process.env.SPOTIFY_CLIENT_ID;
-    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-      throw new Error('Spotify Client credentials are not configured in environment variables.');
-    }
+    const clientId = env.SPOTIFY_CLIENT_ID;
+    const clientSecret = env.SPOTIFY_CLIENT_SECRET;
 
     try {
       const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');

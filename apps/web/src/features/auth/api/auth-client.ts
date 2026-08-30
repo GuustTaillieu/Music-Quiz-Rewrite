@@ -1,11 +1,7 @@
 import { createAuthClient } from 'better-auth/react';
-
-const isDev = import.meta.env.DEV;
+import { getApiBaseUrl } from '#/features/shared/config/env';
 
 export const authClient = createAuthClient({
-  baseURL: isDev
-    ? 'http://127.0.0.1:3001'
-    : typeof window !== 'undefined'
-      ? window.location.origin
-      : (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3001'),
+  baseURL: getApiBaseUrl(),
 });
+

@@ -16,6 +16,7 @@ import { SpotifyTokenService } from '../infrastructure/spotify/spotify-token.ser
 import { SpotifyService } from '../spotify/spotify.service';
 import { QuizzesService } from '../quizzes/quizzes.service';
 import { GuessMatcher } from '../domain/guess-matcher';
+import { env } from '../env';
 import type {
   GenerateQuizPayload,
   SuggestSongsPayload,
@@ -468,7 +469,7 @@ Please suggest ${payload.count} new, distinct songs that complement this quiz.`;
       return { apiKey: dbUser.customGeminiApiKey.trim(), isCustomKey: true };
     }
 
-    const platformKey = process.env.GEMINI_API_KEY?.trim();
+    const platformKey = env.GEMINI_API_KEY?.trim();
     if (!platformKey) {
       throw new BadRequestException(
         'Gemini API key is not configured on the server. Please connect your Google account or provide a Gemini API key in settings.',

@@ -6,6 +6,7 @@ import { DatabaseModule } from '../database/database.module';
 import { DATABASE_CONNECTION } from '../database/database.constants';
 import type { DrizzleDb } from '../database/database.constants';
 import * as schema from '../database/schema';
+import { env } from '../../env';
 
 import { eq } from 'drizzle-orm';
 
@@ -16,9 +17,21 @@ import { eq } from 'drizzle-orm';
       imports: [DatabaseModule],
       inject: [DATABASE_CONNECTION],
       useFactory: (db: DrizzleDb) => {
-        const isDev = process.env.NODE_ENV !== 'production';
-        const frontendUrl = process.env.FRONTEND_URL ?? 'http://127.0.0.1:3000';
-        const authBaseUrl = process.env.BETTER_AUTH_URL ?? `${frontendUrl}/api/auth`;
+        const isDev = env.NODE_ENV !== 'production';
+        const frontendUrl = env.FRONTEND_URL?.replace(/\/$/, '');
+
+        const trustedOrigins = isDev
+          ? [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:3001',
+            'http://127.0.0.1:3001',
+            'http://10.*:*',
+            'http://192.168.*:*',
+            'http://172.*:*',
+            ...(frontendUrl ? [frontendUrl] : []),
+          ]
+          : [frontendUrl!];
 
         const auth = betterAuth({
           database: drizzleAdapter(db, {
@@ -58,18 +71,17 @@ import { eq } from 'drizzle-orm';
               },
             },
           },
-          baseURL: authBaseUrl,
-          errorPage: `${frontendUrl}/?error=premium_required`,
-          trustedOrigins: [
-            frontendUrl,
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-            'http://127.0.0.1:3001',
-            'http://localhost:3001',
-            'https://*.netlify.app',
-          ],
+          baseURL: isDev
+            ? {
+              allowedHosts: trustedOrigins,
+              protocol: 'http',
+            }
+            : `${frontendUrl}/api/auth`,
+          errorPage: isDev ? '/?error=premium_required' : `${frontendUrl}/?error=premium_required`,
+          trustedOrigins,
           advanced: {
-            useSecureCookies: !isDev && authBaseUrl.startsWith('https://'),
+            trustedProxyHeaders: true,
+            useSecureCookies: !isDev && Boolean(frontendUrl?.startsWith('https://')),
           },
           account: {
             accountLinking: {
@@ -85,9 +97,8 @@ import { eq } from 'drizzle-orm';
           },
           socialProviders: {
             spotify: {
-              clientId: process.env.SPOTIFY_CLIENT_ID!,
-              clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-              redirectURI: `${frontendUrl}/api/auth/callback/spotify`,
+              clientId: env.SPOTIFY_CLIENT_ID,
+              clientSecret: env.SPOTIFY_CLIENT_SECRET,
               scope: [
                 'streaming',
                 'user-read-email',
@@ -107,15 +118,14 @@ import { eq } from 'drizzle-orm';
                 };
               },
             },
-            ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+            ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
               ? {
-                  google: {
-                    clientId: process.env.GOOGLE_CLIENT_ID,
-                    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-                    redirectURI: `${frontendUrl}/api/auth/callback/google`,
-                    scope: ['openid', 'email', 'profile'],
-                  },
-                }
+                google: {
+                  clientId: env.GOOGLE_CLIENT_ID,
+                  clientSecret: env.GOOGLE_CLIENT_SECRET,
+                  scope: ['openid', 'email', 'profile'],
+                },
+              }
               : {}),
           },
         });
@@ -127,4 +137,4 @@ import { eq } from 'drizzle-orm';
   ],
   exports: [NestBetterAuthModule],
 })
-export class AuthModule {}
+export class AuthModule { }

@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from '#/features/shared/config/env';
+
 export type FetchResult<T> =
   | { data: T; error: null }
   | { data: null; error: Error };
@@ -34,7 +36,7 @@ export async function apiFetch(
     const baseUrl =
       typeof window !== 'undefined'
         ? '/api'
-        : (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3000/api');
+        : `${getApiBaseUrl()}/api`;
 
     const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const url = endpoint.startsWith('http')

@@ -1,12 +1,7 @@
-const getDefaultWsUrl = () => {
-  if (typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.hostname}:3001`;
-  }
-  return 'http://localhost:3001';
-};
+import { getWsUrl } from '#/features/shared/config/env';
 
 export const GAME_CONFIG = Object.freeze({
-  WS_URL: import.meta.env.VITE_WS_URL ?? getDefaultWsUrl(),
+  WS_URL: getWsUrl(),
   DEFAULT_GUESSING_TIME_LIMIT_SECS: 30,
   FAST_GUESS_WARNING_TIME_LIMIT_SECS: 10,
   GET_READY_COUNTDOWN_SECS: 3,

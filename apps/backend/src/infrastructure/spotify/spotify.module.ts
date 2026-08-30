@@ -4,6 +4,7 @@ import { MockSpotifyService } from './mock-spotify.service';
 import { RealSpotifyService } from './real-spotify.service';
 import { SpotifyTokenService } from './spotify-token.service';
 import { DatabaseModule } from '../database/database.module';
+import { env } from '../../env';
 
 @Module({
   imports: [DatabaseModule],
@@ -12,10 +13,7 @@ import { DatabaseModule } from '../database/database.module';
     {
       provide: SpotifyService,
       useFactory: (tokenService: SpotifyTokenService) => {
-        const useMock =
-          process.env.USE_MOCK_SPOTIFY === 'true' ||
-          !process.env.SPOTIFY_CLIENT_ID ||
-          !process.env.SPOTIFY_CLIENT_SECRET;
+        const useMock = env.USE_MOCK_SPOTIFY;
         return useMock
           ? new MockSpotifyService()
           : new RealSpotifyService(tokenService);
