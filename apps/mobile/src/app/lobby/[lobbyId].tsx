@@ -28,7 +28,7 @@ export default function LobbyScreen() {
   const router = useRouter();
   const { lobbyId } = useLocalSearchParams<{ lobbyId: string }>();
   const { username } = usePlayerSession();
-  const { gameState, leaveLobby, submitGuess, lastGuessResult } = useQuizGame();
+  const { gameState, leaveLobby, submitGuess, passTurn, lastGuessResult } = useQuizGame();
   const { flashBanner, isSpeedMode } = useModeSwitchFlash();
 
   const [guessText, setGuessText] = useState('');
@@ -201,6 +201,19 @@ export default function LobbyScreen() {
                     autoFocus={!isDisabled}
                     onSubmitEditing={handleSubmit}
                   />
+                  {!isSpeedMode && (
+                    <TouchableOpacity
+                      className={cn(
+                        'px-4 py-3.5 bg-card-dark border border-neon-cyan/40 rounded-2xl items-center justify-center',
+                        isDisabled && 'opacity-50'
+                      )}
+                      onPress={passTurn}
+                      disabled={isDisabled}
+                      activeOpacity={0.8}
+                    >
+                      <Text className="text-neon-cyan font-bold text-xs">Pass</Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     className={cn(
                       'p-3.5 bg-neon-pink rounded-2xl items-center justify-center',

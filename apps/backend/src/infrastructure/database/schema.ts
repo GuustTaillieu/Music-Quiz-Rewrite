@@ -8,6 +8,8 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('emailVerified').notNull(),
   image: text('image'),
+  aiCredits: integer('ai_credits').default(5).notNull(),
+  customGeminiApiKey: text('custom_gemini_api_key'),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
 });
@@ -62,6 +64,7 @@ export const quizzes = pgTable('quizzes', {
   description: text('description'),
   creatorId: text('creator_id').notNull(), // Guest creator or Auth creator
   forkedFromQuizId: uuid('forked_from_quiz_id').references((): any => quizzes.id, { onDelete: 'set null' }),
+  isAiGenerated: boolean('is_ai_generated').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

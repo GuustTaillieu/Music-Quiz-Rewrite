@@ -9,15 +9,13 @@ import { InMemoryGameSessionRepository } from './in-memory-game-session.reposito
 
 import { DATABASE_CONNECTION } from './database.constants';
 import type { DrizzleDb } from './database.constants';
+import { env } from '../../env';
 
 const databaseProvider: Provider = {
   provide: DATABASE_CONNECTION,
   useFactory: () => {
-    const connectionString =
-      process.env.DATABASE_URL ??
-      'postgresql://postgres:postgres@localhost:5432/spotify_quiz';
-
-    const isProduction = process.env.NODE_ENV === 'production';
+    const connectionString = env.DATABASE_URL;
+    const isProduction = env.NODE_ENV === 'production';
     const hasSslParam =
       connectionString.includes('sslmode=require') ||
       connectionString.includes('ssl=true');

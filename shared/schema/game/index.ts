@@ -71,6 +71,7 @@ export const QuizMetaSchema = z.object({
   songCount: z.number().int().nonnegative().optional(),
   forkedFromQuizId: z.string().uuid().nullable().optional(),
   forkedFrom: ForkedFromInfoSchema.nullable().optional(),
+  isAiGenerated: z.boolean().optional(),
 });
 
 export type QuizMeta = z.infer<typeof QuizMetaSchema>;
@@ -183,7 +184,6 @@ export const JoinSuccessPayloadSchema = z.object({
 
 export type JoinSuccessPayload = z.infer<typeof JoinSuccessPayloadSchema>;
 
-
 export const CreateLobbyPayloadSchema = z.object({
   quizId: z.string().uuid('Invalid Quiz ID'),
 });
@@ -195,3 +195,41 @@ export const GuessPayloadSchema = z.object({
 });
 
 export type GuessPayload = z.infer<typeof GuessPayloadSchema>;
+
+// ============================================================================
+// 4. AI Quiz Generation Schemas
+// ============================================================================
+
+export const GenerateQuizPayloadSchema = z.object({
+  prompt: z.string().trim().min(3, 'Prompt must be at least 3 characters long'),
+  trackCount: z.number().int().min(3).max(20).default(10),
+  tags: z.array(z.string()).default([]),
+  targetMode: z.enum(['INSTANT_PLAY', 'STUDIO']).default('INSTANT_PLAY'),
+});
+
+export type GenerateQuizPayload = z.infer<typeof GenerateQuizPayloadSchema>;
+
+export const SuggestSongsPayloadSchema = z.object({
+  quizId: z.string().uuid('Invalid Quiz ID'),
+  prompt: z.string().trim().min(2, 'Prompt must be at least 2 characters long'),
+  count: z.number().int().min(1).max(10).default(3),
+});
+
+export type SuggestSongsPayload = z.infer<typeof SuggestSongsPayloadSchema>;
+
+export const UserAiProfileSchema = z.object({
+  aiCredits: z.number().int().nonnegative(),
+  hasCustomKey: z.boolean(),
+  customKeyMasked: z.string().nullable().optional(),
+  isGoogleLinked: z.boolean(),
+  googleEmail: z.string().nullable().optional(),
+});
+
+export type UserAiProfile = z.infer<typeof UserAiProfileSchema>;
+
+export const SetApiKeyPayloadSchema = z.object({
+  apiKey: z.string().trim().nullable(),
+});
+
+export type SetApiKeyPayload = z.infer<typeof SetApiKeyPayloadSchema>;
+

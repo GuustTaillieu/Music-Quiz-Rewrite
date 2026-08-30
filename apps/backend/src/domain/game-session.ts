@@ -8,6 +8,7 @@ import {
   RoundState,
   GameMode,
 } from '@spotify-music-quiz/shared/schema/game';
+import { GuessMatcher } from './guess-matcher';
 
 export class GameSession {
   private _players: Player[] = [];
@@ -20,7 +21,7 @@ export class GameSession {
   private _playersPassed: string[] = [];
   private _roundState: RoundState = RoundState.GUESSING;
   private _lastRoundWinnerId: string | null = null;
-  private _gameMode: GameMode = GameMode.TURN_BASED;
+  private _gameMode: GameMode = GameMode.SPEED_MODE;
   private _guessingTimeLimit = 30;
   private _roundEndTime: number | null = null;
 
@@ -71,10 +72,12 @@ export class GameSession {
       if (mode === GameMode.SPEED_MODE) {
         this._phase = GamePhase.SPEED_ROUND;
         this._activePlayerId = null;
+        this._songStarterPlayerId = null;
       } else {
         this._phase = GamePhase.TURN_BASED;
         if (!this._activePlayerId) {
-          this._activePlayerId = this.findNextTurnPlayer(null);
+          this._activePlayerId = this.getRoundStarter(this._currentSongIndex);
+          this._songStarterPlayerId = this._activePlayerId;
         }
       }
     }
@@ -206,18 +209,13 @@ export class GameSession {
     this._playersPassed = [];
     this._roundEndTime = null;
 
-    // Check if SPEED_MODE was selected or if remaining songs start past full turn-based rounds
-    const activeCount = this.getActivePlayersCount();
-    const maxTurnBasedIndex = activeCount > 0 ? Math.floor(this._quiz.songs.length / activeCount) * activeCount : 0;
-
-    if (this._gameMode === GameMode.SPEED_MODE || maxTurnBasedIndex === 0 || this._currentSongIndex >= maxTurnBasedIndex) {
+    if (this._gameMode === GameMode.SPEED_MODE) {
       this._phase = GamePhase.SPEED_ROUND;
       this._activePlayerId = null;
       this._songStarterPlayerId = null;
     } else {
       this._phase = GamePhase.TURN_BASED;
-      // Pick first non-disconnected player
-      this._activePlayerId = this.findNextTurnPlayer(null);
+      this._activePlayerId = this.getRoundStarter(0);
       this._songStarterPlayerId = this._activePlayerId;
     }
   }
@@ -380,41 +378,7 @@ export class GameSession {
   }
 
   private checkAnswer(song: typeof this._quiz.songs[0], guess: string): boolean {
-    let primaryAnswer = '';
-    let customAccepted: string[] = [];
-
-    switch (song.questionType) {
-      case QuestionType.TRACK_NAME: {
-        primaryAnswer = song.track.title;
-        customAccepted = song.acceptedTitles || [];
-        break;
-      }
-      case QuestionType.ARTIST_NAME: {
-        primaryAnswer = song.track.artist;
-        customAccepted = song.acceptedArtists || [];
-        break;
-      }
-      case QuestionType.FILL_IN_THE_GAP: {
-        const rawLyrics = song.lyricsGap || '';
-        const matches = [...rawLyrics.matchAll(/\{([^\}]+)\}/g)].map((m) => m[1]);
-        primaryAnswer = matches.length > 0 ? matches.join(' ') : rawLyrics;
-        customAccepted = song.acceptedLyricsGaps || [];
-        break;
-      }
-    }
-
-    const normalize = (str: string) =>
-      str
-        .toLowerCase()
-        .replace(/;/g, ' ')
-        .trim()
-        .replace(/[.,\/#!$%\^&\*:{}=\-_`~()?'"]/g, '')
-        .replace(/\s+/g, ' ');
-
-    const normalizedGuess = normalize(guess);
-    const candidateAnswers = [primaryAnswer, ...customAccepted];
-
-    return candidateAnswers.some((ans) => normalize(ans) === normalizedGuess);
+    return GuessMatcher.isGuessAccepted(song, guess);
   }
 
   private rotateTurn(): void {
@@ -426,6 +390,17 @@ export class GameSession {
       this._roundState = RoundState.REVEALED;
       this._lastRoundWinnerId = null;
     }
+  }
+
+  private getRoundStarter(songIndex: number): string | null {
+    const activeContestantIds = this._turnOrder.filter((id) => {
+      const player = this._players.find((p) => p.id === id);
+      return player && !player.isDisconnected && !player.isHost;
+    });
+
+    if (activeContestantIds.length === 0) return null;
+    const starterIdx = songIndex % activeContestantIds.length;
+    return activeContestantIds[starterIdx];
   }
 
   private findNextTurnPlayer(currentActive: string | null): string | null {
@@ -489,19 +464,15 @@ export class GameSession {
       return;
     }
 
-    const activeCount = this.getActivePlayersCount();
-    const maxTurnBasedIndex = activeCount > 0 ? Math.floor(total / activeCount) * activeCount : 0;
-
-    // SPEED ROUND Transition Check (Modulo / Unfairness Prevention)
-    if (this._gameMode === GameMode.SPEED_MODE || this._currentSongIndex >= maxTurnBasedIndex) {
+    if (this._gameMode === GameMode.SPEED_MODE) {
       this._phase = GamePhase.SPEED_ROUND;
       this._activePlayerId = null;
       this._songStarterPlayerId = null;
     } else {
-      // In Turn-Based Mode, select the next active player from the list
+      // In Turn-Based Mode, strictly rotate starter based on song index modulo active players
       this._phase = GamePhase.TURN_BASED;
-      this._songStarterPlayerId = this.findNextTurnPlayer(this._songStarterPlayerId);
-      this._activePlayerId = this._songStarterPlayerId;
+      this._activePlayerId = this.getRoundStarter(this._currentSongIndex);
+      this._songStarterPlayerId = this._activePlayerId;
     }
   }
 

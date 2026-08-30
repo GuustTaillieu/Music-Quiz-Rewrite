@@ -12,6 +12,7 @@ import { TimelineSlider } from '#/features/timeline-trimmer';
 import { LyricsGapEditor } from '#/features/lyrics-gap-builder';
 import { TrackCatalogSearch } from '#/features/track-search';
 import { ShareQuizModal, SyncSummaryModal } from '#/features/quiz-forking';
+import { AiStudioAssistantModal } from '#/features/ai-quiz';
 import { GAME_CONFIG } from '#/features/shared/constants/gameConfig';
 import type { QuizSong, SpotifyTrack } from '@spotify-music-quiz/shared/schema/game';
 
@@ -33,6 +34,7 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isAcceptedModalOpen, setIsAcceptedModalOpen] = useState(false);
   const [syncResult, setSyncResult] = useState<any | null>(null);
@@ -222,6 +224,7 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
           selectedSongIndex={selectedSongIndex}
           setSelectedSongIndex={setSelectedSongIndex}
           onOpenSearch={() => setIsSearchModalOpen(true)}
+          onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
           onRemoveTrack={handleRemoveTrack}
           onReorderSongs={(startIndex, endIndex) => {
             const result = Array.from(songs);
@@ -366,6 +369,15 @@ export function QuizEditorPage({ quizId }: QuizEditorPageProps) {
         songs={songs}
         handleAddTrack={handleAddTrack}
         handleRemoveTrackById={handleRemoveTrackById}
+      />
+
+      <AiStudioAssistantModal
+        isOpen={isAiAssistantOpen}
+        onClose={() => setIsAiAssistantOpen(false)}
+        quizId={quizId}
+        onAddSongs={(newSongs) => {
+          setSongs((prev) => [...prev, ...newSongs]);
+        }}
       />
 
       <ShareQuizModal

@@ -190,6 +190,31 @@ export class GameService {
     return session.getSanitizedState(playerId);
   }
 
+  public async leaveLobby(
+    lobbyId: string,
+    playerId: string,
+  ): Promise<{ isHost: boolean; state: GameSessionState | null }> {
+    const session = await this.gameSessionRepository.findById(lobbyId);
+    if (!session) {
+      return { isHost: false, state: null };
+    }
+
+    const player = session.players.find((p) => p.id === playerId);
+    const isHost = Boolean(player?.isHost || session.hostId === playerId);
+
+    if (isHost && session.phase === GamePhase.LOBBY) {
+      await this.gameSessionRepository.delete(lobbyId);
+      return { isHost: true, state: null };
+    }
+
+    session.removePlayer(playerId);
+    await this.gameSessionRepository.save(session);
+    return {
+      isHost,
+      state: session.getSanitizedState(playerId),
+    };
+  }
+
   public async addPlayer(
     lobbyId: string,
     playerToken: string,

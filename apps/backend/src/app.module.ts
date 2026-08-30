@@ -11,9 +11,10 @@ import { QuizzesController } from './quizzes/quizzes.controller';
 import { QuizzesService } from './quizzes/quizzes.service';
 import { SpotifyController } from './spotify/spotify.controller';
 import { SpotifyService } from './spotify/spotify.service';
+import { AiQuizModule } from './ai-quiz/ai-quiz.module';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, SpotifyModule],
+  imports: [DatabaseModule, AuthModule, SpotifyModule, AiQuizModule],
   controllers: [AppController, GameController, QuizzesController, SpotifyController],
   providers: [AppService, GameGateway, GameService, QuizzesService, SpotifyService],
 })

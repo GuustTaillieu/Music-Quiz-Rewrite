@@ -81,7 +81,7 @@ export function RoundSummaryOverlay({ username }: RoundSummaryOverlayProps) {
         ) : (
           <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-center gap-2 text-rose-400 text-xs font-bold">
             <XCircle size={16} />
-            <span>Nobody guessed it this round!</span>
+            <span>Nobody guessed correctly this round!</span>
           </div>
         )}
 

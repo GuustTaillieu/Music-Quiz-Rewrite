@@ -38,6 +38,7 @@ export class DrizzleQuizRepository implements QuizRepository {
       creatorId: result.creatorId,
       createdAt: result.createdAt.toISOString(),
       forkedFromQuizId: result.forkedFromQuizId,
+      isAiGenerated: result.isAiGenerated,
       forkedFrom: result.forkedFromQuiz
         ? {
             id: result.forkedFromQuiz.id,
@@ -90,6 +91,7 @@ export class DrizzleQuizRepository implements QuizRepository {
       description: result.description,
       creatorId: result.creatorId,
       createdAt: result.createdAt.toISOString(),
+      isAiGenerated: result.isAiGenerated,
       songCount: result.songs?.length ?? 0,
       forkedFromQuizId: result.forkedFromQuizId,
       forkedFrom: result.forkedFromQuiz
@@ -112,6 +114,7 @@ export class DrizzleQuizRepository implements QuizRepository {
           description: quiz.description,
           creatorId: quiz.creatorId,
           forkedFromQuizId: quiz.forkedFromQuizId ?? null,
+          isAiGenerated: quiz.isAiGenerated ?? false,
         })
         .returning();
 
@@ -147,6 +150,7 @@ export class DrizzleQuizRepository implements QuizRepository {
         creatorId: insertedQuiz.creatorId,
         createdAt: insertedQuiz.createdAt.toISOString(),
         forkedFromQuizId: insertedQuiz.forkedFromQuizId,
+        isAiGenerated: insertedQuiz.isAiGenerated,
         songs: insertedSongs.map((song) => ({
           id: song.id,
           originalSongId: song.originalSongId,
@@ -177,12 +181,17 @@ export class DrizzleQuizRepository implements QuizRepository {
     quiz: Omit<Quiz, 'createdAt' | 'id' | 'creatorId'>,
   ): Promise<Quiz> {
     return await this.db.transaction(async (tx) => {
+      const updatePayload: Record<string, any> = {
+        title: quiz.title,
+        description: quiz.description ?? null,
+      };
+      if (quiz.isAiGenerated !== undefined) {
+        updatePayload.isAiGenerated = quiz.isAiGenerated;
+      }
+
       const [updatedQuiz] = await tx
         .update(quizzes)
-        .set({
-          title: quiz.title,
-          description: quiz.description ?? null,
-        })
+        .set(updatePayload)
         .where(eq(quizzes.id, id))
         .returning();
 
@@ -226,6 +235,7 @@ export class DrizzleQuizRepository implements QuizRepository {
         creatorId: updatedQuiz.creatorId,
         createdAt: updatedQuiz.createdAt.toISOString(),
         forkedFromQuizId: updatedQuiz.forkedFromQuizId,
+        isAiGenerated: updatedQuiz.isAiGenerated,
         songs: insertedSongs.map((song) => ({
           id: song.id,
           originalSongId: song.originalSongId,

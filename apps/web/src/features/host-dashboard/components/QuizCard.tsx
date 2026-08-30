@@ -63,6 +63,14 @@ export function QuizCard({ quiz }: QuizCardProps) {
             {quiz.description || 'No description provided.'}
           </p>
 
+          {quiz.isAiGenerated && (
+            <div className="mb-3">
+              <Badge variant="default" className="text-[9px] font-extrabold shadow-[0_0_10px_rgba(0,240,255,0.2)]">
+                ✨ AI Generated
+              </Badge>
+            </div>
+          )}
+
           {quiz.forkedFrom && (
             <div className="mb-4">
               <Badge variant="magenta" className="text-[9px]">

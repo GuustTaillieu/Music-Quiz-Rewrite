@@ -9,6 +9,7 @@ interface QuizSongListProps {
   selectedSongIndex: number | null;
   setSelectedSongIndex: (index: number) => void;
   onOpenSearch: () => void;
+  onOpenAiAssistant?: () => void;
   onRemoveTrack: (index: number) => void;
   onReorderSongs: (startIndex: number, endIndex: number) => void;
 }
@@ -18,6 +19,7 @@ export function QuizSongList({
   selectedSongIndex,
   setSelectedSongIndex,
   onOpenSearch,
+  onOpenAiAssistant,
   onRemoveTrack,
   onReorderSongs,
 }: QuizSongListProps) {
@@ -31,9 +33,21 @@ export function QuizSongList({
             Quiz Tracks ({songs.length})
           </h3>
 
-          <Button variant="cyan" size="sm" onClick={onOpenSearch}>
-            <Plus size={12} /> Add Tracks
-          </Button>
+          <div className="flex items-center gap-1.5">
+            {onOpenAiAssistant && (
+              <Button
+                variant="spotify"
+                size="sm"
+                onClick={onOpenAiAssistant}
+                className="text-[11px] font-bold px-2 py-1 shadow-[0_0_10px_rgba(29,185,84,0.2)]"
+              >
+                ✨ AI Add
+              </Button>
+            )}
+            <Button variant="cyan" size="sm" onClick={onOpenSearch} className="text-[11px] px-2.5 py-1">
+              <Plus size={12} /> Search
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0 select-none">

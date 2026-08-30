@@ -13,6 +13,8 @@ export const GAME_EVENTS = Object.freeze({
     FORCE_REVEAL: 'force_reveal',
     END_GAME: 'end_game',
     HOST_AUDIO_STARTED: 'host_audio_started',
+    LEAVE_LOBBY: 'leave_lobby',
+    LOBBY_CLOSED: 'lobby_closed',
 });
 
 export type GameEvent = typeof GAME_EVENTS[keyof typeof GAME_EVENTS];

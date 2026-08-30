@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from '#/features/shared/config/env';
+
 export type FetchResult<T> =
   | { data: T; error: null }
   | { data: null; error: Error };
@@ -34,7 +36,7 @@ export async function apiFetch(
     const baseUrl =
       typeof window !== 'undefined'
         ? '/api'
-        : (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3000/api');
+        : `${getApiBaseUrl()}/api`;
 
     const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const url = endpoint.startsWith('http')
@@ -51,13 +53,18 @@ export async function apiFetch(
 
     if (!response.ok) {
       let errMsg = `Request failed with status ${response.status}`;
+      let errCode: string | undefined;
       try {
         const body = await response.json();
-        if (body && typeof body === 'object' && body.message) {
-          errMsg = body.message;
+        if (body && typeof body === 'object') {
+          if (body.message) errMsg = body.message;
+          if (body.code) errCode = body.code;
         }
       } catch { }
-      return { data: null, error: new Error(errMsg) };
+      const err = new Error(errMsg) as Error & { code?: string; status?: number };
+      err.code = errCode;
+      err.status = response.status;
+      return { data: null, error: err };
     }
 
     const json = await response.json();

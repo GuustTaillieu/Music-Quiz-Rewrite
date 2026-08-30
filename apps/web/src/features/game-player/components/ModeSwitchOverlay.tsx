@@ -7,27 +7,22 @@ interface ModeSwitchOverlayProps {
 export function ModeSwitchOverlay({ banner }: ModeSwitchOverlayProps) {
   if (!banner) return null;
 
-  const colorHex = banner.isSpeed ? '#ff007f' : '#00f0ff';
-  const shadowGlow = banner.isSpeed
-    ? 'shadow-[inset_0_0_160px_rgba(255,0,127,0.9),_0_0_90px_rgba(255,0,127,0.8)] border-[#ff007f]'
-    : 'shadow-[inset_0_0_160px_rgba(0,240,255,0.9),_0_0_90px_rgba(0,240,255,0.8)] border-[#00f0ff]';
+  const isSpeed = banner.isSpeed;
+  const glowStyle = isSpeed
+    ? 'border-[#ff007f]/60 bg-[#160614]/90 shadow-[0_0_35px_rgba(255,0,127,0.45)] text-[#ff007f]'
+    : 'border-[#00f0ff]/60 bg-[#04141e]/90 shadow-[0_0_35px_rgba(0,240,255,0.45)] text-[#00f0ff]';
 
   return (
-    <div
-      className={`fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/75 backdrop-blur-md transition-all duration-300 border-8 sm:border-[16px] ${shadowGlow}`}
-    >
-      <div className="flex flex-col items-center justify-center space-y-3 px-6 text-center animate-in fade-in zoom-in duration-300">
-        <h1
-          style={{ textShadow: `0 0 35px ${colorHex}` }}
-          className={`text-5xl sm:text-7xl font-black uppercase tracking-widest ${
-            banner.isSpeed ? 'text-[#ff007f]' : 'text-[#00f0ff]'
-          }`}
-        >
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none w-full max-w-sm px-4 flex justify-center">
+      <div
+        className={`w-full px-5 py-3 rounded-2xl border backdrop-blur-xl flex flex-col items-center justify-center text-center transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${glowStyle}`}
+      >
+        <span className="text-xl sm:text-2xl font-black uppercase tracking-widest drop-shadow-md">
           {banner.message}
-        </h1>
-        <p className="text-lg sm:text-2xl font-black text-white tracking-wide drop-shadow-lg">
+        </span>
+        <span className="text-xs sm:text-sm font-semibold text-white/90 tracking-wide mt-0.5">
           {banner.subtext}
-        </p>
+        </span>
       </div>
     </div>
   );
